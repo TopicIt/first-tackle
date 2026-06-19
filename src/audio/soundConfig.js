@@ -1,6 +1,12 @@
 export const availableAudioAssets = {
-  music: {},
-  sfx: {},
+  music: {
+    ambient_day: '/assets/audio/music/ambient_day.mp3',
+    ambient_evening: '/assets/audio/music/ambient_evening.mp3.mp3',
+    theme: '/assets/audio/music/theme.mp3.mp3',
+  },
+  sfx: {
+    catch_success: '/assets/audio/music/sfx/catch%20success.mp3',
+  },
 };
 
 export const fallbackSoundPresets = {

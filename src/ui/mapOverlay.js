@@ -1,5 +1,5 @@
 import { MAP_HOTSPOTS } from '../game/mapHotspots.js';
-import { ROAD_CAR_LOOP_MS, ROAD_CAR_PATH } from '../game/mapPaths.js';
+import { ROAD_CAR_LOOP_MS, ROAD_CAR_PATH, ROAD_CAR_VISIBLE_RATIO } from '../game/mapPaths.js';
 import { t } from '../i18n/i18n.js';
 import './mapOverlay.css';
 
@@ -30,16 +30,17 @@ export function mapOverlayMarkup(state) {
 
 function hotspotMarkup(hotspot, state) {
   const selected = state.ui?.selectedHotspot === hotspot.id ? ' is-selected' : '';
+  const shapeClass = ` map-hotspot--${hotspot.type ?? 'ellipse'}`;
+  const style = hotspotStyle(hotspot);
   return `
     <button
-      class="map-hotspot${selected}"
+      class="map-hotspot${shapeClass}${selected}"
       data-action="open:${hotspot.scene}"
-      style="--x: ${hotspot.x}%; --y: ${hotspot.y}%"
+      style="${style}"
       type="button"
       aria-label="${t(hotspot.actionKey)}"
     >
-      <span class="map-hotspot__ring"></span>
-      <span class="map-hotspot__dot"></span>
+      <span class="map-hotspot__area"></span>
       <span class="map-hotspot__label">${t(hotspot.labelKey)}</span>
     </button>
   `;
@@ -48,13 +49,42 @@ function hotspotMarkup(hotspot, state) {
 export function updateMapOverlayMotion(elapsedMs) {
   const car = document.querySelector('.illustrated-map__car');
   if (!car || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (car) {
+      car.classList.remove('is-visible');
+    }
     return;
   }
 
-  const pathPosition = getPathPosition((elapsedMs % ROAD_CAR_LOOP_MS) / ROAD_CAR_LOOP_MS);
+  const cycleProgress = (elapsedMs % ROAD_CAR_LOOP_MS) / ROAD_CAR_LOOP_MS;
+  if (cycleProgress > ROAD_CAR_VISIBLE_RATIO) {
+    car.classList.remove('is-visible');
+    return;
+  }
+
+  const pathPosition = getPathPosition(cycleProgress / ROAD_CAR_VISIBLE_RATIO);
   car.style.left = `${pathPosition.x}%`;
   car.style.top = `${pathPosition.y}%`;
   car.style.transform = `translate(-50%, -50%) rotate(${pathPosition.rotation}deg)`;
+  car.classList.add('is-visible');
+}
+
+function hotspotStyle(hotspot) {
+  if (hotspot.type === 'polygon') {
+    return [
+      `--points: polygon(${hotspot.points})`,
+      `--label-x: ${hotspot.labelX}%`,
+      `--label-y: ${hotspot.labelY}%`,
+    ].join(';');
+  }
+
+  return [
+    `--x: ${hotspot.x}%`,
+    `--y: ${hotspot.y}%`,
+    `--w: ${hotspot.width}%`,
+    `--h: ${hotspot.height}%`,
+    `--label-x: ${hotspot.x}%`,
+    `--label-y: ${hotspot.y}%`,
+  ].join(';');
 }
 
 function getPathPosition(progress) {

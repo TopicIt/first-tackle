@@ -4,6 +4,8 @@ import { mapOverlayMarkup } from './mapOverlay.js';
 import { getLanguage, t } from '../i18n/i18n.js';
 
 export function createHud(root, handlers) {
+  const shownFeedbackIds = new Set();
+
   root.addEventListener('input', (event) => {
     const input = event.target.closest('[data-audio-setting]');
     if (!input) {
@@ -49,53 +51,73 @@ export function createHud(root, handlers) {
 
   return {
     render(state, context) {
-      root.innerHTML = `
-        ${mapOverlayMarkup(state)}
+      const visibleFeedback = (state.feedback ?? []).filter((feedback) => !shownFeedbackIds.has(feedback.id));
+      const renderState = { ...state, feedback: visibleFeedback };
+      const collapsedPanels = state.ui?.collapsedPanels ?? {};
+      const statusCollapsed = collapsedPanels.status ? ' is-collapsed' : '';
+      const inventoryCollapsed = collapsedPanels.inventory ? ' is-collapsed' : '';
 
-        <section class="panel status-panel">
-          <h1 class="title">${t('appTitle')}</h1>
-          <div class="money">
-            <span>${t('coins')}</span>
-            <strong>${state.money}</strong>
+      root.innerHTML = `
+        ${mapOverlayMarkup(renderState)}
+
+        <section class="panel status-panel${statusCollapsed}">
+          <div class="panel-toggle-row">
+            <h1 class="title">${t('appTitle')}</h1>
+            <button class="panel-toggle" data-action="panel:toggle:status" type="button">
+              ${collapsedPanels.status ? t('show') : t('hide')}
+            </button>
           </div>
-          <p class="hint"><strong>${context.zoneLabel}</strong><br>${context.hint}</p>
-          <div class="debug-line">
-            <span>${t('currentZone')}: <strong>${context.zoneLabel}</strong></span>
-            <span>${t('availableActions')}: <strong>${context.availableActionLabels.join(', ')}</strong></span>
-          </div>
-          <div class="save-row">
-            <button data-action="save" type="button">${t('save')}</button>
-            <button data-action="load" type="button">${t('load')}</button>
-            <button data-action="reset" type="button">${t('reset')}</button>
-            <button data-language-toggle="true" type="button" aria-label="Switch language">${getLanguage().toUpperCase()} / ${t('languageToggle')}</button>
-          </div>
-          <div class="audio-settings">
-            <label class="audio-toggle">
-              <input data-audio-setting="soundEnabled" type="checkbox"${state.settings.audio.soundEnabled ? ' checked' : ''} />
-              <span>${t('sound')}</span>
-            </label>
-            <label class="audio-toggle">
-              <input data-audio-setting="musicEnabled" type="checkbox"${state.settings.audio.musicEnabled ? ' checked' : ''} />
-              <span>${t('music')}</span>
-            </label>
-            <label class="audio-range">
-              <span>${t('sfxVolume')}</span>
-              <input data-audio-setting="sfxVolume" type="range" min="0" max="1" step="0.05" value="${state.settings.audio.sfxVolume}" />
-            </label>
-            <label class="audio-range">
-              <span>${t('musicVolume')}</span>
-              <input data-audio-setting="musicVolume" type="range" min="0" max="1" step="0.05" value="${state.settings.audio.musicVolume}" />
-            </label>
+          <div class="panel-collapsible">
+            <div class="money">
+              <span>${t('coins')}</span>
+              <strong>${state.money}</strong>
+            </div>
+            <p class="hint"><strong>${context.zoneLabel}</strong><br>${context.hint}</p>
+            <div class="debug-line">
+              <span>${t('currentZone')}: <strong>${context.zoneLabel}</strong></span>
+              <span>${t('availableActions')}: <strong>${context.availableActionLabels.join(', ')}</strong></span>
+            </div>
+            <div class="save-row">
+              <button data-action="save" type="button">${t('save')}</button>
+              <button data-action="load" type="button">${t('load')}</button>
+              <button data-action="reset" type="button">${t('reset')}</button>
+              <button data-language-toggle="true" type="button" aria-label="Switch language">${getLanguage().toUpperCase()} / ${t('languageToggle')}</button>
+            </div>
+            <div class="audio-settings">
+              <label class="audio-toggle">
+                <input data-audio-setting="soundEnabled" type="checkbox"${state.settings.audio.soundEnabled ? ' checked' : ''} />
+                <span>${t('sound')}</span>
+              </label>
+              <label class="audio-toggle">
+                <input data-audio-setting="musicEnabled" type="checkbox"${state.settings.audio.musicEnabled ? ' checked' : ''} />
+                <span>${t('music')}</span>
+              </label>
+              <label class="audio-range">
+                <span>${t('sfxVolume')}</span>
+                <input data-audio-setting="sfxVolume" type="range" min="0" max="1" step="0.05" value="${state.settings.audio.sfxVolume}" />
+              </label>
+              <label class="audio-range">
+                <span>${t('musicVolume')}</span>
+                <input data-audio-setting="musicVolume" type="range" min="0" max="1" step="0.05" value="${state.settings.audio.musicVolume}" />
+              </label>
+            </div>
           </div>
         </section>
 
-        <section class="panel inventory-panel">
-          <p class="section-label">${t('inventory')}</p>
-          <ul class="inventory-list">${inventoryMarkup(state)}</ul>
-          <p class="section-label">${t('shop')}</p>
-          <ul class="shop-list">${shopMarkup(state)}</ul>
-          <p class="section-label">${t('fishPrices')}</p>
-          <ul class="shop-list">${fishPricesMarkup()}</ul>
+        <section class="panel inventory-panel${inventoryCollapsed}">
+          <div class="panel-toggle-row">
+            <p class="section-label">${t('inventory')}</p>
+            <button class="panel-toggle" data-action="panel:toggle:inventory" type="button">
+              ${collapsedPanels.inventory ? t('show') : t('hide')}
+            </button>
+          </div>
+          <div class="panel-collapsible">
+            <ul class="inventory-list">${inventoryMarkup(state)}</ul>
+            <p class="section-label">${t('shop')}</p>
+            <ul class="shop-list">${shopMarkup(state)}</ul>
+            <p class="section-label">${t('fishPrices')}</p>
+            <ul class="shop-list">${fishPricesMarkup()}</ul>
+          </div>
         </section>
 
         <section class="panel actions-panel">
@@ -109,8 +131,12 @@ export function createHud(root, handlers) {
           <ul class="log-list">${logMarkup(state)}</ul>
         </section>
 
-        ${locationSceneMarkup(state, context)}
+        ${locationSceneMarkup(renderState, context)}
       `;
+
+      for (const feedback of visibleFeedback) {
+        shownFeedbackIds.add(feedback.id);
+      }
     },
   };
 }

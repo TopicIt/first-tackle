@@ -54,6 +54,17 @@ const hud = createHud(hudRoot, {
       return;
     }
 
+    if (actionId.startsWith('panel:toggle:')) {
+      const panelId = actionId.replace('panel:toggle:', '');
+      gameState.ui.collapsedPanels = {
+        ...(gameState.ui.collapsedPanels ?? {}),
+        [panelId]: !gameState.ui.collapsedPanels?.[panelId],
+      };
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
     if (actionId.startsWith('minigame:start:')) {
       const method = actionId.replace('minigame:start:', '');
       const normalizedMethod = method === 'liveBait' ? 'liveBait' : method;

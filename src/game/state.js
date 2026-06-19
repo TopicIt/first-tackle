@@ -90,6 +90,12 @@ export function createInitialState() {
       selectedHotspot: null,
       catchResult: null,
       fishingMinigame: null,
+      collapsedPanels: {
+        status: false,
+        inventory: false,
+        fishingControls: false,
+        fishingResult: false,
+      },
     },
     feedback: [],
     log: [],
@@ -111,12 +117,22 @@ export function pushLog(state, key, params = {}) {
 }
 
 export function pushFeedback(state, key, params = {}, type = 'item') {
+  const createdAt = Date.now();
+  const latest = state.feedback?.[0];
+  const sameMessage = latest && latest.key === key && latest.type === type
+    && JSON.stringify(latest.params ?? {}) === JSON.stringify(params ?? {});
+
+  if (sameMessage && createdAt - (latest.createdAt ?? 0) < 500) {
+    return;
+  }
+
   state.feedback = [
     {
-      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      id: `${createdAt}-${Math.random().toString(16).slice(2)}`,
       key,
       params,
       type,
+      createdAt,
     },
     ...(state.feedback ?? []),
   ].slice(0, 4);

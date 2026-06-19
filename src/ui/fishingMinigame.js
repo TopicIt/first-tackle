@@ -23,6 +23,9 @@ export function fishingMinigameMarkup(state) {
 
   const result = state.ui?.catchResult;
   const fish = result ? getFishData(result.id) : null;
+  const collapsedPanels = state.ui?.collapsedPanels ?? {};
+  const controlsCollapsed = collapsedPanels.fishingControls ? ' is-controls-collapsed' : '';
+  const resultCollapsed = collapsedPanels.fishingResult ? ' is-result-collapsed' : '';
 
   return `
     <section class="fishing-minigame" aria-label="${t('fishingTitle')}">
@@ -47,8 +50,15 @@ export function fishingMinigameMarkup(state) {
           <button class="scene-close" data-action="minigame:back" type="button">${t('backToPond')}</button>
         </header>
 
-        <div class="fishing-minigame__layout">
+        <div class="fishing-minigame__layout${controlsCollapsed}${resultCollapsed}">
           <aside class="fishing-minigame__controls">
+            <div class="fishing-minigame__panel-heading">
+              <p class="section-label">${t('controls')}</p>
+              <button class="panel-toggle" data-action="panel:toggle:fishingControls" type="button">
+                ${collapsedPanels.fishingControls ? t('show') : t('hide')}
+              </button>
+            </div>
+            <div class="fishing-minigame__controls-body">
             <section class="fishing-panel">
               <p class="section-label">${t('chooseBait')}</p>
               <div class="bait-grid">
@@ -65,15 +75,18 @@ export function fishingMinigameMarkup(state) {
             </section>
 
             <section class="fishing-panel fishing-panel__actions">
-              <button data-action="minigame:cast" type="button">${t('cast')}</button>
+              <button data-action="minigame:cast" type="button"${canCast(minigame) ? '' : ' disabled'}>${t('cast')}</button>
               ${minigame.phase === 'strike_window'
                 ? `<button class="strike" data-action="minigame:strike" type="button">${t('strike')}</button>`
                 : ''}
             </section>
+            </div>
           </aside>
 
           <section class="fishing-minigame__stage">
-            <div class="fishing-stage">
+            <div class="fishing-stage" style="${bobberStyle(minigame)}">
+              <div class="fishing-stage__waterline" aria-hidden="true"></div>
+              <div class="fishing-stage__distance-line" aria-hidden="true"></div>
               <div class="fishing-stage__rings fishing-stage__rings--${minigame.bobberState}"></div>
               <div
                 class="fishing-stage__bobber fishing-stage__bobber--${minigame.bobberState}"
@@ -83,10 +96,11 @@ export function fishingMinigameMarkup(state) {
                 <span class="fishing-stage__bobber-bottom"></span>
                 <span class="fishing-stage__line"></span>
               </div>
+              <span class="fishing-stage__hint">${t(getBobberHintKey(minigame))}</span>
             </div>
           </section>
 
-          ${fish ? catchResultCardMarkup(state, fish, result, minigame) : resultStatusMarkup(minigame)}
+          ${fish ? catchResultCardMarkup(state, fish, result, minigame, collapsedPanels) : resultStatusMarkup(minigame, collapsedPanels)}
         </div>
       </div>
     </section>
@@ -113,13 +127,20 @@ function zoneButtonMarkup(zoneId, selectedZone) {
   `;
 }
 
-function catchResultCardMarkup(state, fish, result, minigame) {
+function catchResultCardMarkup(state, fish, result, minigame, collapsedPanels) {
   const image = getCatchImage(result.id);
   const entry = state.fishBasket?.find((item) => item.id === minigame.currentCatchEntryId);
   const liveBaitDisabled = !entry?.isLiveBaitEligible ? ' disabled' : '';
 
   return `
     <section class="fishing-result">
+      <div class="fishing-minigame__panel-heading">
+        <p class="section-label">${t('caught')}</p>
+        <button class="panel-toggle" data-action="panel:toggle:fishingResult" type="button">
+          ${collapsedPanels.fishingResult ? t('show') : t('hide')}
+        </button>
+      </div>
+      <div class="fishing-result__body">
       <div class="fishing-result__frame">
         <img src="${image}" alt="" />
       </div>
@@ -139,17 +160,25 @@ function catchResultCardMarkup(state, fish, result, minigame) {
         <button data-action="minigame:castAgain" type="button">${t('castAgain')}</button>
         <button data-action="minigame:back" type="button">${t('backToPond')}</button>
       </div>
+      </div>
     </section>
   `;
 }
 
-function resultStatusMarkup(minigame) {
+function resultStatusMarkup(minigame, collapsedPanels) {
   if (minigame.phase !== 'result' || minigame.result?.outcome === 'caught') {
     return '';
   }
 
   return `
     <section class="fishing-result fishing-result--compact">
+      <div class="fishing-minigame__panel-heading">
+        <p class="section-label">${t('status')}</p>
+        <button class="panel-toggle" data-action="panel:toggle:fishingResult" type="button">
+          ${collapsedPanels.fishingResult ? t('show') : t('hide')}
+        </button>
+      </div>
+      <div class="fishing-result__body">
       <div class="fishing-result__copy">
         <p class="section-label">${t('caught')}</p>
         <h3>${t(minigame.statusKey)}</h3>
@@ -158,13 +187,51 @@ function resultStatusMarkup(minigame) {
         <button data-action="minigame:castAgain" type="button">${t('castAgain')}</button>
         <button data-action="minigame:back" type="button">${t('backToPond')}</button>
       </div>
+      </div>
     </section>
   `;
 }
 
 function bobberStyle(minigame) {
   const target = minigame.castTarget ?? { x: 18, y: 68 };
-  return `--bobber-x:${target.x}%;--bobber-y:${target.y}%;`;
+  const scale = getZoneScale(minigame.selectedZone);
+  return `--bobber-x:${target.x}%;--bobber-y:${target.y}%;--bobber-scale:${scale};--ripple-scale:${scale};`;
+}
+
+function canCast(minigame) {
+  return Boolean(minigame.selectedBait && minigame.selectedZone && ['setup', 'result'].includes(minigame.phase));
+}
+
+function getZoneScale(zone) {
+  if (zone === 'near_bank') {
+    return 1.15;
+  }
+
+  if (zone === 'reed_edge') {
+    return 0.82;
+  }
+
+  return 1;
+}
+
+function getBobberHintKey(minigame) {
+  if (minigame.phase === 'strike_window') {
+    return 'fishingStrikeNow';
+  }
+
+  if (minigame.bobberState === 'tiny_nibble') {
+    return 'fishingSmallMovement';
+  }
+
+  if (['lift', 'slow_dip', 'sideways_pull', 'submerged'].includes(minigame.bobberState)) {
+    return 'fishingCarefulBite';
+  }
+
+  if (minigame.bobberState === 'hard_dip') {
+    return 'fishingStrongBite';
+  }
+
+  return minigame.statusKey;
 }
 
 function getCatchImage(fishId) {

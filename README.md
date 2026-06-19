@@ -13,12 +13,13 @@ Open the local URL printed by Vite.
 
 ## Current Features
 
-- Illustrated world map with clickable hotspots for House, Garden, Pond, and Market.
+- Illustrated world map with clickable area zones for House, Garden, Canal, and Market.
 - EN/UK localization with saved language selection.
 - Animated location scenes and an animated road car on the world map.
 - House crafting and fish processing flow for primitive tackle, cleaning, salting, drying, and taranka.
 - Garden bait gathering and basic progression shop loop.
 - Dedicated float fishing minigame with bait selection, cast zones, bite patterns, strike timing, and catch result cards.
+- Collapsible HUD, inventory, fishing controls, and result panels for a cleaner scene view.
 - Individual fish inventory entries with saved weight, value, day caught, and processing status.
 - Audio settings with browser-safe activation and Web Audio fallback sounds.
 - Save, load, and reset through `localStorage`.
@@ -76,6 +77,22 @@ Expected music or ambient filenames:
 - `theme.mp3`
 
 If these files are not present, the game uses built-in Web Audio fallback sounds for click, open/close, cast, plop, nibble, strong bite, strike, catch success, escape, line break, coins, crafting, bait gathering, selling, and drying actions. This keeps the UI responsive without requiring external services or video files.
+
+## Audio Prompt Ideas
+
+Suggested external-generation prompts for optional music:
+
+- Ambient daytime loop: "Quiet rural Ukrainian village canal ambience, soft wind, distant road, birds, insects, gentle water, warm summer afternoon, seamless loop, no vocals, no percussion, 60 seconds."
+- Evening fishing loop: "Peaceful evening fishing ambience near a small village canal, crickets, soft water, distant dog bark, light breeze, warm nostalgic mood, seamless loop, no vocals, 60 seconds."
+- Main theme: "Minimal cozy acoustic folk ambient theme for a rural fishing game, soft guitar or bandura-like plucked strings, warm nostalgic Ukrainian countryside mood, no vocals, seamless loop, 90 seconds."
+
+Suggested SFX prompts:
+
+- "small fishing float plop into calm water, short clean sound"
+- "tiny fish nibble on bobber, subtle water tick"
+- "strong fish bite splash, short"
+- "fishing line snap, short dry sound"
+- "small coins clink, pleasant UI reward"
 
 ## Project Structure
 

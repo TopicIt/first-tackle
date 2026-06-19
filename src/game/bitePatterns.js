@@ -3,7 +3,7 @@ export const castZones = ['near_bank', 'mid_water', 'reed_edge'];
 export const biteProfiles = {
   rotan: {
     difficulty: 0.28,
-    hookWindowMs: [800, 1400],
+    hookWindowMs: [900, 1500],
     preferred: {
       methods: ['handline'],
       zones: ['near_bank'],
@@ -17,7 +17,7 @@ export const biteProfiles = {
   },
   crucian: {
     difficulty: 0.35,
-    hookWindowMs: [1400, 2400],
+    hookWindowMs: [1500, 2600],
     preferred: {
       methods: ['stickRod'],
       zones: ['mid_water', 'reed_edge'],
@@ -31,7 +31,7 @@ export const biteProfiles = {
   },
   bleak: {
     difficulty: 0.54,
-    hookWindowMs: [500, 900],
+    hookWindowMs: [600, 1000],
     preferred: {
       methods: ['stickRod'],
       zones: ['mid_water'],
@@ -44,7 +44,7 @@ export const biteProfiles = {
   },
   roach: {
     difficulty: 0.46,
-    hookWindowMs: [900, 1500],
+    hookWindowMs: [1000, 1700],
     preferred: {
       methods: ['stickRod'],
       zones: ['mid_water', 'reed_edge'],
@@ -57,7 +57,7 @@ export const biteProfiles = {
   },
   rudd: {
     difficulty: 0.42,
-    hookWindowMs: [1000, 1800],
+    hookWindowMs: [1100, 1900],
     preferred: {
       methods: ['stickRod'],
       zones: ['reed_edge'],
@@ -70,7 +70,7 @@ export const biteProfiles = {
   },
   loach: {
     difficulty: 0.48,
-    hookWindowMs: [1600, 2600],
+    hookWindowMs: [1700, 2800],
     preferred: {
       methods: ['handline', 'stickRod'],
       zones: ['near_bank'],
@@ -96,13 +96,13 @@ export const biteProfiles = {
 };
 
 export const stateDurationsMs = {
-  idle: [900, 1600],
-  tiny_nibble: [280, 520],
-  lift: [360, 620],
-  slow_dip: [620, 1000],
-  hard_dip: [220, 420],
-  sideways_pull: [300, 560],
-  submerged: [260, 620],
+  idle: [900, 1700],
+  tiny_nibble: [650, 1200],
+  lift: [850, 1400],
+  slow_dip: [1100, 1800],
+  hard_dip: [650, 1000],
+  sideways_pull: [900, 1500],
+  submerged: [700, 1100],
 };
 
 export function getBiteProfile(fishId) {

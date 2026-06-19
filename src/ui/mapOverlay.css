@@ -34,10 +34,10 @@
 }
 
 .illustrated-map__water {
-  left: 39%;
-  top: 31%;
-  width: 22%;
-  height: 20%;
+  left: 27%;
+  top: 23%;
+  width: 13%;
+  height: 48%;
   border-radius: 50%;
   background:
     repeating-linear-gradient(115deg, transparent 0 11px, rgb(180 235 248 / 16%) 12px 14px),
@@ -50,10 +50,16 @@
 .illustrated-map__car {
   left: 53%;
   top: 94%;
-  width: 28px;
-  height: 46px;
+  width: 13px;
+  height: 22px;
+  opacity: 0;
   transform: translate(-50%, -50%) rotate(-11deg);
+  transition: opacity 0.7s ease;
   will-change: left, top, transform;
+}
+
+.illustrated-map__car.is-visible {
+  opacity: 0.68;
 }
 
 .illustrated-map__car-shadow,
@@ -65,73 +71,73 @@
 }
 
 .illustrated-map__car-shadow {
-  inset: 4px 6px;
-  border-radius: 10px;
+  inset: 3px 3px;
+  border-radius: 6px;
   background: rgb(0 0 0 / 22%);
-  filter: blur(4px);
+  filter: blur(2px);
 }
 
 .illustrated-map__car-body {
-  inset: 4px 5px;
+  inset: 2px 2px;
   border: 1px solid rgb(31 42 35 / 45%);
-  border-radius: 8px;
+  border-radius: 4px;
   background:
     linear-gradient(180deg, #f7d874 0%, #df9b2c 100%);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 45%);
 }
 
 .illustrated-map__car-glass {
-  left: 4px;
-  right: 4px;
-  top: 9px;
-  height: 15px;
-  border-radius: 5px;
+  left: 3px;
+  right: 3px;
+  top: 6px;
+  height: 7px;
+  border-radius: 3px;
   background: linear-gradient(180deg, rgb(212 244 255 / 92%), rgb(90 130 152 / 76%));
 }
 
 .illustrated-map__car-light {
   left: 50%;
-  width: 10px;
-  height: 3px;
+  width: 5px;
+  height: 2px;
   border-radius: 999px;
   transform: translateX(-50%);
 }
 
 .illustrated-map__car-light--front {
-  top: 2px;
+  top: 1px;
   background: rgb(255 248 216 / 88%);
 }
 
 .illustrated-map__car-light--rear {
-  bottom: 2px;
+  bottom: 1px;
   background: rgb(203 69 56 / 86%);
 }
 
 .illustrated-map__car-wheel {
-  width: 4px;
-  height: 10px;
+  width: 2px;
+  height: 5px;
   border-radius: 999px;
   background: rgb(24 24 24 / 82%);
 }
 
 .illustrated-map__car-wheel--front-left {
-  left: 4px;
-  top: 9px;
+  left: 1px;
+  top: 6px;
 }
 
 .illustrated-map__car-wheel--front-right {
-  right: 4px;
-  top: 9px;
+  right: 1px;
+  top: 6px;
 }
 
 .illustrated-map__car-wheel--rear-left {
-  left: 4px;
-  bottom: 9px;
+  left: 1px;
+  bottom: 6px;
 }
 
 .illustrated-map__car-wheel--rear-right {
-  right: 4px;
-  bottom: 9px;
+  right: 1px;
+  bottom: 6px;
 }
 
 .illustrated-map__hotspots {
@@ -142,45 +148,60 @@
 .map-hotspot {
   --hotspot-color: #f3c45f;
   position: absolute;
-  left: var(--x);
-  top: var(--y);
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
+  display: block;
   border: 0;
-  border-radius: 999px;
   padding: 0;
   background: transparent;
-  transform: translate(-50%, -50%);
 }
 
-.map-hotspot__ring,
-.map-hotspot__dot {
-  position: absolute;
+.map-hotspot--rect,
+.map-hotspot--ellipse {
+  left: calc(var(--x) - var(--w) / 2);
+  top: calc(var(--y) - var(--h) / 2);
+  width: var(--w);
+  height: var(--h);
+}
+
+.map-hotspot--rect {
+  border-radius: 16px;
+}
+
+.map-hotspot--ellipse {
   border-radius: 999px;
 }
 
-.map-hotspot__ring {
-  width: 44px;
-  height: 44px;
-  border: 2px solid var(--hotspot-color);
-  background: rgb(243 196 95 / 14%);
-  box-shadow: 0 0 30px rgb(243 196 95 / 46%);
-  animation: hotspotPulse 2.4s ease-out infinite;
+.map-hotspot--polygon {
+  inset: 0;
+  clip-path: var(--points);
 }
 
-.map-hotspot__dot {
-  width: 14px;
-  height: 14px;
-  background: var(--hotspot-color);
-  box-shadow: 0 3px 12px rgb(0 0 0 / 38%);
+.map-hotspot__area {
+  position: absolute;
+  inset: 0;
+  border: 2px solid rgb(243 196 95 / 42%);
+  background:
+    radial-gradient(circle at 50% 50%, rgb(255 246 180 / 16%), rgb(243 196 95 / 7%) 58%, transparent 100%);
+  box-shadow: inset 0 0 28px rgb(255 238 160 / 11%), 0 0 26px rgb(243 196 95 / 22%);
+  opacity: 0.82;
+  animation: hotspotAreaPulse 3.2s ease-in-out infinite;
+}
+
+.map-hotspot--rect .map-hotspot__area {
+  border-radius: 16px;
+}
+
+.map-hotspot--ellipse .map-hotspot__area {
+  border-radius: 999px;
+}
+
+.map-hotspot--polygon .map-hotspot__area {
+  clip-path: var(--points);
 }
 
 .map-hotspot__label {
   position: absolute;
-  left: 50%;
-  top: 28px;
+  left: var(--label-x);
+  top: var(--label-y);
   min-width: max-content;
   border: 1px solid rgb(255 255 255 / 24%);
   border-radius: 999px;
@@ -190,14 +211,25 @@
   font-size: 0.82rem;
   font-weight: 850;
   padding: 5px 9px;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   backdrop-filter: blur(10px);
 }
 
-.map-hotspot:hover .map-hotspot__ring,
-.map-hotspot.is-selected .map-hotspot__ring {
+.map-hotspot:hover .map-hotspot__area,
+.map-hotspot:focus-visible .map-hotspot__area,
+.map-hotspot.is-selected .map-hotspot__area {
   border-color: #ffffff;
-  background: rgb(255 255 255 / 18%);
+  background: rgb(255 255 255 / 16%);
+  box-shadow: inset 0 0 32px rgb(255 255 255 / 16%), 0 0 30px rgb(255 255 255 / 22%);
+}
+
+.map-hotspot:focus-visible {
+  outline: 0;
+}
+
+.map-hotspot:focus-visible .map-hotspot__label {
+  outline: 2px solid #fff8df;
+  outline-offset: 3px;
 }
 
 @keyframes mapSlowBreath {
@@ -234,15 +266,17 @@
   }
 }
 
-@keyframes hotspotPulse {
+@keyframes hotspotAreaPulse {
   0% {
-    opacity: 0.95;
-    transform: scale(0.72);
+    opacity: 0.62;
+  }
+
+  50% {
+    opacity: 0.92;
   }
 
   100% {
-    opacity: 0;
-    transform: scale(1.8);
+    opacity: 0.62;
   }
 }
 
@@ -250,9 +284,13 @@
   .illustrated-map__image,
   .illustrated-map__breath,
   .illustrated-map__water,
-  .map-hotspot__ring {
+  .map-hotspot__area {
     animation-duration: 1ms;
     animation-iteration-count: 1;
+  }
+
+  .illustrated-map__car {
+    opacity: 0;
   }
 }
 

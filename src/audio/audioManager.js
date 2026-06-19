@@ -4,6 +4,8 @@ export function createAudioManager(initialSettings) {
   let audioContext = null;
   let activated = false;
   let settings = { ...initialSettings };
+  let musicAudio = null;
+  let currentMusicId = null;
 
   return {
     activate() {
@@ -20,10 +22,18 @@ export function createAudioManager(initialSettings) {
       }
 
       activated = true;
+      startMusic('ambient_day');
     },
     syncSettings(nextSettings) {
       settings = { ...settings, ...nextSettings };
+      if (musicAudio) {
+        musicAudio.volume = settings.musicEnabled ? settings.musicVolume : 0;
+      }
+      if (activated && settings.musicEnabled) {
+        startMusic(currentMusicId ?? 'ambient_day');
+      }
     },
+    startMusic,
     playSound(soundId) {
       if (!activated || !settings.soundEnabled) {
         return;
@@ -31,7 +41,8 @@ export function createAudioManager(initialSettings) {
 
       const assetPath = availableAudioAssets.sfx[soundId];
       if (assetPath) {
-        playFile(assetPath, settings.sfxVolume);
+        playFile(assetPath, settings.sfxVolume)
+          .catch(() => playFallback(soundId, audioContext, settings.sfxVolume));
         return;
       }
 
@@ -49,12 +60,39 @@ export function createAudioManager(initialSettings) {
       state.audioQueue = [];
     },
   };
+
+  function startMusic(musicId = 'ambient_day') {
+    if (!activated || !settings.musicEnabled) {
+      return;
+    }
+
+    const assetPath = availableAudioAssets.music[musicId];
+    if (!assetPath) {
+      return;
+    }
+
+    if (musicAudio && currentMusicId === musicId) {
+      musicAudio.volume = settings.musicVolume;
+      musicAudio.play().catch(() => {});
+      return;
+    }
+
+    if (musicAudio) {
+      musicAudio.pause();
+    }
+
+    currentMusicId = musicId;
+    musicAudio = new Audio(assetPath);
+    musicAudio.loop = true;
+    musicAudio.volume = settings.musicVolume;
+    musicAudio.play().catch(() => {});
+  }
 }
 
 function playFile(assetPath, volume) {
   const audio = new Audio(assetPath);
   audio.volume = volume;
-  audio.play().catch(() => {});
+  return audio.play();
 }
 
 function playFallback(soundId, audioContext, volume) {

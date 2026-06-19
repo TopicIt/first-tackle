@@ -45,6 +45,10 @@ export function openFishingMinigame(state, method) {
 
   state.ui.catchResult = null;
   state.ui.fishingMinigame = createFishingMinigameState(method);
+  autoSelectFirstAvailableBait(state, state.ui.fishingMinigame);
+  if (!state.ui.fishingMinigame.selectedBait) {
+    state.ui.fishingMinigame.statusKey = 'fishingNoBaitAvailable';
+  }
   queueSound(state, 'open_scene');
 }
 
@@ -90,6 +94,10 @@ export function castLine(state, nowMs) {
   }
 
   if (!minigame.selectedBait) {
+    autoSelectFirstAvailableBait(state, minigame);
+  }
+
+  if (!minigame.selectedBait) {
     minigame.statusKey = 'fishingSelectBaitFirst';
     return;
   }
@@ -114,6 +122,7 @@ export function castLine(state, nowMs) {
   minigame.fishCandidateId = chooseFishCandidate(state, minigame);
   minigame.currentPattern = minigame.fishCandidateId ? buildPattern(minigame.fishCandidateId) : [];
   minigame.patternIndex = 0;
+  autoSelectFirstAvailableBait(state, minigame);
   state.ui.catchResult = null;
   queueSound(state, 'cast_whoosh');
 }
@@ -228,6 +237,10 @@ export function castAgain(state) {
   minigame.strikeWindowEndAt = 0;
   minigame.currentCatchEntryId = null;
   minigame.consumedBait = null;
+  autoSelectFirstAvailableBait(state, minigame);
+  if (!minigame.selectedBait) {
+    minigame.statusKey = 'fishingNoBaitAvailable';
+  }
   state.ui.catchResult = null;
 }
 
@@ -241,7 +254,7 @@ export function tickFishingMinigame(state, nowMs) {
     minigame.phase = 'waiting';
     minigame.bobberState = 'idle';
     minigame.statusKey = 'fishingWaiting';
-    minigame.nextStepAt = nowMs + 750;
+    minigame.nextStepAt = nowMs + randomBetween(2000, 5000);
     queueSound(state, 'bobber_plop');
     return;
   }
@@ -304,9 +317,34 @@ function advancePatternStep(state, minigame, nowMs) {
 
   minigame.phase = 'animating';
   minigame.bobberState = step;
-  minigame.statusKey = step === 'idle' ? 'fishingWaiting' : 'fishingNibble';
+  minigame.statusKey = getPatternStatusKey(step);
   minigame.nextStepAt = nowMs + randomBetween(...(stateDurationsMs[step] ?? [500, 800]));
   queueSound(state, step === 'hard_dip' || step === 'sideways_pull' ? 'strong_bite' : 'tiny_nibble');
+}
+
+function autoSelectFirstAvailableBait(state, minigame) {
+  const available = getAvailableBaits(state).filter((bait) => !bait.disabled);
+  if (minigame.selectedBait && available.some((bait) => bait.id === minigame.selectedBait)) {
+    return;
+  }
+
+  minigame.selectedBait = available[0]?.id ?? null;
+}
+
+function getPatternStatusKey(step) {
+  if (step === 'idle') {
+    return 'fishingWaiting';
+  }
+
+  if (step === 'tiny_nibble') {
+    return 'fishingSmallMovement';
+  }
+
+  if (step === 'hard_dip') {
+    return 'fishingStrongBite';
+  }
+
+  return 'fishingCarefulBite';
 }
 
 function resolveMinigameResult(state, result) {

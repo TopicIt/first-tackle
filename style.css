@@ -68,6 +68,43 @@ button:disabled {
   backdrop-filter: blur(12px);
 }
 
+.panel-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.panel-toggle-row .title,
+.panel-toggle-row .section-label {
+  margin-bottom: 0;
+}
+
+.panel-toggle {
+  min-width: 58px;
+  min-height: 30px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  background: rgb(238 241 232 / 92%);
+  color: #16201c;
+  font-size: 0.78rem;
+  padding: 6px 9px;
+}
+
+.panel-collapsible {
+  display: block;
+}
+
+.panel.is-collapsed {
+  align-self: start;
+  width: auto;
+  min-width: 118px;
+  padding: 10px;
+}
+
+.panel.is-collapsed .panel-collapsible {
+  display: none;
+}
+
 .status-panel {
   grid-column: 1;
   grid-row: 1;
@@ -89,6 +126,10 @@ button:disabled {
   grid-row: 1 / span 2;
   align-self: start;
   padding: 14px;
+}
+
+.inventory-panel.is-collapsed {
+  justify-self: end;
 }
 
 .log-panel {
