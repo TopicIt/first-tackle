@@ -1,7 +1,20 @@
 import { SAVE_KEY, createInitialState } from './state.js';
+import { ensureFishState } from './fishInventory.js';
 
 export function saveGame(state) {
-  localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  const serializableState = {
+    ...state,
+    audioQueue: [],
+    feedback: [],
+    ui: {
+      ...state.ui,
+      activeScene: null,
+      catchResult: null,
+      fishingMinigame: null,
+    },
+  };
+
+  localStorage.setItem(SAVE_KEY, JSON.stringify(serializableState));
 }
 
 export function loadGame() {
@@ -11,7 +24,9 @@ export function loadGame() {
   }
 
   try {
-    return mergeState(createInitialState(), JSON.parse(raw));
+    const merged = mergeState(createInitialState(), JSON.parse(raw));
+    ensureFishState(merged);
+    return merged;
   } catch {
     return null;
   }
@@ -33,14 +48,24 @@ function mergeState(base, saved) {
       ...base.timers,
       ...(saved.timers ?? {}),
     },
+    settings: {
+      ...base.settings,
+      ...(saved.settings ?? {}),
+      audio: {
+        ...base.settings.audio,
+        ...(saved.settings?.audio ?? {}),
+      },
+    },
     purchased: {
       ...base.purchased,
       ...(saved.purchased ?? {}),
     },
+    day: saved.day ?? base.day,
     player: {
       ...base.player,
       ...(saved.player ?? {}),
     },
+    fishBasket: Array.isArray(saved.fishBasket) ? saved.fishBasket : base.fishBasket,
     ui: {
       ...base.ui,
       ...(saved.ui ?? {}),

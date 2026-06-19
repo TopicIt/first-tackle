@@ -1,6 +1,6 @@
-import { addItem, countItem, hasItem, removeItem, removeOneFish } from './inventory.js';
-import { getFishData, getFreshFishValue, rollFish } from './fishData.js';
-import { nowSeconds, pushFeedback, pushLog } from './state.js';
+import { addItem, countItem, hasItem, removeItem } from './inventory.js';
+import { advanceFishStatus, ensureFishState, takeFreshFish } from './fishInventory.js';
+import { nowSeconds, pushFeedback, pushLog, queueSound } from './state.js';
 
 const WORM_SEARCH_COOLDOWN = 8;
 
@@ -23,6 +23,7 @@ export function craftPrimitiveTackle(state) {
   addItem(state, 'primitiveTackle');
   pushFeedback(state, 'feedbackTackle', {}, 'item');
   pushLog(state, 'logCraftedTackle');
+  queueSound(state, 'craft_item');
 }
 
 export function canCraftStickRod(state) {
@@ -38,6 +39,7 @@ export function craftStickRod(state) {
   addItem(state, 'stickRod');
   pushFeedback(state, 'feedbackRod', {}, 'item');
   pushLog(state, 'logCraftedRod');
+  queueSound(state, 'craft_item');
 }
 
 export function getWormSearchCooldown(state) {
@@ -70,6 +72,7 @@ export function searchForWorms(state, method = 'stones') {
     worms: amount,
     larvaeText: larvae ? ` and ${larvae} larvae` : '',
   });
+  queueSound(state, 'gather_bait');
 }
 
 export function canFish(state) {
@@ -92,36 +95,20 @@ export function fish(state, method = 'handline') {
     return;
   }
 
-  consumeBait(state);
-
-  const missChance = method === 'stickRod' ? 0.24 : 0.34;
-  if (Math.random() < missChance) {
-    state.ui.catchResult = null;
-    pushFeedback(state, 'feedbackNoFish', {}, 'fish');
-    pushLog(state, 'logNoFishCaught');
-    return;
-  }
-
-  const catchResult = rollFish();
-  catchResult.value = getFreshFishValue(catchResult);
-  const catchFish = getFishData(catchResult.id);
-
-  addItem(state, catchResult.id);
-  state.ui.catchResult = catchResult;
-  pushFeedback(state, catchFish.nameKey, {}, 'fish');
-  pushLog(state, 'logCaughtFish', { fishKey: catchFish.nameKey });
+  pushLog(state, method === 'stickRod' ? 'logUseFloatMinigameRod' : 'logUseFloatMinigameHandline');
 }
 
 export function cleanFish(state) {
-  const fishId = removeOneFish(state);
-  if (!fishId) {
+  ensureFishState(state);
+  const fishEntry = takeFreshFish(state);
+  if (!fishEntry) {
     pushLog(state, 'logNeedFreshFish');
     return;
   }
 
-  addItem(state, 'cleanedFish');
   pushFeedback(state, 'feedbackCleanedFish', {}, 'fish');
   pushLog(state, 'logCleanedFish');
+  queueSound(state, 'ui_click');
 }
 
 export function saltFish(state) {
@@ -137,7 +124,7 @@ export function saltFish(state) {
 
   removeItem(state, 'cleanedFish');
   removeItem(state, 'salt');
-  addItem(state, 'saltedFish');
+  advanceFishStatus(state, 'cleaned', 'salted');
   pushFeedback(state, 'feedbackSaltedFish', {}, 'fish');
   pushLog(state, 'logSaltedFish');
 }
@@ -148,19 +135,20 @@ export function hangFishToDry(state) {
     return;
   }
 
-  removeItem(state, 'saltedFish');
-  addItem(state, 'dryingFish');
+  advanceFishStatus(state, 'salted', 'drying');
   pushFeedback(state, 'feedbackDryingFish', {}, 'fish');
   pushLog(state, 'logHungFish');
+  queueSound(state, 'dry_fish');
 }
 
 export function waitUntilTomorrow(state) {
+  ensureFishState(state);
   const drying = countItem(state, 'dryingFish');
   state.timers.wormSearchReadyAt = 0;
+  state.day += 1;
 
   if (drying > 0) {
-    state.inventory.dryingFish = 0;
-    addItem(state, 'taranka', drying);
+    advanceFishStatus(state, 'drying', 'taranka', drying);
     pushFeedback(state, 'feedbackTaranka', { count: drying }, 'fish');
     pushLog(state, 'logDriedFish', { count: drying });
     return;
@@ -183,13 +171,4 @@ function getBaitAmount(method) {
 
 function hasAnyBait(state) {
   return hasItem(state, 'worms') || hasItem(state, 'larvae');
-}
-
-function consumeBait(state) {
-  if (hasItem(state, 'worms')) {
-    removeItem(state, 'worms');
-    return;
-  }
-
-  removeItem(state, 'larvae');
 }

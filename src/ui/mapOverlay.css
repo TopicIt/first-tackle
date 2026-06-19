@@ -48,14 +48,90 @@
 }
 
 .illustrated-map__car {
-  left: 22%;
-  top: 72%;
-  width: 18px;
-  height: 8px;
+  left: 53%;
+  top: 94%;
+  width: 28px;
+  height: 46px;
+  transform: translate(-50%, -50%) rotate(-11deg);
+  will-change: left, top, transform;
+}
+
+.illustrated-map__car-shadow,
+.illustrated-map__car-body,
+.illustrated-map__car-wheel,
+.illustrated-map__car-glass,
+.illustrated-map__car-light {
+  position: absolute;
+}
+
+.illustrated-map__car-shadow {
+  inset: 4px 6px;
+  border-radius: 10px;
+  background: rgb(0 0 0 / 22%);
+  filter: blur(4px);
+}
+
+.illustrated-map__car-body {
+  inset: 4px 5px;
+  border: 1px solid rgb(31 42 35 / 45%);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, #f7d874 0%, #df9b2c 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 45%);
+}
+
+.illustrated-map__car-glass {
+  left: 4px;
+  right: 4px;
+  top: 9px;
+  height: 15px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, rgb(212 244 255 / 92%), rgb(90 130 152 / 76%));
+}
+
+.illustrated-map__car-light {
+  left: 50%;
+  width: 10px;
+  height: 3px;
   border-radius: 999px;
-  background: #f2d064;
-  box-shadow: 0 0 0 2px rgb(64 47 28 / 34%), 12px 0 18px rgb(246 205 84 / 34%);
-  animation: mapCar 13s linear infinite;
+  transform: translateX(-50%);
+}
+
+.illustrated-map__car-light--front {
+  top: 2px;
+  background: rgb(255 248 216 / 88%);
+}
+
+.illustrated-map__car-light--rear {
+  bottom: 2px;
+  background: rgb(203 69 56 / 86%);
+}
+
+.illustrated-map__car-wheel {
+  width: 4px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgb(24 24 24 / 82%);
+}
+
+.illustrated-map__car-wheel--front-left {
+  left: 4px;
+  top: 9px;
+}
+
+.illustrated-map__car-wheel--front-right {
+  right: 4px;
+  top: 9px;
+}
+
+.illustrated-map__car-wheel--rear-left {
+  left: 4px;
+  bottom: 9px;
+}
+
+.illustrated-map__car-wheel--rear-right {
+  right: 4px;
+  bottom: 9px;
 }
 
 .illustrated-map__hotspots {
@@ -158,16 +234,6 @@
   }
 }
 
-@keyframes mapCar {
-  from {
-    transform: translate3d(0, 0, 0) rotate(-4deg);
-  }
-
-  to {
-    transform: translate3d(58vw, -7vh, 0) rotate(-4deg);
-  }
-}
-
 @keyframes hotspotPulse {
   0% {
     opacity: 0.95;
@@ -184,7 +250,6 @@
   .illustrated-map__image,
   .illustrated-map__breath,
   .illustrated-map__water,
-  .illustrated-map__car,
   .map-hotspot__ring {
     animation-duration: 1ms;
     animation-iteration-count: 1;

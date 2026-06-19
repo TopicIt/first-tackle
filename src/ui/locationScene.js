@@ -1,5 +1,6 @@
 import './locationScene.css';
 import { logMarkup } from './panels.js';
+import { fishingMinigameMarkup } from './fishingMinigame.js';
 import { getFishData } from '../game/fishData.js';
 import { t, translateEntry } from '../i18n/i18n.js';
 
@@ -81,6 +82,8 @@ export function locationSceneMarkup(state, context) {
       <div class="scene-feedback" aria-hidden="true">
         ${(state.feedback ?? []).map(feedbackMarkup).join('')}
       </div>
+
+      ${fishingMinigameMarkup(state)}
     </section>
   `;
 }
@@ -120,7 +123,7 @@ function feedbackMarkup(feedback) {
 }
 
 function fishResultMarkup(state) {
-  if (state.ui?.activeScene !== 'pond') {
+  if (state.ui?.activeScene !== 'pond' || state.ui?.fishingMinigame?.open) {
     return '';
   }
 

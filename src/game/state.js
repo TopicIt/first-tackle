@@ -70,14 +70,26 @@ export function createInitialState() {
     timers: {
       wormSearchReadyAt: 0,
     },
+    day: 1,
     player: {
       x: -6,
       z: 1.5,
     },
+    fishBasket: [],
+    settings: {
+      audio: {
+        soundEnabled: true,
+        musicEnabled: true,
+        sfxVolume: 0.72,
+        musicVolume: 0.45,
+      },
+    },
+    audioQueue: [],
     ui: {
       activeScene: null,
       selectedHotspot: null,
       catchResult: null,
+      fishingMinigame: null,
     },
     feedback: [],
     log: [],
@@ -112,4 +124,8 @@ export function pushFeedback(state, key, params = {}, type = 'item') {
 
 export function nowSeconds() {
   return Date.now() / 1000;
+}
+
+export function queueSound(state, soundId) {
+  state.audioQueue = [...(state.audioQueue ?? []), soundId].slice(-12);
 }

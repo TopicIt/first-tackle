@@ -1,6 +1,6 @@
 # First Tackle
 
-First playable browser prototype for a small low-poly 3D fishing game set in a roadside village.
+First playable browser prototype for a small fishing game set around a roadside pond and village map.
 
 ## Run
 
@@ -11,36 +11,109 @@ npm run dev
 
 Open the local URL printed by Vite.
 
-## Current MVP
+## Current Features
 
-- Low-poly 3D scene with a grandma house, garden yard, pond, road, and bus stop market stall.
-- Player marker moves with WASD or arrow keys while a third-person camera follows.
-- Inventory starts with thread, a simple hook, no bait, and 0 coins.
-- Garden interaction searches for 1-3 worms with a short cooldown.
-- Crafting turns thread and a simple hook into primitive tackle.
-- Pond interaction consumes bait and can catch rotan, small crucian carp, or bleak.
-- Market interaction sells all caught fish for coins.
-- Shop shows better line and simple float as early progression items.
-- Save, load, and reset use `localStorage`.
+- Illustrated world map with clickable hotspots for House, Garden, Pond, and Market.
+- EN/UK localization with saved language selection.
+- Animated location scenes and an animated road car on the world map.
+- House crafting and fish processing flow for primitive tackle, cleaning, salting, drying, and taranka.
+- Garden bait gathering and basic progression shop loop.
+- Dedicated float fishing minigame with bait selection, cast zones, bite patterns, strike timing, and catch result cards.
+- Individual fish inventory entries with saved weight, value, day caught, and processing status.
+- Audio settings with browser-safe activation and Web Audio fallback sounds.
+- Save, load, and reset through `localStorage`.
+
+## Asset Usage
+
+The project uses prepared static assets when they are present:
+
+- `public/assets/fishing/canal_fishing_base.png`
+- `public/assets/fishing/canal_fishing_waiting_bobber.png`
+- `public/assets/fishing/canal_fishing_bite.png`
+- `public/assets/fishing/canal_fishing_cast_zones.png`
+- `public/assets/fish/catch_rotan_card.png`
+- `public/assets/fish/catch_crucian_card.png`
+- `public/assets/fish/catch_result_frame.png`
+- `public/assets/items/primitive_tackle.png`
+- `public/assets/items/tackle_components.png`
+- `public/assets/items/bait_types_clean.png`
+- `public/assets/items/taranka_drying.png`
+
+If optional image assets are missing, the UI falls back to text-first cards and existing scene styling instead of crashing.
+
+## Audio Plan
+
+Optional audio files can be placed here:
+
+- `public/assets/audio/sfx/`
+- `public/assets/audio/music/`
+
+Expected SFX filenames:
+
+- `ui_click.mp3`
+- `open_scene.mp3`
+- `close_scene.mp3`
+- `cast_whoosh.mp3`
+- `bobber_plop.mp3`
+- `water_ripple.mp3`
+- `tiny_nibble.mp3`
+- `strong_bite.mp3`
+- `strike.mp3`
+- `catch_success.mp3`
+- `fish_escape.mp3`
+- `line_break.mp3`
+- `coins.mp3`
+- `buy_item.mp3`
+- `sell_item.mp3`
+- `craft_item.mp3`
+- `gather_bait.mp3`
+- `dry_fish.mp3`
+
+Expected music or ambient filenames:
+
+- `ambient_day.mp3`
+- `ambient_evening.mp3`
+- `theme.mp3`
+
+If these files are not present, the game uses built-in Web Audio fallback sounds for click, open/close, cast, plop, nibble, strong bite, strike, catch success, escape, line break, coins, crafting, bait gathering, selling, and drying actions. This keeps the UI responsive without requiring external services or video files.
 
 ## Project Structure
 
 ```text
 src/
-  main.js
+  audio/
+    audioManager.js
+    soundConfig.js
   game/
+    bitePatterns.js
+    economy.js
+    fishData.js
+    fishInventory.js
+    fishing.js
+    fishingMinigameLogic.js
+    interactions.js
+    inventory.js
+    mapHotspots.js
+    mapPaths.js
+    player.js
+    save.js
     state.js
     world.js
-    player.js
-    interactions.js
-    fishing.js
-    inventory.js
-    economy.js
-    save.js
+  i18n/
+    i18n.js
+    translations.js
   ui/
+    fishingMinigame.css
+    fishingMinigame.js
     hud.js
+    locationScene.css
+    locationScene.js
+    mapOverlay.css
+    mapOverlay.js
     panels.js
-style.css
-index.html
+  main.js
+public/
+  assets/
 README.md
+style.css
 ```

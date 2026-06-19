@@ -4,6 +4,24 @@ import { mapOverlayMarkup } from './mapOverlay.js';
 import { getLanguage, t } from '../i18n/i18n.js';
 
 export function createHud(root, handlers) {
+  root.addEventListener('input', (event) => {
+    const input = event.target.closest('[data-audio-setting]');
+    if (!input) {
+      return;
+    }
+
+    handlers.onAudioSetting(input.dataset.audioSetting, input.value);
+  });
+
+  root.addEventListener('change', (event) => {
+    const checkbox = event.target.closest('input[data-audio-setting][type="checkbox"]');
+    if (!checkbox) {
+      return;
+    }
+
+    handlers.onAudioSetting(checkbox.dataset.audioSetting, checkbox.checked ? 'true' : 'false');
+  });
+
   root.addEventListener('click', (event) => {
     const closeButton = event.target.closest('button[data-scene-close]');
     if (closeButton) {
@@ -50,6 +68,24 @@ export function createHud(root, handlers) {
             <button data-action="load" type="button">${t('load')}</button>
             <button data-action="reset" type="button">${t('reset')}</button>
             <button data-language-toggle="true" type="button" aria-label="Switch language">${getLanguage().toUpperCase()} / ${t('languageToggle')}</button>
+          </div>
+          <div class="audio-settings">
+            <label class="audio-toggle">
+              <input data-audio-setting="soundEnabled" type="checkbox"${state.settings.audio.soundEnabled ? ' checked' : ''} />
+              <span>${t('sound')}</span>
+            </label>
+            <label class="audio-toggle">
+              <input data-audio-setting="musicEnabled" type="checkbox"${state.settings.audio.musicEnabled ? ' checked' : ''} />
+              <span>${t('music')}</span>
+            </label>
+            <label class="audio-range">
+              <span>${t('sfxVolume')}</span>
+              <input data-audio-setting="sfxVolume" type="range" min="0" max="1" step="0.05" value="${state.settings.audio.sfxVolume}" />
+            </label>
+            <label class="audio-range">
+              <span>${t('musicVolume')}</span>
+              <input data-audio-setting="musicVolume" type="range" min="0" max="1" step="0.05" value="${state.settings.audio.musicVolume}" />
+            </label>
           </div>
         </section>
 

@@ -104,6 +104,15 @@ export function rollFish() {
   };
 }
 
+export function rollFishById(fishId) {
+  const fish = getFishData(fishId) ?? fishData[0];
+  return {
+    id: fish.id,
+    weightGrams: randomInt(fish.minWeight, fish.maxWeight),
+    value: 0,
+  };
+}
+
 function randomInt(min, max) {
   return min + Math.floor(Math.random() * (max - min + 1));
 }

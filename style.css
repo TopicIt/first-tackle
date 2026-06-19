@@ -142,6 +142,36 @@ button:disabled {
   color: #ffffff;
 }
 
+.audio-settings {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 7%);
+  padding: 8px 9px;
+}
+
+.audio-toggle,
+.audio-range {
+  display: grid;
+  gap: 5px;
+  color: #dcebe3;
+  font-size: 0.82rem;
+}
+
+.audio-toggle {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.audio-toggle input {
+  margin: 0;
+}
+
+.audio-range input {
+  width: 100%;
+}
+
 .save-row,
 .action-grid {
   display: flex;

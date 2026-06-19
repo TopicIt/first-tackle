@@ -1,4 +1,7 @@
 node_modules/
 dist/
+.env
 *.log
+vite-dev.out
+vite-dev.err
 .DS_Store

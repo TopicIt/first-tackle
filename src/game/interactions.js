@@ -1,18 +1,20 @@
 import { buyShopItem, sellAllFish, sellTaranka } from './economy.js';
 import {
+  countFishByStatus,
+} from './fishInventory.js';
+import {
   canCraftPrimitiveTackle,
   canCraftStickRod,
   cleanFish,
   craftPrimitiveTackle,
   craftStickRod,
-  fish,
   getWormSearchCooldown,
   hangFishToDry,
   saltFish,
   searchForWorms,
   waitUntilTomorrow,
 } from './fishing.js';
-import { countItem, getFishCount, hasItem } from './inventory.js';
+import { countItem, hasItem } from './inventory.js';
 import { interactionZones } from './world.js';
 import { t } from '../i18n/i18n.js';
 
@@ -57,8 +59,8 @@ export function getInteractionContext(state, playerPosition) {
 
   if (zone.id === 'pond') {
     actions.push({
-      id: 'fish',
-      label: t('fish'),
+      id: 'minigame:start:handline',
+      label: t('startHandlineFishing'),
     });
   }
 
@@ -148,27 +150,6 @@ export function runAction(actionId, state, context = idleContext) {
       return;
     }
     searchForWorms(state, 'compost');
-  }
-
-  if (actionId === 'fish') {
-    if (context.zoneId !== 'pond') {
-      return;
-    }
-    fish(state);
-  }
-
-  if (actionId === 'fish:handline') {
-    if (context.zoneId !== 'pond') {
-      return;
-    }
-    fish(state, 'handline');
-  }
-
-  if (actionId === 'fish:stickRod') {
-    if (context.zoneId !== 'pond') {
-      return;
-    }
-    fish(state, 'stickRod');
   }
 
   if (actionId === 'craft:stickRod') {
@@ -275,7 +256,7 @@ function getSceneActions(state, zoneId) {
       {
         id: 'clean:fish',
         label: t('cleanFish'),
-        disabled: getFishCount(state) === 0,
+        disabled: countFishByStatus(state, 'fresh') === 0,
       },
       {
         id: 'salt:fish',
@@ -322,17 +303,17 @@ function getSceneActions(state, zoneId) {
   if (zoneId === 'pond') {
     return [
       {
-        id: 'fish:handline',
-        label: t('handline'),
+        id: 'minigame:start:handline',
+        label: t('startHandlineFishing'),
       },
       {
-        id: 'fish:stickRod',
-        label: t('stickRodFishing'),
+        id: 'minigame:start:stickRod',
+        label: t('startStickRodFishing'),
         disabled: !hasItem(state, 'stickRod'),
       },
       {
-        id: 'fish:liveBait',
-        label: t('liveBaitFishing'),
+        id: 'minigame:start:liveBait',
+        label: t('startLiveBaitFishing'),
         disabled: true,
         variant: 'future',
       },
@@ -344,7 +325,7 @@ function getSceneActions(state, zoneId) {
       {
         id: 'sell:fish',
         label: t('sellFreshFish'),
-        disabled: getFishCount(state) === 0,
+        disabled: countFishByStatus(state, 'fresh') === 0,
       },
       {
         id: 'sell:taranka',

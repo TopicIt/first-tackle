@@ -1,22 +1,12 @@
 import { getFishData } from './fishData.js';
-import { pushFeedback, pushLog, shopItems } from './state.js';
-import { addItem, countItem, fishIds } from './inventory.js';
+import { sellFishByStatus } from './fishInventory.js';
+import { pushFeedback, pushLog, queueSound, shopItems } from './state.js';
+import { addItem } from './inventory.js';
 
 export function sellAllFish(state) {
-  let earned = 0;
-  let sold = 0;
-
-  for (const fishId of fishIds) {
-    const fish = getFishData(fishId);
-    const amount = countItem(state, fishId);
-    if (!fish || amount === 0) {
-      continue;
-    }
-
-    sold += amount;
-    earned += amount * fish.basePrice;
-    state.inventory[fishId] = 0;
-  }
+  const soldEntries = sellFishByStatus(state, 'fresh');
+  const sold = soldEntries.length;
+  const earned = soldEntries.reduce((total, entry) => total + (entry.value || getFishData(entry.fishId)?.basePrice || 0), 0);
 
   if (sold === 0) {
     pushLog(state, 'logNoFishToSell');
@@ -26,20 +16,25 @@ export function sellAllFish(state) {
   state.money += earned;
   pushFeedback(state, 'feedbackCoins', { coins: earned }, 'coins');
   pushLog(state, 'logSoldFish', { count: sold, coins: earned });
+  state.ui.catchResult = null;
+  queueSound(state, 'coins');
+  queueSound(state, 'sell_item');
 }
 
 export function sellTaranka(state) {
-  const amount = countItem(state, 'taranka');
+  const soldEntries = sellFishByStatus(state, 'taranka');
+  const amount = soldEntries.length;
   if (amount === 0) {
     pushLog(state, 'logNoTaranka');
     return;
   }
 
-  const earned = amount * 12;
-  state.inventory.taranka = 0;
+  const earned = soldEntries.reduce((total, entry) => total + Math.max(12, entry.value + 4), 0);
   state.money += earned;
   pushFeedback(state, 'feedbackCoins', { coins: earned }, 'coins');
   pushLog(state, 'logSoldTaranka', { count: amount, coins: earned });
+  queueSound(state, 'coins');
+  queueSound(state, 'sell_item');
 }
 
 export function buyShopItem(state, itemId) {
@@ -63,12 +58,14 @@ export function buyShopItem(state, itemId) {
     addItem(state, item.itemId, item.amount);
     pushFeedback(state, 'feedbackItems', { count: item.amount, itemKey: getShopItemKey(itemId) }, 'item');
     pushLog(state, 'logBought', { itemKey: getShopItemKey(itemId) });
+    queueSound(state, 'buy_item');
     return;
   }
 
   state.purchased[itemId] = true;
   pushFeedback(state, getShopItemKey(itemId), {}, 'item');
   pushLog(state, 'logBought', { itemKey: getShopItemKey(itemId) });
+  queueSound(state, 'buy_item');
 }
 
 function getShopItemKey(itemId) {
