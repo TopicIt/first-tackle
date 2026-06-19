@@ -1,0 +1,200 @@
+.illustrated-map {
+  pointer-events: auto;
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: #18241e;
+}
+
+.illustrated-map__image,
+.illustrated-map__breath,
+.illustrated-map__water,
+.illustrated-map__car {
+  position: absolute;
+  pointer-events: none;
+}
+
+.illustrated-map__image {
+  inset: -2%;
+  background-image: url('/assets/locations/world_map_concept.png');
+  background-position: center;
+  background-size: cover;
+  filter: saturate(1.08) contrast(1.04);
+  transform: scale(1.02);
+  animation: mapSlowBreath 38s ease-in-out infinite alternate;
+}
+
+.illustrated-map__breath {
+  inset: 0;
+  background:
+    radial-gradient(circle at 48% 46%, rgb(255 245 205 / 10%), transparent 34%),
+    linear-gradient(90deg, rgb(10 17 14 / 32%), transparent 28%, transparent 72%, rgb(10 17 14 / 30%));
+  animation: mapLightDrift 22s ease-in-out infinite alternate;
+}
+
+.illustrated-map__water {
+  left: 39%;
+  top: 31%;
+  width: 22%;
+  height: 20%;
+  border-radius: 50%;
+  background:
+    repeating-linear-gradient(115deg, transparent 0 11px, rgb(180 235 248 / 16%) 12px 14px),
+    radial-gradient(ellipse, rgb(139 217 233 / 18%), transparent 66%);
+  filter: blur(0.5px);
+  mix-blend-mode: screen;
+  animation: mapWaterShimmer 4s linear infinite;
+}
+
+.illustrated-map__car {
+  left: 22%;
+  top: 72%;
+  width: 18px;
+  height: 8px;
+  border-radius: 999px;
+  background: #f2d064;
+  box-shadow: 0 0 0 2px rgb(64 47 28 / 34%), 12px 0 18px rgb(246 205 84 / 34%);
+  animation: mapCar 13s linear infinite;
+}
+
+.illustrated-map__hotspots {
+  position: absolute;
+  inset: 0;
+}
+
+.map-hotspot {
+  --hotspot-color: #f3c45f;
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0;
+  background: transparent;
+  transform: translate(-50%, -50%);
+}
+
+.map-hotspot__ring,
+.map-hotspot__dot {
+  position: absolute;
+  border-radius: 999px;
+}
+
+.map-hotspot__ring {
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--hotspot-color);
+  background: rgb(243 196 95 / 14%);
+  box-shadow: 0 0 30px rgb(243 196 95 / 46%);
+  animation: hotspotPulse 2.4s ease-out infinite;
+}
+
+.map-hotspot__dot {
+  width: 14px;
+  height: 14px;
+  background: var(--hotspot-color);
+  box-shadow: 0 3px 12px rgb(0 0 0 / 38%);
+}
+
+.map-hotspot__label {
+  position: absolute;
+  left: 50%;
+  top: 28px;
+  min-width: max-content;
+  border: 1px solid rgb(255 255 255 / 24%);
+  border-radius: 999px;
+  background: rgb(18 27 24 / 80%);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 28%);
+  color: #fff8df;
+  font-size: 0.82rem;
+  font-weight: 850;
+  padding: 5px 9px;
+  transform: translateX(-50%);
+  backdrop-filter: blur(10px);
+}
+
+.map-hotspot:hover .map-hotspot__ring,
+.map-hotspot.is-selected .map-hotspot__ring {
+  border-color: #ffffff;
+  background: rgb(255 255 255 / 18%);
+}
+
+@keyframes mapSlowBreath {
+  from {
+    transform: translate3d(-0.8%, -0.4%, 0) scale(1.02);
+  }
+
+  to {
+    transform: translate3d(0.8%, 0.5%, 0) scale(1.055);
+  }
+}
+
+@keyframes mapLightDrift {
+  from {
+    opacity: 0.7;
+    transform: translateX(-1%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(1.5%);
+  }
+}
+
+@keyframes mapWaterShimmer {
+  from {
+    background-position: 0 0, center;
+    opacity: 0.46;
+  }
+
+  to {
+    background-position: 42px 0, center;
+    opacity: 0.72;
+  }
+}
+
+@keyframes mapCar {
+  from {
+    transform: translate3d(0, 0, 0) rotate(-4deg);
+  }
+
+  to {
+    transform: translate3d(58vw, -7vh, 0) rotate(-4deg);
+  }
+}
+
+@keyframes hotspotPulse {
+  0% {
+    opacity: 0.95;
+    transform: scale(0.72);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .illustrated-map__image,
+  .illustrated-map__breath,
+  .illustrated-map__water,
+  .illustrated-map__car,
+  .map-hotspot__ring {
+    animation-duration: 1ms;
+    animation-iteration-count: 1;
+  }
+}
+
+@media (max-width: 760px) {
+  .map-hotspot__label {
+    top: 24px;
+    font-size: 0.72rem;
+    padding: 4px 7px;
+  }
+}
