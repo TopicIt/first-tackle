@@ -32,7 +32,7 @@ import { ensureTackleState, equipTackleComponent } from './game/tackle.js';
 import { ensureTimeState, formatGameTime, getTimePhase } from './game/time.js';
 import { createHud } from './ui/hud.js';
 import { updateMapOverlayMotion } from './ui/mapOverlay.js';
-import { getLanguage, toggleLanguage } from './i18n/i18n.js';
+import { getLanguage, t, toggleLanguage } from './i18n/i18n.js';
 
 const canvas = document.querySelector('#game');
 const hudRoot = document.querySelector('#hud');
@@ -54,6 +54,8 @@ const player = createPlayerController(world.scene, gameState.player);
 const clock = new THREE.Clock();
 let lastHudSnapshot = '';
 const audio = createAudioManager(gameState.settings.audio);
+let spaceIsDown = false;
+let fishingActionLockedUntil = 0;
 
 const hud = createHud(hudRoot, {
   onAction(actionId) {
@@ -150,19 +152,19 @@ const hud = createHud(hudRoot, {
     }
 
     if (actionId === 'minigame:cast') {
-      castLine(gameState, performance.now());
+      runLockedFishingAction(() => castLine(gameState, performance.now()));
       renderHud();
       return;
     }
 
     if (actionId === 'minigame:context') {
-      runFishingContextAction(gameState, performance.now());
+      runLockedFishingAction(() => runFishingContextAction(gameState, performance.now()));
       renderHud();
       return;
     }
 
     if (actionId === 'minigame:strike') {
-      strikeLine(gameState, performance.now());
+      runLockedFishingAction(() => strikeLine(gameState, performance.now()));
       renderHud();
       return;
     }
@@ -186,13 +188,13 @@ const hud = createHud(hudRoot, {
     }
 
     if (actionId === 'minigame:castAgain') {
-      castAgain(gameState);
+      runLockedFishingAction(() => castAgain(gameState));
       renderHud();
       return;
     }
 
     if (actionId === 'minigame:recast') {
-      recastLine(gameState);
+      runLockedFishingAction(() => recastLine(gameState));
       renderHud();
       return;
     }
@@ -330,9 +332,24 @@ function resize() {
   world.camera.updateProjectionMatrix();
 }
 
+function runLockedFishingAction(action) {
+  const now = performance.now();
+  if (now < fishingActionLockedUntil) {
+    return false;
+  }
+  fishingActionLockedUntil = now + 500;
+  action();
+  return true;
+}
+
 window.addEventListener('resize', resize);
 window.addEventListener('keydown', (event) => {
   if (event.code !== 'Space' || !gameState.ui.fishingMinigame?.open) {
+    return;
+  }
+
+  if (event.repeat || spaceIsDown) {
+    event.preventDefault();
     return;
   }
 
@@ -342,9 +359,15 @@ window.addEventListener('keydown', (event) => {
   }
 
   event.preventDefault();
+  spaceIsDown = true;
   audio.activate();
-  runFishingContextAction(gameState, performance.now());
+  runLockedFishingAction(() => runFishingContextAction(gameState, performance.now()));
   renderHud();
+});
+window.addEventListener('keyup', (event) => {
+  if (event.code === 'Space') {
+    spaceIsDown = false;
+  }
 });
 resize();
 renderHud();

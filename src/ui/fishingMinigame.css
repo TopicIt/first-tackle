@@ -259,6 +259,20 @@
   transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
 }
 
+.cast-scatter {
+  position: absolute;
+  left: var(--scatter-x);
+  top: var(--scatter-y);
+  width: var(--scatter-w);
+  height: var(--scatter-h);
+  border: 1px dashed rgb(255 248 190 / 52%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgb(255 238 160 / 9%), transparent 68%);
+  box-shadow: 0 0 28px rgb(255 238 160 / 12%);
+  opacity: 0.78;
+  transform: translate(-50%, -50%);
+}
+
 .cast-spot span {
   position: absolute;
   left: 50%;
@@ -469,6 +483,19 @@
   left: 78%;
   top: 38%;
   animation-delay: -4s;
+}
+
+.dragonfly--rare {
+  left: 16%;
+  top: 72%;
+  width: 11px;
+  height: 11px;
+  opacity: 0;
+  animation: none;
+}
+
+.dragonfly--rare.is-active {
+  animation: rareDragonflyFlight 5.2s ease-out;
 }
 
 .surface-ring {
@@ -857,6 +884,13 @@
   75% { transform: translate3d(-22px, -4px, 0); }
 }
 
+@keyframes rareDragonflyFlight {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) scale(1.4); }
+  12% { opacity: 0.78; transform: translate3d(0, 0, 0) scale(1.4); }
+  62% { opacity: 0.7; transform: translate3d(34vw, -28vh, 0) scale(0.72); }
+  100% { opacity: 0; transform: translate3d(56vw, -42vh, 0) scale(0.32); }
+}
+
 @keyframes ambientRing {
   0%, 30% { opacity: 0; transform: scale(0.3); }
   42% { opacity: 0.6; }
@@ -943,6 +977,7 @@
   .fishing-figure__rod,
   .bird,
   .dragonfly,
+  .dragonfly--rare,
   .surface-ring,
   .reed {
     animation-duration: 1ms;

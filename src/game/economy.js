@@ -78,6 +78,7 @@ export function buyShopItem(state, itemId) {
     properFloat: 'proper_float',
     properSinker: 'proper_sinker',
     sharperHook: 'sharper_hook',
+    properRod: 'proper_rod',
   };
   if (componentByItem[itemId]) {
     ownTackleComponent(state, componentByItem[itemId]);
@@ -95,6 +96,7 @@ function getShopItemKey(itemId) {
     properFloat: 'componentProperFloat',
     properSinker: 'componentProperSinker',
     sharperHook: 'componentSharperHook',
+    properRod: 'componentProperRod',
     bicycle: 'itemBicycle',
     salt: 'itemSalt',
     hooksPack: 'itemHooksPack',

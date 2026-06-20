@@ -98,8 +98,12 @@ export function keepnetMarkup(state) {
 }
 
 export function catchJournalMarkup(state) {
-  const entries = getCatchJournal(state);
+  const entries = getCatchJournal(state).filter((entry) => entry.discovered);
   const trophies = state.trophies ?? [];
+
+  if (entries.length === 0) {
+    return `<p class="empty-panel">${t('catchJournalEmpty')}</p>`;
+  }
 
   return `
     <div class="journal-grid">
@@ -131,6 +135,7 @@ export function tackleMarkup(state) {
         </section>
       `).join('')}
     </div>
+    ${owned.simple_stick_rod || equipped.rod === 'simple_stick_rod' ? `<p class="tackle-warning">${t('homemadeRodWarning')}</p>` : ''}
   `;
 }
 
@@ -173,6 +178,7 @@ export function getShopItemLabel(itemId) {
     properFloat: 'componentProperFloat',
     properSinker: 'componentProperSinker',
     sharperHook: 'componentSharperHook',
+    properRod: 'componentProperRod',
     bicycle: 'itemBicycle',
     salt: 'itemSalt',
     hooksPack: 'itemHooksPack',

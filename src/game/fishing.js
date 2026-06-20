@@ -2,7 +2,7 @@ import { addItem, countItem, hasItem, removeItem } from './inventory.js';
 import { advanceFishStatus, ensureFishState, takeFreshFish } from './fishInventory.js';
 import { advanceMarketDay, freshFishAtRisk } from './market.js';
 import { ownTackleComponent } from './tackle.js';
-import { advanceTime, resetToMorning } from './time.js';
+import { advanceTime, getTimePhase, resetToMorning } from './time.js';
 import { nowSeconds, pushFeedback, pushLog, queueSound } from './state.js';
 
 const WORM_SEARCH_COOLDOWN = 8;
@@ -90,12 +90,19 @@ export function searchForWorms(state, method = 'stones') {
 }
 
 export function gatherGooseFeather(state) {
+  const phaseKey = `${state.day}:${getTimePhase(state)}`;
+  if (state.timers?.featherSearchPhaseKey === phaseKey) {
+    pushLog(state, 'logFeathersTryLater');
+    return;
+  }
+  state.timers ??= {};
   advanceTime(state, 20);
+  state.timers.featherSearchPhaseKey = `${state.day}:${getTimePhase(state)}`;
   if (state.tackle?.owned?.goose_feather_float) {
     pushLog(state, 'logAlreadyFoundFeather');
     return;
   }
-  if (Math.random() < 0.16) {
+  if (Math.random() < 0.4) {
     ownTackleComponent(state, 'goose_feather_float');
     pushFeedback(state, 'componentGooseFeatherFloat', {}, 'item');
     pushLog(state, 'logFoundGooseFeather');
@@ -108,6 +115,10 @@ export function gatherRodStick(state) {
   advanceTime(state, 20);
   if (state.tackle?.owned?.simple_stick_rod || hasItem(state, 'stickRod')) {
     pushLog(state, 'logAlreadyFoundRodStick');
+    return;
+  }
+  if (Math.random() > 0.9) {
+    pushLog(state, 'logNoRodStick');
     return;
   }
   ownTackleComponent(state, 'simple_stick_rod');

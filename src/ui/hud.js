@@ -78,8 +78,8 @@ export function createHud(root, handlers) {
         <section class="panel status-panel${statusCollapsed}">
           <div class="panel-toggle-row">
             <h1 class="title">${t('appTitle')}</h1>
-            <button class="panel-toggle" data-action="panel:toggle:status" type="button">
-              ${collapsedPanels.status ? t('show') : t('hide')}
+            <button class="panel-toggle" data-action="panel:toggle:status" type="button" aria-label="${panelToggleLabel(collapsedPanels.status)}">
+              ${panelToggleIcon(collapsedPanels.status)}
             </button>
           </div>
           <div class="panel-collapsible">
@@ -132,8 +132,8 @@ export function createHud(root, handlers) {
         <section class="panel inventory-panel${inventoryCollapsed}">
           <div class="panel-toggle-row">
             <p class="section-label">${t('inventory')}</p>
-            <button class="panel-toggle" data-action="panel:toggle:inventory" type="button">
-              ${collapsedPanels.inventory ? t('show') : t('hide')}
+            <button class="panel-toggle" data-action="panel:toggle:inventory" type="button" aria-label="${panelToggleLabel(collapsedPanels.inventory)}">
+              ${panelToggleIcon(collapsedPanels.inventory)}
             </button>
           </div>
           <div class="panel-collapsible">
@@ -144,8 +144,8 @@ export function createHud(root, handlers) {
         <section class="panel shop-panel${shopCollapsed}">
           <div class="panel-toggle-row">
             <p class="section-label">${t('shop')}</p>
-            <button class="panel-toggle" data-action="panel:toggle:shop" type="button">
-              ${collapsedPanels.shop ? t('show') : t('hide')}
+            <button class="panel-toggle" data-action="panel:toggle:shop" type="button" aria-label="${panelToggleLabel(collapsedPanels.shop)}">
+              ${panelToggleIcon(collapsedPanels.shop)}
             </button>
           </div>
           <div class="panel-collapsible">
@@ -156,8 +156,8 @@ export function createHud(root, handlers) {
         <section class="panel fish-prices-panel${fishPricesCollapsed}">
           <div class="panel-toggle-row">
             <p class="section-label">${t('fishPrices')}</p>
-            <button class="panel-toggle" data-action="panel:toggle:fishPrices" type="button">
-              ${collapsedPanels.fishPrices ? t('show') : t('hide')}
+            <button class="panel-toggle" data-action="panel:toggle:fishPrices" type="button" aria-label="${panelToggleLabel(collapsedPanels.fishPrices)}">
+              ${panelToggleIcon(collapsedPanels.fishPrices)}
             </button>
           </div>
           <div class="panel-collapsible">
@@ -169,8 +169,8 @@ export function createHud(root, handlers) {
         <section class="panel keepnet-panel${keepnetCollapsed}">
           <div class="panel-toggle-row">
             <p class="section-label">${t('fishBasket')}</p>
-            <button class="panel-toggle" data-action="panel:toggle:keepnet" type="button">
-              ${collapsedPanels.keepnet ? t('show') : t('hide')}
+            <button class="panel-toggle" data-action="panel:toggle:keepnet" type="button" aria-label="${panelToggleLabel(collapsedPanels.keepnet)}">
+              ${panelToggleIcon(collapsedPanels.keepnet)}
             </button>
           </div>
           <div class="panel-collapsible">
@@ -181,8 +181,8 @@ export function createHud(root, handlers) {
         <section class="panel journal-panel${journalCollapsed}">
           <div class="panel-toggle-row">
             <p class="section-label">${t('catchJournal')}</p>
-            <button class="panel-toggle" data-action="panel:toggle:journal" type="button">
-              ${collapsedPanels.journal ? t('show') : t('hide')}
+            <button class="panel-toggle" data-action="panel:toggle:journal" type="button" aria-label="${panelToggleLabel(collapsedPanels.journal)}">
+              ${panelToggleIcon(collapsedPanels.journal)}
             </button>
           </div>
           <div class="panel-collapsible">
@@ -193,8 +193,8 @@ export function createHud(root, handlers) {
         <section class="panel tackle-panel${tackleCollapsed}">
           <div class="panel-toggle-row">
             <p class="section-label">${t('tackle')}</p>
-            <button class="panel-toggle" data-action="panel:toggle:tackle" type="button">
-              ${collapsedPanels.tackle ? t('show') : t('hide')}
+            <button class="panel-toggle" data-action="panel:toggle:tackle" type="button" aria-label="${panelToggleLabel(collapsedPanels.tackle)}">
+              ${panelToggleIcon(collapsedPanels.tackle)}
             </button>
           </div>
           <div class="panel-collapsible">
@@ -205,8 +205,8 @@ export function createHud(root, handlers) {
         <section class="panel guide-panel${guideCollapsed}">
           <div class="panel-toggle-row">
             <p class="section-label">${t('fishermanGuide')}</p>
-            <button class="panel-toggle" data-action="panel:toggle:guide" type="button">
-              ${collapsedPanels.guide ? t('show') : t('hide')}
+            <button class="panel-toggle" data-action="panel:toggle:guide" type="button" aria-label="${panelToggleLabel(collapsedPanels.guide)}">
+              ${panelToggleIcon(collapsedPanels.guide)}
             </button>
           </div>
           <div class="panel-collapsible">
@@ -248,6 +248,14 @@ function actionButtonMarkup(action) {
 function menuButton(panelId, labelKey, collapsedPanels) {
   const open = !collapsedPanels[panelId];
   return `<button class="${open ? 'is-active' : ''}" data-action="panel:toggle:${panelId}" type="button">${t(labelKey)}</button>`;
+}
+
+function panelToggleIcon(isCollapsed) {
+  return isCollapsed ? '&#9656;' : '&#9662;';
+}
+
+function panelToggleLabel(isCollapsed) {
+  return isCollapsed ? t('show') : t('hide');
 }
 
 function toPascalCase(value) {

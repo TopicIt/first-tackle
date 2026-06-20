@@ -20,6 +20,8 @@ import {
 } from './fishing.js';
 import { countItem, hasItem } from './inventory.js';
 import { interactionZones } from './world.js';
+import { getTimePhase } from './time.js';
+import { getTackleEffects } from './tackle.js';
 import { t } from '../i18n/i18n.js';
 
 const idleContext = {
@@ -312,6 +314,7 @@ function getSceneActions(state, zoneId) {
 
   if (zoneId === 'garden') {
     const cooldown = getWormSearchCooldown(state);
+    const featherOnCooldown = state.timers?.featherSearchPhaseKey === `${state.day}:${getTimePhase(state)}`;
     return [
       {
         id: 'search:stones',
@@ -334,7 +337,8 @@ function getSceneActions(state, zoneId) {
       },
       {
         id: 'search:feather',
-        label: t('searchGooseFeather'),
+        label: featherOnCooldown ? t('feathersTryLater') : t('searchGooseFeather'),
+        disabled: featherOnCooldown,
       },
       {
         id: 'gather:rodStick',
@@ -352,12 +356,12 @@ function getSceneActions(state, zoneId) {
       {
         id: 'minigame:start:stickRod',
         label: t('startStickRodFishing'),
-        disabled: !hasItem(state, 'stickRod'),
+        disabled: !hasItem(state, 'stickRod') && !getTackleEffects(state).hasProperRod,
       },
       {
         id: 'minigame:start:liveBait',
         label: t('startLiveBaitFishing'),
-        disabled: !hasItem(state, 'stickRod') || getFishEntries(state, 'live_bait').length === 0,
+        disabled: (!hasItem(state, 'stickRod') && !getTackleEffects(state).hasProperRod) || getFishEntries(state, 'live_bait').length === 0,
       },
       {
         id: 'travel:farther',
@@ -380,7 +384,7 @@ function getSceneActions(state, zoneId) {
         label: t('sellTaranka'),
         disabled: countItem(state, 'taranka') === 0,
       },
-      ...['shovel', 'betterLine', 'simpleFloat', 'properFloat', 'properSinker', 'sharperHook', 'bicycle', 'salt', 'hooksPack'].map((itemId) => {
+      ...['shovel', 'betterLine', 'simpleFloat', 'properFloat', 'properSinker', 'sharperHook', 'properRod', 'bicycle', 'salt', 'hooksPack'].map((itemId) => {
         const item = state.purchased[itemId];
         return {
           id: `buy:${itemId}`,
@@ -403,6 +407,7 @@ function getBuyLabel(itemId) {
     properFloat: 'buyProperFloat',
     properSinker: 'buyProperSinker',
     sharperHook: 'buySharperHook',
+    properRod: 'buyProperRod',
     bicycle: 'buyBicycle',
     salt: 'buySalt',
     hooksPack: 'buyHooksPack',

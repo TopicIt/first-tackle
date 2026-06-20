@@ -12,12 +12,12 @@ export const interactionZones = {
   house: {
     label: 'House',
     position: new THREE.Vector3(-7.6, 0, 1.6),
-    radius: 2.4,
+    radius: 1.7,
   },
   garden: {
     label: 'Garden',
-    position: new THREE.Vector3(-7.4, 0, -3.8),
-    radius: 2.2,
+    position: new THREE.Vector3(-7.1, 0, -3.6),
+    radius: 1.65,
   },
   pond: {
     label: 'Pond',
@@ -85,8 +85,6 @@ export function createWorld() {
       for (const reed of windObjects) {
         reed.rotation.z = Math.sin(time * 1.7 + reed.userData.offset) * 0.07;
       }
-      animatedMapObjects.car.position.x = ((time * 2.1 + 14) % 28) - 14;
-      animatedMapObjects.car.position.z = 7.35 + Math.sin(time * 2.4) * 0.08;
       animatedMapObjects.waterShimmer.scale.setScalar(1 + Math.sin(time * 2.2) * 0.04);
       animatedMapObjects.waterShimmer.material.opacity = 0.18 + Math.sin(time * 2.5) * 0.07;
     },
@@ -388,14 +386,6 @@ function addMapLife(scene) {
   mapPlane.position.set(0, 0.065, -0.7);
   scene.add(mapPlane);
 
-  const car = new THREE.Mesh(
-    new THREE.BoxGeometry(0.7, 0.18, 0.34),
-    new THREE.MeshStandardMaterial({ color: 0xf2d064, roughness: 0.55 }),
-  );
-  car.position.set(-12, 0.23, 7.35);
-  car.castShadow = true;
-  scene.add(car);
-
   const waterShimmer = new THREE.Mesh(
     new THREE.RingGeometry(1.15, 1.34, 32),
     new THREE.MeshBasicMaterial({
@@ -410,5 +400,5 @@ function addMapLife(scene) {
   waterShimmer.position.set(5.2, 0.18, -1.8);
   scene.add(waterShimmer);
 
-  return { car, waterShimmer };
+  return { waterShimmer };
 }

@@ -38,6 +38,8 @@ export function createFishingMinigameState(method) {
     currentCatchEntryId: null,
     idleEventAt: 0,
     ambientEventAt: 0,
+    rareInsectAt: 0,
+    rareInsectActiveUntil: 0,
     falseActivityCount: 0,
     biteCycle: 0,
     biteCycleTotal: 0,
@@ -52,13 +54,13 @@ export function openFishingMinigame(state, method) {
     return;
   }
 
-  if (method === 'stickRod' && !hasItem(state, 'stickRod')) {
+  if (method === 'stickRod' && !hasUsableRod(state)) {
     pushLog(state, 'logNeedFirstRod');
     return;
   }
 
-  if (method === 'liveBait' && (!hasItem(state, 'stickRod') || getFishEntries(state, 'live_bait').length === 0)) {
-    pushLog(state, !hasItem(state, 'stickRod') ? 'logNeedFirstRod' : 'logNeedLiveBait');
+  if (method === 'liveBait' && (!hasUsableRod(state) || getFishEntries(state, 'live_bait').length === 0)) {
+    pushLog(state, !hasUsableRod(state) ? 'logNeedFirstRod' : 'logNeedLiveBait');
     return;
   }
 
@@ -73,6 +75,7 @@ export function openFishingMinigame(state, method) {
     fishingResult: true,
   };
   state.ui.fishingMinigame = createFishingMinigameState(method);
+  state.ui.fishingMinigame.rareInsectAt = (globalThis.performance?.now?.() ?? 0) + randomBetween(330000, 390000);
   autoSelectFirstAvailableBait(state, state.ui.fishingMinigame);
   if (method === 'liveBait' && getFishEntries(state, 'live_bait').length > 0) {
     state.ui.fishingMinigame.selectedBait = 'live_bait';
@@ -188,7 +191,7 @@ export function castLine(state, nowMs) {
   minigame.biteCycleTotal = minigame.fishCandidateId ? getBiteCycleTotal(minigame.fishCandidateId) : 0;
   minigame.biteCyclePattern = [];
   minigame.biteCyclePatternIndex = 0;
-  minigame.castTarget = rollCastTarget(getCastSpot(minigame.selectedSpot));
+  minigame.castTarget = rollCastTarget(state, minigame, getCastSpot(minigame.selectedSpot));
   minigame.falseActivityCount = 0;
   minigame.idleEventAt = nowMs + randomBetween(2500, 5200);
   minigame.ambientEventAt = nowMs + randomBetween(5000, 11000);
@@ -236,6 +239,15 @@ export function strikeLine(state, nowMs) {
   if (roll <= successChance) {
     const catchResult = rollFishById(minigame.fishCandidateId);
     catchResult.value = getFreshFishValue(catchResult);
+    if (shouldBreakHomemadeRod(state, catchResult)) {
+      removeItem(state, 'stickRod');
+      state.tackle.owned.simple_stick_rod = false;
+      if (state.tackle.equipped.rod === 'simple_stick_rod') {
+        state.tackle.equipped.rod = 'none';
+      }
+      resolveMinigameResult(state, { outcome: 'rod_broke', statusKey: 'fishingRodBroke', sound: 'line_break' });
+      return;
+    }
     const entry = addCaughtFish(state, catchResult, {
       catchSpotId: minigame.selectedSpot,
       method: minigame.method,
@@ -412,6 +424,8 @@ export function tickFishingMinigame(state, nowMs) {
     tickWaitingAmbience(state, minigame, nowMs);
   }
 
+  tickRareInsect(state, minigame, nowMs);
+
   if (minigame.phase === 'waiting' && nowMs >= minigame.nextStepAt) {
     if (!minigame.fishCandidateId) {
       resolveMinigameResult(state, { outcome: 'no_bite', statusKey: 'fishingNoBite', sound: 'water_ripple' });
@@ -449,8 +463,18 @@ export function getCastSpotTarget(spotId) {
 export function getAvailableCastSpots(state, method) {
   return castSpots.map((spot) => ({
     ...spot,
+    scatterRadius: getCastScatterRadius(state, method, spot),
     ...canUseCastSpot(state, method, spot),
   }));
+}
+
+export function getCastScatterRadius(state, method, spot) {
+  const effects = getTackleEffects(state);
+  const methodScale = method === 'handline' ? 1.12 : method === 'liveBait' ? 0.78 : 0.9;
+  return {
+    x: Math.max(3.5, (spot.radius?.x ?? 8) * effects.scatterScale * methodScale),
+    y: Math.max(2.4, (spot.radius?.y ?? 5) * effects.scatterScale * methodScale),
+  };
 }
 
 export function setBiteHintMode(state, mode) {
@@ -557,6 +581,10 @@ function canContextCast(minigame) {
   return ['setup', 'result'].includes(minigame.phase);
 }
 
+function hasUsableRod(state) {
+  return hasItem(state, 'stickRod') || getTackleEffects(state).hasProperRod;
+}
+
 function startBiteCycle(state, minigame, nowMs) {
   minigame.biteCycle += 1;
   minigame.biteCyclePattern = buildCyclePattern(minigame.fishCandidateId, minigame.biteCycle, minigame.biteCycleTotal);
@@ -643,6 +671,11 @@ function resolveMinigameResult(state, result) {
     return;
   }
 
+  if (result.outcome === 'rod_broke') {
+    pushLog(state, 'logRodBroke');
+    return;
+  }
+
   if (result.outcome === 'escaped') {
     pushLog(state, 'logFishGotAway');
     return;
@@ -684,6 +717,16 @@ function tickWaitingAmbience(state, minigame, nowMs) {
     minigame.ambientEventAt = nowMs + randomBetween(12000, 22000);
     queueSound(state, 'bird_chirp');
   }
+}
+
+function tickRareInsect(state, minigame, nowMs) {
+  if (!minigame.rareInsectAt || nowMs < minigame.rareInsectAt) {
+    return;
+  }
+
+  minigame.rareInsectActiveUntil = nowMs + 5200;
+  minigame.rareInsectAt = nowMs + randomBetween(330000, 390000);
+  queueSound(state, 'insect_buzz');
 }
 
 function consumeBait(state, baitId) {
@@ -747,6 +790,8 @@ function getFishWeight(state, minigame, fishId, profile, spot) {
   if (profile.preferred.baits.includes(minigame.selectedBait)) {
     score *= 1.22;
   }
+
+  score *= 1 + Math.max(0, 1 - getTackleEffects(state).scatterScale) * 0.14;
 
   score *= getTimeMultiplier(state, fishId);
 
@@ -887,14 +932,24 @@ function randomBetween(min, max) {
   return min + Math.random() * (max - min);
 }
 
-function rollCastTarget(spot) {
-  const radius = spot.radius ?? { x: 3, y: 2 };
+function rollCastTarget(state, minigame, spot) {
+  const radius = getCastScatterRadius(state, minigame.method, spot);
   const angle = Math.random() * Math.PI * 2;
   const distance = Math.sqrt(Math.random());
   return {
     x: clamp(spot.target.x + Math.cos(angle) * radius.x * distance, 12, 88),
     y: clamp(spot.target.y + Math.sin(angle) * radius.y * distance, 24, 76),
   };
+}
+
+function shouldBreakHomemadeRod(state, catchResult) {
+  const effects = getTackleEffects(state);
+  if (effects.hasProperRod || state.tackle?.equipped?.rod !== 'simple_stick_rod' || catchResult.weightGrams <= 500) {
+    return false;
+  }
+
+  const breakChance = catchResult.weightGrams > 650 ? 0.85 : 0.55;
+  return Math.random() < breakChance;
 }
 
 function clamp(value, min, max) {

@@ -3,7 +3,7 @@ export const tackleComponents = {
   hook: ['old_dull_hook', 'sharper_hook'],
   sinker: ['small_stone', 'proper_sinker'],
   float: ['none', 'goose_feather_float', 'cheap_float', 'proper_float'],
-  rod: ['none', 'simple_stick_rod'],
+  rod: ['none', 'simple_stick_rod', 'proper_rod'],
 };
 
 export const componentLabels = {
@@ -18,6 +18,7 @@ export const componentLabels = {
   cheap_float: 'componentCheapFloat',
   proper_float: 'componentProperFloat',
   simple_stick_rod: 'componentSimpleStickRod',
+  proper_rod: 'componentProperRod',
 };
 
 export function createInitialTackleState() {
@@ -72,6 +73,9 @@ export function ensureTackleState(state) {
   if (state.purchased?.sharperHook) {
     state.tackle.owned.sharper_hook = true;
   }
+  if (state.purchased?.properRod) {
+    state.tackle.owned.proper_rod = true;
+  }
 }
 
 export function ownTackleComponent(state, componentId) {
@@ -98,6 +102,17 @@ export function getTackleEffects(state) {
     floatBonus: equipped.float === 'proper_float' ? 0.12 : equipped.float === 'cheap_float' ? 0.08 : equipped.float === 'goose_feather_float' ? 0.05 : -0.08,
     hasFloat: equipped.float !== 'none',
     hasRod: equipped.rod === 'simple_stick_rod',
+    hasProperRod: equipped.rod === 'proper_rod',
     breakPenalty: equipped.line === 'grandma_thread' ? 0.12 : -0.16,
+    scatterScale: getScatterScale(equipped),
   };
+}
+
+function getScatterScale(equipped) {
+  let scale = equipped.rod === 'proper_rod' ? 0.62 : equipped.rod === 'simple_stick_rod' ? 0.82 : 1.18;
+  if (equipped.line === 'better_line') scale -= 0.12;
+  if (equipped.float === 'proper_float') scale -= 0.1;
+  else if (equipped.float === 'cheap_float') scale -= 0.06;
+  if (equipped.sinker === 'proper_sinker') scale -= 0.08;
+  return Math.max(0.48, scale);
 }

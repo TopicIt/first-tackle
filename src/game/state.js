@@ -44,6 +44,13 @@ export const shopItems = [
     type: 'tool',
   },
   {
+    id: 'properRod',
+    label: 'Proper rod',
+    price: 96,
+    description: 'Durable shop rod for larger fish',
+    type: 'tool',
+  },
+  {
     id: 'salt',
     label: 'Salt',
     price: 6,
@@ -104,6 +111,7 @@ export function createInitialState() {
     market: createInitialMarketState(),
     timers: {
       wormSearchReadyAt: 0,
+      featherSearchPhaseKey: null,
     },
     day: 1,
     time: {

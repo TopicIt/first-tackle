@@ -60,8 +60,8 @@ export function fishingMinigameMarkup(state) {
           <aside class="fishing-minigame__controls">
             <div class="fishing-minigame__panel-heading">
             <p class="section-label">${t('controls')}</p>
-              <button class="panel-toggle" data-action="panel:toggle:fishingControls" type="button">
-                ${collapsedPanels.fishingControls ? t('show') : t('hide')}
+              <button class="panel-toggle" data-action="panel:toggle:fishingControls" type="button" aria-label="${panelToggleLabel(collapsedPanels.fishingControls)}">
+                ${panelToggleIcon(collapsedPanels.fishingControls)}
               </button>
             </div>
             <div class="fishing-minigame__controls-body">
@@ -114,6 +114,7 @@ export function fishingMinigameMarkup(state) {
                 <span class="bird bird--two"></span>
                 <span class="dragonfly dragonfly--one"></span>
                 <span class="dragonfly dragonfly--two"></span>
+                <span class="dragonfly dragonfly--rare${(minigame.rareInsectActiveUntil ?? 0) > performance.now() ? ' is-active' : ''}"></span>
                 <span class="surface-ring surface-ring--one"></span>
                 <span class="surface-ring surface-ring--two"></span>
                 <span class="reed reed--one"></span>
@@ -130,6 +131,7 @@ export function fishingMinigameMarkup(state) {
               </div>
               <div class="cast-spot-layer">
                 ${getAvailableCastSpots(state, minigame.method).map((spot) => castSpotMarkup(spot, minigame.selectedSpot)).join('')}
+                ${selectedScatterMarkup(state, minigame)}
               </div>
               <div class="fishing-stage__waterline" aria-hidden="true"></div>
               <div class="fishing-stage__distance-line" aria-hidden="true"></div>
@@ -204,6 +206,22 @@ function castSpotMarkup(spot, selectedSpot) {
   `;
 }
 
+function selectedScatterMarkup(state, minigame) {
+  const spot = getAvailableCastSpots(state, minigame.method).find((entry) => entry.id === minigame.selectedSpot);
+  if (!spot?.allowed) {
+    return '';
+  }
+
+  const radius = spot.scatterRadius ?? spot.radius ?? { x: 8, y: 5 };
+  return `
+    <span
+      class="cast-scatter"
+      style="--scatter-x:${spot.target.x}%;--scatter-y:${spot.target.y}%;--scatter-w:${radius.x * 2}%;--scatter-h:${radius.y * 2}%;"
+      aria-hidden="true"
+    ></span>
+  `;
+}
+
 function catchResultCardMarkup(state, fish, result, minigame, collapsedPanels) {
   const image = getCatchImage(result.id);
   const entry = state.fishBasket?.find((item) => item.id === minigame.currentCatchEntryId);
@@ -213,8 +231,8 @@ function catchResultCardMarkup(state, fish, result, minigame, collapsedPanels) {
     <section class="fishing-result">
       <div class="fishing-minigame__panel-heading">
         <p class="section-label">${t('inKeepnet')}</p>
-        <button class="panel-toggle" data-action="panel:toggle:fishingResult" type="button">
-          ${collapsedPanels.fishingResult ? t('show') : t('hide')}
+        <button class="panel-toggle" data-action="panel:toggle:fishingResult" type="button" aria-label="${panelToggleLabel(collapsedPanels.fishingResult)}">
+          ${panelToggleIcon(collapsedPanels.fishingResult)}
         </button>
       </div>
       <div class="fishing-result__body">
@@ -248,8 +266,8 @@ function sidePanelMarkup(state, minigame, collapsedPanels) {
     <section class="fishing-result fishing-result--compact">
       <div class="fishing-minigame__panel-heading">
         <p class="section-label">${minigame.phase === 'result' ? t('status') : t('fishBasket')}</p>
-        <button class="panel-toggle" data-action="panel:toggle:fishingResult" type="button">
-          ${collapsedPanels.fishingResult ? t('show') : t('hide')}
+        <button class="panel-toggle" data-action="panel:toggle:fishingResult" type="button" aria-label="${panelToggleLabel(collapsedPanels.fishingResult)}">
+          ${panelToggleIcon(collapsedPanels.fishingResult)}
         </button>
       </div>
       <div class="fishing-result__body">
@@ -365,4 +383,12 @@ function toPascalCase(value) {
     .split('_')
     .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
     .join('');
+}
+
+function panelToggleIcon(isCollapsed) {
+  return isCollapsed ? '&#9656;' : '&#9662;';
+}
+
+function panelToggleLabel(isCollapsed) {
+  return isCollapsed ? t('show') : t('hide');
 }

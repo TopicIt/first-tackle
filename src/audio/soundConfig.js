@@ -80,4 +80,8 @@ export const fallbackSoundPresets = {
   dry_fish: [
     { type: 'sine', frequency: 430, duration: 0.1, gain: 0.05 },
   ],
+  insect_buzz: [
+    { type: 'sawtooth', frequency: 190, duration: 0.22, gain: 0.018 },
+    { type: 'triangle', frequency: 420, duration: 0.18, gain: 0.014, delay: 0.05 },
+  ],
 };
