@@ -213,10 +213,10 @@ function catchResultModalMarkup(state, fish, result, minigame) {
             <p>${t(fish.descriptionKey)}</p>
           </div>
           <div class="fishing-result__actions">
-            <button data-action="minigame:keep" type="button">${t('moveToKeepnet')}</button>
+            <button data-action="minigame:keep" type="button">${t('close')}</button>
+            <button data-action="minigame:openKeepnet" type="button">${t('openKeepnet')}</button>
             <button data-action="minigame:liveBait" type="button"${liveBaitDisabled}>${t('useAsLiveBait')}</button>
             <button data-action="minigame:release" type="button">${t('release')}</button>
-            <button data-action="minigame:castAgain" type="button">${t('castAgain')}</button>
           </div>
         </div>
       </div>
@@ -402,16 +402,21 @@ function fishingStageMarkup(state, minigame, options) {
   `;
 
   return `
-    <div class="fishing-stage${experimental3D ? ' fishing-stage--panorama' : ''}" style="${bobberStyle(minigame)}">
+    <div class="fishing-stage${experimental3D ? ' fishing-stage--panorama' : ''}${activeFishing ? ' fishing-stage--active-cast' : ''}" style="${bobberStyle(minigame)}">
       ${experimental3D ? `
-        <div class="fishing-stage__panorama" data-panorama-drag data-panorama-pan="0" style="--panorama-pan:0;">
-          <div class="fishing-stage__panorama-world">
-            ${stageBody}
-          </div>
+        <div class="fishing-stage__three-wrap">
+          <canvas
+            class="fishing-stage__three-canvas"
+            data-fishing-3d-canvas
+            data-phase="${minigame.phase}"
+            data-bobber-state="${minigame.bobberState}"
+            aria-label="${t('experimental3DFishing')}"
+          ></canvas>
+          ${stageBody}
         </div>
         <span class="fishing-stage__panorama-hint">${t('experimental3DDragHint')}</span>
       ` : stageBody}
-      ${selectedSpotChip(minigame)}
+      ${activeFishing ? '' : selectedSpotChip(minigame)}
       <div class="fishing-context-action">
         <button
           class="fishing-context-action__button fishing-context-action__button--${contextAction.variant}"

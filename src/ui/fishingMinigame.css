@@ -331,6 +331,26 @@
   backdrop-filter: blur(8px);
 }
 
+.fishing-stage__three-wrap,
+.fishing-stage__three-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.fishing-stage__three-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.fishing-stage__three-wrap .fishing-ambience,
+.fishing-stage__three-wrap .fishing-figure,
+.fishing-stage__three-wrap .fishing-stage__waterline,
+.fishing-stage__three-wrap .fishing-stage__distance-line {
+  display: none;
+}
+
 .cast-spot-layer,
 .fishing-ambience,
 .fishing-figure {
@@ -341,6 +361,22 @@
 
 .cast-spot-layer {
   z-index: 4;
+}
+
+.fishing-stage--active-cast .cast-spot-layer,
+.fishing-stage--active-cast .cast-scatter,
+.fishing-stage--active-cast .fishing-stage__distance-line,
+.fishing-stage--active-cast .fishing-stage__waterline {
+  display: none;
+}
+
+.fishing-stage--active-cast .fishing-stage__hint {
+  left: 50%;
+  top: auto;
+  bottom: 88px;
+  max-width: 220px;
+  font-size: 0.72rem;
+  transform: translateX(-50%);
 }
 
 .cast-spot {

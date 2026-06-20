@@ -825,6 +825,67 @@ button:disabled {
   gap: 8px;
 }
 
+.active-tackle {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  border: 1px solid rgb(243 196 95 / 22%);
+  border-radius: 8px;
+  background: rgb(243 196 95 / 9%);
+  padding: 10px;
+}
+
+.active-tackle > strong {
+  color: #fff8df;
+}
+
+.rig-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.rig-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  border-radius: 7px;
+  background: rgb(255 255 255 / 7%);
+  padding: 9px;
+}
+
+.rig-card.is-selected {
+  outline: 1px solid rgb(243 196 95 / 64%);
+  background: rgb(243 196 95 / 14%);
+}
+
+.rig-card.is-disabled {
+  opacity: 0.56;
+}
+
+.rig-card h3 {
+  margin: 0 0 4px;
+  color: #fff8df;
+  font-size: 0.96rem;
+}
+
+.rig-card p {
+  margin: 0;
+  color: #cfe1dc;
+  font-size: 0.78rem;
+}
+
+.rig-card button {
+  min-height: 34px;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 999px;
+  background: #f3c45f;
+  color: #14221d;
+  font-size: 0.76rem;
+  font-weight: 850;
+  padding: 7px 10px;
+}
+
 .tackle-slot,
 .guide-entry,
 .guide-card {

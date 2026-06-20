@@ -21,8 +21,30 @@ export const componentLabels = {
   proper_rod: 'componentProperRod',
 };
 
+export const tackleRigs = [
+  {
+    id: 'handline',
+    labelKey: 'rigPrimitiveHandline',
+    descriptionKey: 'rigPrimitiveHandlineDesc',
+    method: 'handline',
+  },
+  {
+    id: 'first_rod',
+    labelKey: 'rigFirstRod',
+    descriptionKey: 'rigFirstRodDesc',
+    method: 'stickRod',
+  },
+  {
+    id: 'proper_rod',
+    labelKey: 'rigProperRod',
+    descriptionKey: 'rigProperRodDesc',
+    method: 'stickRod',
+  },
+];
+
 export function createInitialTackleState() {
   return {
+    activeRig: 'handline',
     owned: {
       grandma_thread: true,
       old_dull_hook: true,
@@ -55,6 +77,7 @@ export function ensureTackleState(state) {
     ...createInitialTackleState().equipped,
     ...(state.tackle.equipped ?? {}),
   };
+  state.tackle.activeRig = getRigAvailable(state, state.tackle.activeRig) ? state.tackle.activeRig : getBestAvailableRig(state).id;
 
   if (state.inventory?.primitiveTackle > 0) {
     state.tackle.owned.grandma_thread = true;
@@ -82,6 +105,7 @@ export function ensureTackleState(state) {
   if (state.purchased?.properRod) {
     state.tackle.owned.proper_rod = true;
   }
+  state.tackle.activeRig = getRigAvailable(state, state.tackle.activeRig) ? state.tackle.activeRig : getBestAvailableRig(state).id;
 }
 
 export function ownTackleComponent(state, componentId) {
@@ -98,20 +122,81 @@ export function equipTackleComponent(state, slot, componentId) {
   return true;
 }
 
+export function selectActiveRig(state, rigId) {
+  ensureTackleState(state);
+  if (!getRigAvailable(state, rigId)) {
+    return false;
+  }
+  state.tackle.activeRig = rigId;
+  return true;
+}
+
+export function getActiveRig(state) {
+  ensureTackleState(state);
+  return tackleRigs.find((rig) => rig.id === state.tackle.activeRig) ?? getBestAvailableRig(state);
+}
+
+export function getAvailableRigs(state) {
+  ensureTackleState(state);
+  return tackleRigs.map((rig) => ({
+    ...rig,
+    available: getRigAvailable(state, rig.id),
+  }));
+}
+
+export function getRigMethod(state, rigId = state.tackle?.activeRig) {
+  const rig = tackleRigs.find((entry) => entry.id === rigId) ?? getActiveRig(state);
+  return rig.method;
+}
+
 export function getTackleEffects(state) {
   ensureTackleState(state);
   const equipped = state.tackle.equipped;
+  const rig = getActiveRig(state);
+  const usesRod = rig.id === 'first_rod' || rig.id === 'proper_rod';
+  const usesProperRod = rig.id === 'proper_rod';
+  const usesFloat = usesRod && equipped.float !== 'none';
+  const line = usesProperRod ? equipped.line : rig.id === 'first_rod' ? equipped.line : 'grandma_thread';
+  const hook = usesRod ? equipped.hook : 'old_dull_hook';
+  const sinker = usesRod ? equipped.sinker : 'small_stone';
+  const float = usesFloat ? equipped.float : 'none';
   return {
-    reachBonus: equipped.line === 'better_line' ? 1 : 0,
-    hookBonus: equipped.hook === 'sharper_hook' ? 0.12 : -0.08,
-    stabilityBonus: equipped.sinker === 'proper_sinker' ? 0.08 : -0.04,
-    floatBonus: equipped.float === 'proper_float' ? 0.12 : equipped.float === 'cheap_float' ? 0.08 : equipped.float === 'goose_feather_float' ? 0.05 : -0.08,
-    hasFloat: equipped.float !== 'none',
-    hasRod: equipped.rod === 'simple_stick_rod',
-    hasProperRod: equipped.rod === 'proper_rod',
-    breakPenalty: equipped.line === 'grandma_thread' ? 0.12 : -0.16,
-    scatterScale: getScatterScale(equipped),
+    activeRigId: rig.id,
+    reachBonus: line === 'better_line' || usesProperRod ? 1 : 0,
+    hookBonus: hook === 'sharper_hook' ? 0.12 : -0.08,
+    stabilityBonus: sinker === 'proper_sinker' ? 0.08 : -0.04,
+    floatBonus: float === 'proper_float' ? 0.12 : float === 'cheap_float' ? 0.08 : float === 'goose_feather_float' ? 0.05 : -0.08,
+    hasFloat: usesFloat,
+    hasRod: usesRod,
+    hasProperRod: usesProperRod,
+    breakPenalty: line === 'grandma_thread' ? 0.12 : -0.16,
+    scatterScale: getScatterScale({
+      ...equipped,
+      line,
+      hook,
+      sinker,
+      float,
+      rod: usesProperRod ? 'proper_rod' : usesRod ? 'simple_stick_rod' : 'none',
+    }),
   };
+}
+
+function getRigAvailable(state, rigId) {
+  const owned = state.tackle?.owned ?? {};
+  if (rigId === 'handline') {
+    return (state.inventory?.primitiveTackle ?? 0) > 0;
+  }
+  if (rigId === 'first_rod') {
+    return (state.inventory?.stickRod ?? 0) > 0 || owned.simple_stick_rod;
+  }
+  if (rigId === 'proper_rod') {
+    return Boolean(owned.proper_rod || state.purchased?.properRod);
+  }
+  return false;
+}
+
+function getBestAvailableRig(state) {
+  return [...tackleRigs].reverse().find((rig) => getRigAvailable(state, rig.id)) ?? tackleRigs[0];
 }
 
 function getScatterScale(equipped) {

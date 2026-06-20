@@ -43,4 +43,16 @@ export const MAP_HOTSPOTS = [
     labelKey: 'zoneMarket',
     actionKey: 'openMarket',
   },
+  {
+    id: 'greada',
+    type: 'ellipse',
+    x: 77,
+    y: 32,
+    width: 24,
+    height: 18,
+    scene: 'greada',
+    labelKey: 'zoneGreada',
+    actionKey: 'openGreada',
+    requiresBicycle: true,
+  },
 ];

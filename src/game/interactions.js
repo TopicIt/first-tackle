@@ -22,7 +22,7 @@ import {
 import { hasItem } from './inventory.js';
 import { interactionZones } from './world.js';
 import { getTimePhase } from './time.js';
-import { getTackleEffects } from './tackle.js';
+import { getActiveRig, getTackleEffects } from './tackle.js';
 import { t } from '../i18n/i18n.js';
 
 const idleContext = {
@@ -272,6 +272,20 @@ export function runAction(actionId, state, context = idleContext) {
     state.travel.greadaUnlocked = true;
     pushTravelLog(state, 'logTravelWatersUnlocked');
   }
+
+  if (actionId === 'travel:greada') {
+    if (!state.purchased.bicycle) {
+      pushTravelLog(state, 'logNeedBicycleForTravel');
+      return;
+    }
+    state.travel ??= {};
+    state.travel.farWatersUnlocked = true;
+    state.travel.greadaUnlocked = true;
+    state.travel.selectedWater = 'greada';
+    state.ui.activeScene = 'greada';
+    state.ui.selectedHotspot = 'greada';
+    pushTravelLog(state, 'logTravelGreada');
+  }
 }
 
 function getCurrentZone(playerPosition) {
@@ -296,6 +310,10 @@ function getZoneHint(zoneId) {
 
   if (zoneId === 'pond') {
     return t('hintPond');
+  }
+
+  if (zoneId === 'greada') {
+    return t('hintGreada');
   }
 
   if (zoneId === 'market') {
@@ -388,8 +406,13 @@ function getSceneActions(state, zoneId) {
     ];
   }
 
-  if (zoneId === 'pond') {
-    return [
+  if (zoneId === 'pond' || zoneId === 'greada') {
+    const activeRig = getActiveRig(state);
+    const waterActions = [
+      {
+        id: 'minigame:start:active',
+        label: t('startActiveTackleFishing', { rig: t(activeRig.labelKey) }),
+      },
       {
         id: 'minigame:start:handline',
         label: t('startHandlineFishing'),
@@ -404,9 +427,23 @@ function getSceneActions(state, zoneId) {
         label: t('startLiveBaitFishing'),
         disabled: (!hasItem(state, 'stickRod') && !getTackleEffects(state).hasProperRod) || getFishEntries(state, 'live_bait').length === 0,
       },
+    ];
+
+    if (zoneId === 'greada') {
+      return waterActions;
+    }
+
+    return [
+      ...waterActions,
       {
         id: 'travel:farther',
         label: state.purchased.bicycle ? t('travelFarther') : t('buyBicycleToReachWaters'),
+        disabled: !state.purchased.bicycle,
+        variant: state.purchased.bicycle ? 'secondary' : 'future',
+      },
+      {
+        id: 'travel:greada',
+        label: state.purchased.bicycle ? t('travelGreada') : t('requiresBicycle'),
         disabled: !state.purchased.bicycle,
         variant: state.purchased.bicycle ? 'secondary' : 'future',
       },
@@ -455,6 +492,7 @@ function getZoneLabel(zoneId) {
     house: 'zoneHouse',
     garden: 'zoneGarden',
     pond: 'zonePond',
+    greada: 'zoneGreada',
     market: 'zoneMarket',
   };
   return t(labels[zoneId] ?? 'roadsideVillage');
@@ -465,6 +503,7 @@ function getOpenSceneAction(zoneId) {
     house: 'openHouse',
     garden: 'openGarden',
     pond: 'openPond',
+    greada: 'openGreada',
     market: 'openMarket',
   };
 

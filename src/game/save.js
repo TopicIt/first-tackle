@@ -13,6 +13,7 @@ export function saveGame(state) {
       activeScene: null,
       catchResult: null,
       fishingMinigame: null,
+      pendingFishingMethod: null,
     },
   };
 
@@ -105,6 +106,7 @@ function mergeState(base, saved) {
     },
     trophies: Array.isArray(saved.trophies) ? saved.trophies : base.trophies,
     tackle: {
+      activeRig: saved.tackle?.activeRig ?? base.tackle.activeRig,
       owned: {
         ...base.tackle.owned,
         ...(saved.tackle?.owned ?? {}),

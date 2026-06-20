@@ -28,7 +28,7 @@ import { getInteractionContext, getLocationSceneContext, runAction } from './gam
 import { loadGame, resetGame, saveGame } from './game/save.js';
 import { createAudioManager } from './audio/audioManager.js';
 import { ensureMarketState, freshFishAtRisk } from './game/market.js';
-import { ensureTackleState, equipTackleComponent } from './game/tackle.js';
+import { ensureTackleState, equipTackleComponent, getRigMethod, selectActiveRig } from './game/tackle.js';
 import { ensureTimeState, formatGameTime, getTimePhase } from './game/time.js';
 import { createHud } from './ui/hud.js';
 import { updateMapOverlayMotion } from './ui/mapOverlay.js';
@@ -64,6 +64,18 @@ const hud = createHud(hudRoot, {
 
     if (actionId.startsWith('open:')) {
       const sceneId = actionId.replace('open:', '');
+      if (sceneId === 'greada' && !gameState.purchased?.bicycle) {
+        pushLog(gameState, 'logNeedBicycleForTravel');
+        renderHud();
+        return;
+      }
+      if (sceneId === 'pond') {
+        gameState.travel.selectedWater = 'canal';
+      }
+      if (sceneId === 'greada') {
+        gameState.travel.greadaUnlocked = true;
+        gameState.travel.selectedWater = 'greada';
+      }
       gameState.ui.activeScene = sceneId;
       gameState.ui.selectedHotspot = sceneId;
       gameState.audioQueue.push('open_scene');
@@ -141,10 +153,42 @@ const hud = createHud(hudRoot, {
       return;
     }
 
+    if (actionId.startsWith('tackle:rig:')) {
+      selectActiveRig(gameState, actionId.replace('tackle:rig:', ''));
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
     if (actionId.startsWith('minigame:start:')) {
       const method = actionId.replace('minigame:start:', '');
-      const normalizedMethod = method === 'liveBait' ? 'liveBait' : method;
-      openFishingMinigame(gameState, normalizedMethod);
+      const normalizedMethod = method === 'active' ? getRigMethod(gameState) : method === 'liveBait' ? 'liveBait' : method;
+      if (method === 'handline') {
+        selectActiveRig(gameState, 'handline');
+      }
+      if (method === 'stickRod') {
+        selectActiveRig(gameState, 'first_rod') || selectActiveRig(gameState, 'proper_rod');
+      }
+      gameState.ui.pendingFishingMethod = normalizedMethod;
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('fishingMode:')) {
+      const mode = actionId.replace('fishingMode:', '');
+      if (mode === 'cancel') {
+        gameState.ui.pendingFishingMethod = null;
+        renderHud();
+        return;
+      }
+      const method = gameState.ui.pendingFishingMethod;
+      if (method) {
+        gameState.settings.fishing.lastMode = mode === 'experimental' ? 'experimental' : 'classic';
+        gameState.settings.fishing.experimental3D = mode === 'experimental';
+        gameState.ui.pendingFishingMethod = null;
+        openFishingMinigame(gameState, method);
+      }
       renderHud();
       return;
     }
@@ -205,6 +249,17 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'minigame:keep') {
       keepCatch(gameState);
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'minigame:openKeepnet') {
+      keepCatch(gameState);
+      gameState.ui.collapsedPanels = {
+        ...(gameState.ui.collapsedPanels ?? {}),
+        keepnet: false,
+      };
+      closeSiblingPanels(gameState, 'keepnet');
       renderHud();
       return;
     }

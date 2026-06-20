@@ -68,7 +68,7 @@ export const castSpots = [
     target: { x: 46, y: 64 },
     radius: { x: 14, y: 8 },
     scale: 0.88,
-    allowedMethods: ['stickRod', 'betterLine'],
+    allowedMethods: ['handline', 'stickRod', 'betterLine'],
     waterId: 'greada',
     weights: { canadian_catfish: 3.2, crucian: 2.2, loach: 0.5, rotan: 0.8 },
   },

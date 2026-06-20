@@ -5,3 +5,4 @@ dist/
 vite-dev.out
 vite-dev.err
 .DS_Store
+public/assets/3d/nature/quaternius_stylized_nature/

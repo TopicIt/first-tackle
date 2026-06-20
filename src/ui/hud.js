@@ -9,6 +9,7 @@ import {
 } from './panels.js';
 import { locationSceneMarkup } from './locationScene.js';
 import { mapOverlayMarkup } from './mapOverlay.js';
+import { mountExperimentalFishing3d } from './experimentalFishing3d.js';
 import { getLanguage, t } from '../i18n/i18n.js';
 
 export function createHud(root, handlers) {
@@ -357,6 +358,8 @@ export function createHud(root, handlers) {
       for (const feedback of visibleFeedback) {
         shownFeedbackIds.add(feedback.id);
       }
+
+      mountExperimentalFishing3d(root);
     },
   };
 

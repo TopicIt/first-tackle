@@ -5,6 +5,7 @@ const zoneColors = {
   house: 0xe3c173,
   garden: 0x627c4b,
   pond: 0x4d8aa1,
+  greada: 0x526f55,
   market: 0xb98e5d,
 };
 
@@ -28,6 +29,11 @@ export const interactionZones = {
     label: 'Market',
     position: new THREE.Vector3(1.5, 0, 6.1),
     radius: 2.5,
+  },
+  greada: {
+    label: 'Greada',
+    position: new THREE.Vector3(10.3, 0, -7.2),
+    radius: 1.8,
   },
 };
 

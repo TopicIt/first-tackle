@@ -141,6 +141,7 @@ export function createInitialState() {
     catchJournal: {},
     trophies: [],
     tackle: {
+      activeRig: 'handline',
       owned: {
         grandma_thread: true,
         old_dull_hook: true,
@@ -167,6 +168,7 @@ export function createInitialState() {
       fishing: {
         biteHints: 'subtle',
         experimental3D: false,
+        lastMode: 'classic',
       },
     },
     audioQueue: [],
@@ -175,6 +177,7 @@ export function createInitialState() {
       selectedHotspot: null,
       catchResult: null,
       fishingMinigame: null,
+      pendingFishingMethod: null,
       collapsedPanels: {
         status: false,
         inventory: true,

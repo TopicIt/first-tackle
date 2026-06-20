@@ -4,7 +4,7 @@ import { getFishGuideEntries, waterGuide } from '../game/guideData.js';
 import { getFishSaleValue, getFreshnessInfo, getMarketPriceInfo } from '../game/market.js';
 import { getCastSpot } from '../game/bitePatterns.js';
 import { shopItems } from '../game/state.js';
-import { componentLabels, tackleComponents } from '../game/tackle.js';
+import { componentLabels, getActiveRig, getAvailableRigs, tackleComponents } from '../game/tackle.js';
 import { countItem, itemLabels } from '../game/inventory.js';
 import { t, translateEntry } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
@@ -156,7 +156,26 @@ export function catchJournalMarkup(state) {
 export function tackleMarkup(state) {
   const equipped = state.tackle?.equipped ?? {};
   const owned = state.tackle?.owned ?? {};
+  const activeRig = getActiveRig(state);
+  const rigs = getAvailableRigs(state);
   return `
+    <section class="active-tackle">
+      <p class="section-label">${t('activeTackle')}</p>
+      <strong>${t('activeTackleValue', { rig: t(activeRig.labelKey) })}</strong>
+      <div class="rig-grid">
+        ${rigs.map((rig) => `
+          <article class="rig-card${activeRig.id === rig.id ? ' is-selected' : ''}${rig.available ? '' : ' is-disabled'}">
+            <div>
+              <h3>${t(rig.labelKey)}</h3>
+              <p>${t(rig.descriptionKey)}</p>
+            </div>
+            <button data-action="tackle:rig:${rig.id}" type="button"${rig.available ? '' : ' disabled'}>
+              ${activeRig.id === rig.id ? t('selected') : t('useThisTackle')}
+            </button>
+          </article>
+        `).join('')}
+      </div>
+    </section>
     <div class="tackle-grid">
       ${Object.entries(tackleComponents).map(([slot, options]) => `
         <section class="tackle-slot">

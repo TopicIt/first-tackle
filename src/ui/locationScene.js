@@ -27,6 +27,13 @@ const sceneConfigs = {
     bgClass: 'scene-bg--slow-zoom',
     effects: ['scene-water-ripples', 'scene-bobber', 'scene-cloud-shadow'],
   },
+  greada: {
+    titleKey: 'sceneGreadaTitle',
+    descriptionKey: 'sceneGreadaDescription',
+    image: assetPath('/assets/locations/greada_location_concept.png'),
+    bgClass: 'scene-bg--slow-zoom',
+    effects: ['scene-water-ripples', 'scene-bobber', 'scene-cloud-shadow', 'scene-road-dust'],
+  },
   market: {
     titleKey: 'sceneMarketTitle',
     descriptionKey: 'sceneMarketDescription',
@@ -97,6 +104,7 @@ export function locationSceneMarkup(state, context) {
       </div>
 
       ${fishingMinigameMarkup(state)}
+      ${fishingModeChoiceMarkup(state)}
     </section>
   `;
 }
@@ -108,10 +116,39 @@ function travelPreviewMarkup(state) {
       <summary>${t('travelFarther')}</summary>
       <p>${unlocked ? t('farWatersUnlocked') : t('buyBicycleToReachWaters')}</p>
       <div class="travel-preview__routes">
-        <span class="${unlocked ? '' : 'is-locked'}">${t('oldPond')}</span>
-        <span class="${unlocked ? '' : 'is-locked'}">${t('riverBend')}</span>
+        <button class="${unlocked ? '' : 'is-locked'}" data-action="travel:greada" type="button"${unlocked ? '' : ' disabled'}>${t('zoneGreada')}</button>
+        <span class="${unlocked ? '' : 'is-locked'}">${unlocked ? t('farWatersUnlocked') : t('requiresBicycle')}</span>
       </div>
     </details>
+  `;
+}
+
+function fishingModeChoiceMarkup(state) {
+  const method = state.ui?.pendingFishingMethod;
+  if (!method) {
+    return '';
+  }
+
+  const lastMode = state.settings?.fishing?.lastMode ?? 'classic';
+  return `
+    <section class="fishing-mode-choice" role="dialog" aria-label="${t('chooseFishingMode')}">
+      <button class="fishing-mode-choice__backdrop" data-action="fishingMode:cancel" type="button" aria-label="${t('close')}"></button>
+      <div class="fishing-mode-choice__card">
+        <p class="section-label">${t('chooseFishingMode')}</p>
+        <h3>${t('chooseFishingModeTitle')}</h3>
+        <div class="fishing-mode-choice__actions">
+          <button class="${lastMode === 'classic' ? 'is-selected' : ''}" data-action="fishingMode:classic" type="button">
+            <strong>${t('classic2DFishing')}</strong>
+            <small>${t('classic2DFishingNote')}</small>
+          </button>
+          <button class="${lastMode === 'experimental' ? 'is-selected' : ''}" data-action="fishingMode:experimental" type="button">
+            <strong>${t('experimental3DFishingChoice')}</strong>
+            <small>${t('experimental3DFishingNote')}</small>
+          </button>
+        </div>
+        <button class="fishing-mode-choice__cancel" data-action="fishingMode:cancel" type="button">${t('close')}</button>
+      </div>
+    </section>
   `;
 }
 
@@ -150,7 +187,7 @@ function feedbackMarkup(feedback) {
 }
 
 function fishResultMarkup(state) {
-  if (state.ui?.activeScene !== 'pond' || state.ui?.fishingMinigame?.open) {
+  if (!['pond', 'greada'].includes(state.ui?.activeScene) || state.ui?.fishingMinigame?.open) {
     return '';
   }
 

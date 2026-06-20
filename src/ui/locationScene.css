@@ -320,17 +320,92 @@
   gap: 8px;
 }
 
-.travel-preview__routes span {
+.travel-preview__routes span,
+.travel-preview__routes button {
   border-radius: 999px;
+  border: 0;
   background: rgb(148 212 196 / 22%);
   color: #fff8df;
+  font: inherit;
   font-weight: 800;
   padding: 7px 10px;
 }
 
-.travel-preview__routes span.is-locked {
+.travel-preview__routes span.is-locked,
+.travel-preview__routes button.is-locked {
   background: rgb(255 255 255 / 9%);
   color: #b8c9c2;
+}
+
+.fishing-mode-choice {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.fishing-mode-choice__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgb(4 10 12 / 48%);
+  backdrop-filter: blur(5px);
+}
+
+.fishing-mode-choice__card {
+  position: relative;
+  z-index: 1;
+  width: min(480px, 100%);
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 10% 0%, rgb(243 196 95 / 18%), transparent 34%),
+    rgb(15 27 27 / 92%);
+  box-shadow: 0 28px 70px rgb(0 0 0 / 38%);
+  padding: 18px;
+}
+
+.fishing-mode-choice__card h3 {
+  margin: 0 0 14px;
+  color: #fff7dc;
+}
+
+.fishing-mode-choice__actions {
+  display: grid;
+  gap: 10px;
+}
+
+.fishing-mode-choice__actions button {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 8%);
+  color: #f6fff6;
+  padding: 14px;
+  text-align: left;
+}
+
+.fishing-mode-choice__actions button.is-selected {
+  border-color: rgb(243 196 95 / 62%);
+  background: rgb(243 196 95 / 18%);
+}
+
+.fishing-mode-choice__actions small {
+  color: #cde1dc;
+}
+
+.fishing-mode-choice__cancel {
+  width: 100%;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 10%);
+  color: #edf8f4;
+  font-weight: 850;
+  padding: 10px 12px;
 }
 
 .scene-action-grid {

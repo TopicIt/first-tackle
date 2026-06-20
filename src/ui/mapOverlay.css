@@ -140,6 +140,16 @@
   outline-offset: 3px;
 }
 
+.map-hotspot.is-locked {
+  opacity: 0.58;
+}
+
+.map-hotspot.is-locked .map-hotspot__area {
+  border-style: dashed;
+  border-color: rgb(255 255 255 / 36%);
+  background: rgb(255 255 255 / 8%);
+}
+
 @keyframes mapSlowBreath {
   from {
     transform: translate3d(-0.8%, -0.4%, 0) scale(1.02);

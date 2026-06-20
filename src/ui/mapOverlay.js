@@ -19,18 +19,19 @@ export function mapOverlayMarkup(state) {
 
 function hotspotMarkup(hotspot, state) {
   const selected = state.ui?.selectedHotspot === hotspot.id ? ' is-selected' : '';
+  const locked = hotspot.requiresBicycle && !state.purchased?.bicycle;
   const shapeClass = ` map-hotspot--${hotspot.type ?? 'ellipse'}`;
   const style = hotspotStyle(hotspot);
   return `
     <button
-      class="map-hotspot${shapeClass}${selected}"
+      class="map-hotspot${shapeClass}${selected}${locked ? ' is-locked' : ''}"
       data-action="open:${hotspot.scene}"
       style="${style}"
       type="button"
-      aria-label="${t(hotspot.actionKey)}"
+      aria-label="${locked ? `${t(hotspot.labelKey)} - ${t('requiresBicycle')}` : t(hotspot.actionKey)}"
     >
       <span class="map-hotspot__area"></span>
-      <span class="map-hotspot__label">${t(hotspot.labelKey)}</span>
+      <span class="map-hotspot__label">${t(hotspot.labelKey)}${locked ? ` · ${t('requiresBicycle')}` : ''}</span>
     </button>
   `;
 }

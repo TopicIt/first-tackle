@@ -298,11 +298,8 @@ export function keepCatch(state) {
     return;
   }
 
-  hideBobber(minigame);
   minigame.statusKey = 'fishingMovedToKeepnet';
-  minigame.result = null;
-  minigame.currentCatchEntryId = null;
-  state.ui.catchResult = null;
+  resetAfterResult(state, minigame);
 }
 
 export function releaseCurrentCatch(state) {
@@ -312,11 +309,8 @@ export function releaseCurrentCatch(state) {
   }
 
   releaseFish(state, minigame.currentCatchEntryId);
-  hideBobber(minigame);
   minigame.statusKey = 'fishingReleased';
-  minigame.result = null;
-  minigame.currentCatchEntryId = null;
-  state.ui.catchResult = null;
+  resetAfterResult(state, minigame);
   queueSound(state, 'water_ripple');
 }
 
@@ -343,10 +337,7 @@ export function useCatchAsLiveBait(state) {
   }
 
   minigame.statusKey = 'fishingLiveBaitReady';
-  hideBobber(minigame);
-  minigame.result = null;
-  minigame.currentCatchEntryId = null;
-  state.ui.catchResult = null;
+  resetAfterResult(state, minigame);
 }
 
 export function castAgain(state) {
@@ -485,7 +476,11 @@ export function getCastSpotTarget(spotId) {
 }
 
 export function getAvailableCastSpots(state, method) {
-  return castSpots.map((spot) => ({
+  const selectedWater = state.travel?.selectedWater ?? 'canal';
+  const waterSpots = selectedWater === 'greada'
+    ? castSpots.filter((spot) => spot.waterId === 'greada')
+    : castSpots.filter((spot) => !spot.waterId);
+  return waterSpots.map((spot) => ({
     ...spot,
     scatterRadius: getCastScatterRadius(state, method, spot),
     ...canUseCastSpot(state, method, spot),
@@ -830,6 +825,13 @@ function getFishWeight(state, minigame, fishId, profile, spot) {
 
   score *= getTimeMultiplier(state, fishId);
 
+  if (state.travel?.selectedWater === 'greada') {
+    if (fishId === 'crucian') score *= 1.24;
+    if (fishId === 'rotan') score *= 0.62;
+    if (fishId === 'loach') score *= 0.72;
+    if (fishId === 'canadian_catfish') score *= ['evening', 'night'].includes(getTimePhase(state)) ? 1.55 : 0.42;
+  }
+
   if (fishId === 'rotan' && minigame.selectedZone === 'near_bank' && minigame.method === 'handline') {
     score *= 1.25;
   }
@@ -862,6 +864,7 @@ function buildCyclePattern(fishId, cycle, total) {
     rudd: ['tiny_nibble', 'sideways_pull', 'strike_window'],
     loach: cycle === total ? ['slow_dip', 'submerged', 'strike_window'] : ['idle', 'slow_dip', 'strike_window'],
     pike: ['sideways_pull', 'hard_dip', 'strike_window'],
+    canadian_catfish: cycle === total ? ['slow_dip', 'submerged', 'strike_window'] : ['idle', 'slow_dip', 'strike_window'],
   };
   return profiles[fishId] ?? ['tiny_nibble', 'strike_window'];
 }
@@ -886,6 +889,11 @@ function getTackleBonus(state, method) {
 
 function canUseCastSpot(state, method, spot) {
   const effects = getTackleEffects(state);
+  const selectedWater = state.travel?.selectedWater ?? 'canal';
+  if (spot.waterId && spot.waterId !== selectedWater) {
+    return { allowed: false, reasonKey: 'requiresBicycle' };
+  }
+
   if (spot.id === 'far_shadow' && effects.reachBonus <= 0) {
     return { allowed: false, reasonKey: 'requiresBetterRodOrLine' };
   }
@@ -983,12 +991,33 @@ function rollCastTarget(state, minigame, spot) {
 
 function shouldBreakHomemadeRod(state, catchResult) {
   const effects = getTackleEffects(state);
-  if (effects.hasProperRod || state.tackle?.equipped?.rod !== 'simple_stick_rod' || catchResult.weightGrams <= 500) {
+  if (effects.hasProperRod || effects.activeRigId !== 'first_rod' || catchResult.weightGrams <= 500) {
     return false;
   }
 
   const breakChance = catchResult.weightGrams > 650 ? 0.85 : 0.55;
   return Math.random() < breakChance;
+}
+
+function resetAfterResult(state, minigame) {
+  minigame.phase = 'setup';
+  minigame.bobberState = 'hidden';
+  minigame.result = null;
+  minigame.fishCandidateId = null;
+  minigame.currentPattern = [];
+  minigame.patternIndex = 0;
+  minigame.nextStepAt = 0;
+  minigame.strikeWindowStartAt = 0;
+  minigame.strikeWindowEndAt = 0;
+  minigame.currentCatchEntryId = null;
+  minigame.consumedBait = null;
+  state.ui.catchResult = null;
+  state.ui.collapsedPanels = {
+    ...(state.ui.collapsedPanels ?? {}),
+    fishingControls: false,
+  };
+  autoSelectFirstAvailableBait(state, minigame);
+  autoSelectFirstAvailableSpot(state, minigame);
 }
 
 function clamp(value, min, max) {
