@@ -1,4 +1,5 @@
 import { MAP_HOTSPOTS } from '../game/mapHotspots.js';
+import { canOpenWaterFromMap, getLockedReasonKey, isFishingLocation } from '../game/locations.js';
 import { t } from '../i18n/i18n.js';
 import { worldMapAsset } from '../utils/worldMapAsset.js';
 import './mapOverlay.css';
@@ -24,19 +25,23 @@ export function mapOverlayMarkup(state) {
 
 function hotspotMarkup(hotspot, state) {
   const selected = state.ui?.selectedHotspot === hotspot.id ? ' is-selected' : '';
-  const locked = hotspot.requiresBicycle && !state.purchased?.bicycle;
+  const locked = isFishingLocation(hotspot.scene) && !canOpenWaterFromMap(state, hotspot.scene);
+  const lockedReason = locked ? getLockedReasonKey(state, hotspot.scene) : null;
   const shapeClass = ` map-hotspot--${hotspot.type ?? 'ellipse'}`;
   const style = hotspotStyle(hotspot);
+  const ariaLabel = locked ? `${t(hotspot.labelKey)} - ${t(lockedReason)}` : t(hotspot.actionKey);
+  const label = `${t(hotspot.labelKey)}${locked ? ` / ${t(lockedReason)}` : ''}`;
+
   return `
     <button
       class="map-hotspot${shapeClass}${selected}${locked ? ' is-locked' : ''}"
       data-action="open:${hotspot.scene}"
       style="${style}"
       type="button"
-      aria-label="${locked ? `${t(hotspot.labelKey)} - ${t('requiresBicycle')}` : t(hotspot.actionKey)}"
+      aria-label="${ariaLabel}"
     >
       <span class="map-hotspot__area"></span>
-      <span class="map-hotspot__label">${t(hotspot.labelKey)}${locked ? ` · ${t('requiresBicycle')}` : ''}</span>
+      <span class="map-hotspot__label">${label}</span>
     </button>
   `;
 }

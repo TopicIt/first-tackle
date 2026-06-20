@@ -4,24 +4,24 @@ import { worldMapAsset } from '../utils/worldMapAsset.js';
 const zoneColors = {
   house: 0xe3c173,
   garden: 0x627c4b,
-  pond: 0x4d8aa1,
-  greada: 0x526f55,
+  canal: 0x4d8aa1,
   market: 0xb98e5d,
+  bus_station: 0x7d90a8,
 };
 
 export const interactionZones = {
   house: {
-    label: 'House',
+    label: 'Grandma',
     position: new THREE.Vector3(-7.6, 0, 1.6),
     radius: 1.7,
   },
   garden: {
-    label: 'Garden',
+    label: 'Beds',
     position: new THREE.Vector3(-7.1, 0, -3.6),
     radius: 1.65,
   },
-  pond: {
-    label: 'Pond',
+  canal: {
+    label: 'Canal',
     position: new THREE.Vector3(5.2, 0, -1.8),
     radius: 3,
   },
@@ -30,10 +30,10 @@ export const interactionZones = {
     position: new THREE.Vector3(1.5, 0, 6.1),
     radius: 2.5,
   },
-  greada: {
-    label: 'Greada',
-    position: new THREE.Vector3(10.3, 0, -7.2),
-    radius: 1.8,
+  bus_station: {
+    label: 'Bus',
+    position: new THREE.Vector3(4.25, 0, 8.2),
+    radius: 1.35,
   },
 };
 
@@ -65,6 +65,7 @@ export function createWorld() {
   addGarden(scene);
   addPond(scene);
   addMarket(scene);
+  addBusStation(scene);
   addTrees(scene);
   addZoneMarkers(scene);
 
@@ -234,12 +235,36 @@ function addMarket(scene) {
   scene.add(sign);
   scene.add(createTextLabel('FISH', new THREE.Vector3(-1, 1.42, 6.02), 0.9));
 
-  const stop = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.12, 0.12, 2.2, 10),
+}
+
+function addBusStation(scene) {
+  const stop = new THREE.Group();
+  stop.position.set(4.25, 0, 8.2);
+
+  const post = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.1, 0.1, 2.2, 10),
     new THREE.MeshStandardMaterial({ color: 0x3d5365 }),
   );
-  stop.position.set(3.35, 1.1, 6.55);
-  stop.castShadow = true;
+  post.position.y = 1.1;
+  post.castShadow = true;
+  stop.add(post);
+
+  const sign = new THREE.Mesh(
+    new THREE.BoxGeometry(0.9, 0.5, 0.08),
+    new THREE.MeshStandardMaterial({ color: 0xe9f0d8, roughness: 0.72 }),
+  );
+  sign.position.set(0, 1.95, 0);
+  sign.castShadow = true;
+  stop.add(sign);
+
+  const bench = new THREE.Mesh(
+    new THREE.BoxGeometry(1.5, 0.22, 0.45),
+    new THREE.MeshStandardMaterial({ color: 0x7a5a3d, roughness: 0.82 }),
+  );
+  bench.position.set(0.95, 0.45, 0.15);
+  bench.castShadow = true;
+  stop.add(bench);
+
   scene.add(stop);
 }
 

@@ -38,7 +38,7 @@ export function buyShopItem(state, itemId) {
     return;
   }
 
-  const alreadyOwned = itemId === 'smoker' ? state.hasSmoker : state.purchased[itemId];
+  const alreadyOwned = state.purchased[itemId];
   if (item.type !== 'consumable' && alreadyOwned) {
     pushLog(state, 'logAlreadyOwned', { itemKey: getShopItemKey(itemId) });
     return;
@@ -59,13 +59,14 @@ export function buyShopItem(state, itemId) {
   }
 
   state.purchased[itemId] = true;
-  if (itemId === 'smoker') {
-    state.hasSmoker = true;
-  }
   if (itemId === 'bicycle') {
     state.travel ??= {};
     state.travel.farWatersUnlocked = true;
     state.travel.greadaUnlocked = true;
+    state.travel.visitedWaters = {
+      ...(state.travel.visitedWaters ?? {}),
+      canal: true,
+    };
   }
   const componentByItem = {
     betterLine: 'better_line',
@@ -93,7 +94,6 @@ function getShopItemKey(itemId) {
     sharperHook: 'componentSharperHook',
     properRod: 'componentProperRod',
     bicycle: 'itemBicycle',
-    smoker: 'itemSmoker',
     salt: 'itemSalt',
     hooksPack: 'itemHooksPack',
   };

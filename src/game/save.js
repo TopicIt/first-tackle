@@ -2,6 +2,7 @@ import { SAVE_KEY, createInitialMarketState, createInitialState } from './state.
 import { ensureFishState } from './fishInventory.js';
 import { ensureMarketState } from './market.js';
 import { ensureTackleState } from './tackle.js';
+import { normalizeWaterId } from './locations.js';
 
 export function saveGame(state) {
   const serializableState = {
@@ -13,7 +14,6 @@ export function saveGame(state) {
       activeScene: null,
       catchResult: null,
       fishingMinigame: null,
-      pendingFishingMethod: null,
     },
   };
 
@@ -75,7 +75,13 @@ function mergeState(base, saved) {
       ...(saved.travel ?? {}),
       farWatersUnlocked: Boolean(saved.travel?.farWatersUnlocked ?? saved.purchased?.bicycle ?? base.travel.farWatersUnlocked),
       greadaUnlocked: Boolean(saved.travel?.greadaUnlocked ?? saved.travel?.farWatersUnlocked ?? saved.purchased?.bicycle ?? base.travel.greadaUnlocked),
-      selectedWater: saved.travel?.selectedWater === 'greada' ? 'greada' : base.travel.selectedWater,
+      selectedWater: normalizeWaterId(saved.travel?.selectedWater ?? base.travel.selectedWater),
+      visitedWaters: {
+        ...base.travel.visitedWaters,
+        ...(saved.travel?.visitedWaters ?? {}),
+        canal: true,
+        ...(saved.travel?.selectedWater ? { [normalizeWaterId(saved.travel.selectedWater)]: true } : {}),
+      },
     },
     market: mergeMarketState(saved.market, base.day),
     time: {

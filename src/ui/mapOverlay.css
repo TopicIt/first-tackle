@@ -56,6 +56,8 @@
   --hotspot-color: #f3c45f;
   position: absolute;
   display: block;
+  min-width: 44px;
+  min-height: 44px;
   border: 0;
   padding: 0;
   background: transparent;
@@ -107,9 +109,10 @@
 
 .map-hotspot__label {
   position: absolute;
-  left: var(--label-x);
-  top: var(--label-y);
-  min-width: max-content;
+  left: 50%;
+  top: 50%;
+  min-width: 0;
+  max-width: 150px;
   border: 1px solid rgb(255 255 255 / 24%);
   border-radius: 999px;
   background: rgb(18 27 24 / 62%);
@@ -117,6 +120,7 @@
   color: #fff8df;
   font-size: 0.76rem;
   font-weight: 850;
+  line-height: 1.08;
   padding: 4px 8px;
   opacity: 0.86;
   transform: translate(-50%, -50%);
@@ -216,8 +220,9 @@
   }
 
   .map-hotspot__label {
-    top: 24px;
+    max-width: min(30vw, 116px);
     font-size: 0.66rem;
+    white-space: normal;
     padding: 3px 6px;
   }
 }

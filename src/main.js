@@ -30,6 +30,8 @@ import { createAudioManager } from './audio/audioManager.js';
 import { ensureMarketState, freshFishAtRisk } from './game/market.js';
 import { ensureTackleState, equipTackleComponent, getRigMethod, selectActiveRig } from './game/tackle.js';
 import { ensureTimeState, formatGameTime, getTimePhase } from './game/time.js';
+import { canOpenWaterFromMap, getFishingLocation, getLockedReasonKey, isFishingLocation } from './game/locations.js';
+import { arriveAtWater } from './game/travel.js';
 import { createHud } from './ui/hud.js';
 import { updateMapOverlayMotion } from './ui/mapOverlay.js';
 import { getLanguage, t, toggleLanguage } from './i18n/i18n.js';
@@ -64,18 +66,15 @@ const hud = createHud(hudRoot, {
 
     if (actionId.startsWith('open:')) {
       const sceneId = actionId.replace('open:', '');
-      if (sceneId === 'greada' && !gameState.purchased?.bicycle) {
-        pushLog(gameState, 'logNeedBicycleForTravel');
+      if (isFishingLocation(sceneId)) {
+        if (!canOpenWaterFromMap(gameState, sceneId)) {
+          pushLog(gameState, getLockedReasonKey(gameState, sceneId) === 'requiresBusTicket' ? 'logNeedBusTicket' : 'logNeedBicycleForTravel');
+          renderHud();
+          return;
+        }
+        arriveAtWater(gameState, sceneId);
         renderHud();
         return;
-      }
-      if (sceneId === 'pond') {
-        gameState.travel.selectedWater = 'canal';
-      }
-      if (sceneId === 'greada') {
-        gameState.travel.farWatersUnlocked = true;
-        gameState.travel.greadaUnlocked = true;
-        gameState.travel.selectedWater = 'greada';
       }
       gameState.ui.activeScene = sceneId;
       gameState.ui.selectedHotspot = sceneId;
@@ -122,9 +121,6 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'scene:map') {
       gameState.ui.activeScene = null;
-      if (gameState.travel?.selectedWater === 'greada') {
-        gameState.travel.selectedWater = 'canal';
-      }
       closeFishingMinigame(gameState);
       renderHud();
       return;
@@ -132,11 +128,6 @@ const hud = createHud(hudRoot, {
 
     if (actionId.startsWith('market:tab:')) {
       gameState.ui.marketTab = actionId.replace('market:tab:', '');
-      gameState.ui.collapsedPanels = {
-        ...(gameState.ui.collapsedPanels ?? {}),
-        market: false,
-      };
-      closeSiblingPanels(gameState, 'market');
       gameState.audioQueue.push('ui_click');
       renderHud();
       return;
@@ -173,26 +164,8 @@ const hud = createHud(hudRoot, {
       if (method === 'stickRod') {
         selectActiveRig(gameState, 'first_rod') || selectActiveRig(gameState, 'proper_rod');
       }
-      gameState.ui.pendingFishingMethod = normalizedMethod;
+      openFishingMinigame(gameState, normalizedMethod);
       gameState.audioQueue.push('ui_click');
-      renderHud();
-      return;
-    }
-
-    if (actionId.startsWith('fishingMode:')) {
-      const mode = actionId.replace('fishingMode:', '');
-      if (mode === 'cancel') {
-        gameState.ui.pendingFishingMethod = null;
-        renderHud();
-        return;
-      }
-      const method = gameState.ui.pendingFishingMethod;
-      if (method) {
-        gameState.settings.fishing.lastMode = mode === 'experimental' ? 'experimental' : 'classic';
-        gameState.settings.fishing.experimental3D = mode === 'experimental';
-        gameState.ui.pendingFishingMethod = null;
-        openFishingMinigame(gameState, method);
-      }
       renderHud();
       return;
     }
@@ -311,48 +284,6 @@ const hud = createHud(hudRoot, {
       return;
     }
 
-    if (actionId === 'settings:debugCoins') {
-      gameState.money += 1000;
-      pushFeedback(gameState, 'feedbackDebugCoins', {}, 'coins');
-      pushLog(gameState, 'logDebugCoins', { coins: 1000 });
-      gameState.audioQueue.push('coins');
-      renderHud();
-      return;
-    }
-
-    if (actionId === 'settings:toggle3dFishing') {
-      gameState.settings.fishing.experimental3D = !gameState.settings.fishing.experimental3D;
-      gameState.audioQueue.push('ui_click');
-      renderHud();
-      return;
-    }
-
-    if (actionId.startsWith('music:mode:')) {
-      gameState.settings.audio.musicMode = actionId.replace('music:mode:', '');
-      gameState.audioQueue.push('ui_click');
-      audio.syncSettings(gameState.settings.audio);
-      renderHud();
-      return;
-    }
-
-    if (actionId === 'music:next') {
-      gameState.settings.audio.musicTrackId = audio.playNextTrack();
-      pushFeedback(gameState, 'feedbackNowPlaying', { trackKey: musicTrackLabelKey(gameState.settings.audio.musicTrackId) }, 'item');
-      gameState.audioQueue.push('ui_click');
-      audio.syncSettings(gameState.settings.audio);
-      renderHud();
-      return;
-    }
-
-    if (actionId === 'music:random') {
-      gameState.settings.audio.musicTrackId = audio.playRandomTrack();
-      pushFeedback(gameState, 'feedbackNowPlaying', { trackKey: musicTrackLabelKey(gameState.settings.audio.musicTrackId) }, 'item');
-      gameState.audioQueue.push('ui_click');
-      audio.syncSettings(gameState.settings.audio);
-      renderHud();
-      return;
-    }
-
     const context = actionId.startsWith('buy:') || actionId.startsWith('sell:')
       ? getLocationSceneContext(gameState, 'market')
       : gameState.ui.activeScene
@@ -361,15 +292,18 @@ const hud = createHud(hudRoot, {
     if (actionId === 'wait:tomorrow' && freshFishAtRisk(gameState) && !window.confirm(t('freshFishMayLoseValueConfirm'))) {
       return;
     }
+    if (actionId.startsWith('ticket:buy:')) {
+      const location = getFishingLocation(actionId.replace('ticket:buy:', ''));
+      if (location && !window.confirm(t('ticketConfirm', { destination: t(location.labelKey), coins: location.ticketCost ?? 0 }))) {
+        return;
+      }
+    }
     runAction(actionId, gameState, context);
     syncPlayerToState();
     renderHud();
   },
   onCloseScene() {
     audio.activate();
-    if (gameState.travel?.selectedWater === 'greada') {
-      gameState.travel.selectedWater = 'canal';
-    }
     gameState.ui.activeScene = null;
     closeFishingMinigame(gameState);
     renderHud();
@@ -390,6 +324,21 @@ const hud = createHud(hudRoot, {
       gameState.settings.audio[settingId] = Number(value);
     }
     audio.syncSettings(gameState.settings.audio);
+    renderHud();
+  },
+  onCheat(value) {
+    const match = String(value).trim().match(/^\+(\d{1,7})$/);
+    const coins = match ? Number(match[1]) : 0;
+    if (!Number.isSafeInteger(coins) || coins <= 0) {
+      pushLog(gameState, 'logCheatInvalid');
+      renderHud();
+      return;
+    }
+
+    gameState.money += coins;
+    pushFeedback(gameState, 'feedbackCoins', { coins }, 'coins');
+    pushLog(gameState, 'logCheatCoins', { coins });
+    gameState.audioQueue.push('coins');
     renderHud();
   },
   onSave() {
@@ -438,7 +387,7 @@ function syncPlayerToState() {
 }
 
 function closeSiblingPanels(state, openedPanelId) {
-  const exclusivePanels = ['inventory', 'keepnet', 'tackle', 'market', 'guide', 'journal', 'profile', 'settings', 'shop', 'fishPrices'];
+  const exclusivePanels = ['inventory', 'keepnet', 'tackle', 'guide', 'journal', 'settings'];
   if (!exclusivePanels.includes(openedPanelId)) {
     return;
   }
@@ -454,8 +403,6 @@ function closeSiblingPanels(state, openedPanelId) {
 function normalizePanelStateForViewport(state) {
   state.ui.collapsedPanels = {
     ...(state.ui.collapsedPanels ?? {}),
-    shop: true,
-    fishPrices: true,
   };
 
   if (!window.matchMedia('(max-width: 768px)').matches) {
@@ -464,7 +411,7 @@ function normalizePanelStateForViewport(state) {
 
   state.ui.collapsedPanels.status = false;
 
-  for (const panelId of ['inventory', 'keepnet', 'tackle', 'market', 'guide', 'journal', 'profile', 'settings', 'shop', 'fishPrices']) {
+  for (const panelId of ['inventory', 'keepnet', 'tackle', 'guide', 'journal', 'settings']) {
     state.ui.collapsedPanels[panelId] = true;
   }
 }
@@ -573,11 +520,3 @@ function animate() {
 }
 
 animate();
-
-function musicTrackLabelKey(trackId) {
-  return {
-    ambient_day: 'musicTrackAmbientDay',
-    ambient_evening: 'musicTrackAmbientEvening',
-    theme: 'musicTrackTheme',
-  }[trackId] ?? 'musicTrackAmbientDay';
-}

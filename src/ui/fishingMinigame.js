@@ -30,13 +30,12 @@ export function fishingMinigameMarkup(state) {
   const controlsCollapsed = collapsedPanels.fishingControls ? ' is-controls-collapsed' : '';
   const resultCollapsed = collapsedPanels.fishingResult ? ' is-result-collapsed' : '';
   const hintMode = state.settings?.fishing?.biteHints ?? 'subtle';
-  const experimental3D = Boolean(state.settings?.fishing?.experimental3D);
   const contextAction = getFishingContextAction(state);
   const floatStyle = state.tackle?.equipped?.float ?? 'none';
   const activeFishing = isActiveFishingPhase(minigame.phase);
 
   return `
-    <section class="fishing-minigame${experimental3D ? ' fishing-minigame--experimental-3d' : ''}" aria-label="${t('fishingTitle')}">
+    <section class="fishing-minigame" aria-label="${t('fishingTitle')}">
       <div class="fishing-minigame__backdrop">
         <img class="fishing-minigame__base" src="${assetPath('/assets/fishing/canal_fishing_base.png')}" alt="" />
         <img class="fishing-minigame__zones" src="${assetPath('/assets/fishing/canal_fishing_cast_zones.png')}" alt="" />
@@ -108,7 +107,6 @@ export function fishingMinigameMarkup(state) {
               contextAction,
               floatStyle,
               activeFishing,
-              experimental3D,
             })}
           </section>
 
@@ -360,7 +358,7 @@ function panelToggleLabel(isCollapsed) {
 }
 
 function fishingStageMarkup(state, minigame, options) {
-  const { activeFishing, contextAction, experimental3D, floatStyle, hintMode } = options;
+  const { activeFishing, contextAction, floatStyle, hintMode } = options;
   const stageBody = `
     <div class="fishing-ambience" aria-hidden="true">
       <span class="bird bird--one"></span>
@@ -388,7 +386,6 @@ function fishingStageMarkup(state, minigame, options) {
       ${selectedScatterMarkup(state, minigame)}
     </div>
     <div class="fishing-stage__waterline" aria-hidden="true"></div>
-    <div class="fishing-stage__distance-line" aria-hidden="true"></div>
     <div class="fishing-stage__rings fishing-stage__rings--${minigame.bobberState}"></div>
     <div
       class="fishing-stage__bobber fishing-stage__bobber--${minigame.bobberState} fishing-stage__bobber--float-${floatStyle}"
@@ -396,27 +393,13 @@ function fishingStageMarkup(state, minigame, options) {
     >
       <span class="fishing-stage__bobber-top"></span>
       <span class="fishing-stage__bobber-bottom"></span>
-      <span class="fishing-stage__line"></span>
     </div>
     ${hintMode === 'off' ? '' : `<span class="fishing-stage__hint fishing-stage__hint--${hintMode}">${t(getBobberHintKey(minigame, hintMode))}</span>`}
   `;
 
   return `
-    <div class="fishing-stage${experimental3D ? ' fishing-stage--panorama' : ''}${activeFishing ? ' fishing-stage--active-cast' : ''}" style="${bobberStyle(minigame)}">
-      ${experimental3D ? `
-        <div class="fishing-stage__three-wrap">
-          <canvas
-            class="fishing-stage__three-canvas"
-            data-fishing-3d-canvas
-            data-location-id="${state.travel?.selectedWater === 'greada' ? 'greada' : 'pond'}"
-            data-phase="${minigame.phase}"
-            data-bobber-state="${minigame.bobberState}"
-            aria-label="${t('experimental3DFishing')}"
-          ></canvas>
-          ${stageBody}
-        </div>
-        <span class="fishing-stage__panorama-hint">${t('experimental3DDragHint')}</span>
-      ` : stageBody}
+    <div class="fishing-stage${activeFishing ? ' fishing-stage--active-cast' : ''}" style="${bobberStyle(minigame)}">
+      ${stageBody}
       ${activeFishing ? '' : selectedSpotChip(minigame)}
       <div class="fishing-context-action">
         <button

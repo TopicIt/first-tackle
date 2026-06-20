@@ -221,26 +221,6 @@ export function collectTaranka(state) {
   queueSound(state, 'dry_fish');
 }
 
-export function smokeFish(state) {
-  ensureFishState(state);
-  if (!state.hasSmoker) {
-    pushLog(state, 'logNeedSmoker');
-    return;
-  }
-
-  const candidate = (state.fishBasket ?? []).find((entry) => ['cleaned', 'fresh'].includes(entry.status));
-  if (!candidate) {
-    pushLog(state, 'logNeedFishToSmoke');
-    return;
-  }
-
-  candidate.status = 'smoked';
-  advanceTime(state, 90);
-  pushFeedback(state, 'feedbackSmokedFish', {}, 'fish');
-  pushLog(state, 'logSmokedFish', { fishKey: candidate.fishId });
-  queueSound(state, 'dry_fish');
-}
-
 function getBaitAmount(method) {
   if (method === 'soil') {
     return 2 + Math.floor(Math.random() * 3);

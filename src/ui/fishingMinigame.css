@@ -264,93 +264,6 @@
   perspective: 820px;
 }
 
-.fishing-stage--panorama {
-  background:
-    radial-gradient(circle at 50% 20%, rgb(255 240 196 / 16%), transparent 28%),
-    linear-gradient(180deg, rgb(95 166 198 / 18%), rgb(16 33 39 / 58%));
-}
-
-.fishing-stage__panorama {
-  position: absolute;
-  inset: 0;
-  cursor: grab;
-  touch-action: none;
-}
-
-.fishing-stage__panorama.is-dragging {
-  cursor: grabbing;
-}
-
-.fishing-stage__panorama-world {
-  position: absolute;
-  inset: 0;
-  width: 140%;
-  left: -20%;
-  background:
-    radial-gradient(circle at 50% 18%, rgb(255 233 160 / 18%), transparent 16%),
-    linear-gradient(180deg, #80c2e4 0 26%, #bfdde3 27% 34%, #6e9773 35% 47%, #4d7883 48% 58%, #27414a 59% 100%);
-  transform: translateX(calc(var(--panorama-pan, 0) * 1%));
-}
-
-.fishing-stage__panorama-world::before,
-.fishing-stage__panorama-world::after {
-  content: '';
-  position: absolute;
-  inset: auto 0 0;
-  pointer-events: none;
-}
-
-.fishing-stage__panorama-world::before {
-  top: 22%;
-  background:
-    radial-gradient(circle at 20% 46%, rgb(56 95 75 / 48%) 0 8%, transparent 9%),
-    radial-gradient(circle at 48% 44%, rgb(69 112 81 / 44%) 0 9%, transparent 10%),
-    radial-gradient(circle at 76% 42%, rgb(54 92 73 / 46%) 0 10%, transparent 11%);
-  opacity: 0.7;
-}
-
-.fishing-stage__panorama-world::after {
-  height: 24%;
-  background:
-    linear-gradient(180deg, transparent, rgb(33 74 61 / 78%)),
-    repeating-linear-gradient(90deg, rgb(45 89 60 / 72%) 0 2px, transparent 2px 14px);
-  opacity: 0.72;
-}
-
-.fishing-stage__panorama-hint {
-  position: absolute;
-  left: 14px;
-  top: 14px;
-  z-index: 9;
-  border-radius: 999px;
-  background: rgb(8 17 18 / 64%);
-  color: #edf6ef;
-  font-size: 0.72rem;
-  font-weight: 800;
-  padding: 5px 9px;
-  backdrop-filter: blur(8px);
-}
-
-.fishing-stage__three-wrap,
-.fishing-stage__three-canvas {
-  position: absolute;
-  inset: 0;
-}
-
-.fishing-stage__three-canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-  touch-action: none;
-}
-
-.fishing-stage__three-wrap .fishing-ambience,
-.fishing-stage__three-wrap .fishing-figure,
-.fishing-stage__three-wrap .fishing-stage__waterline,
-.fishing-stage__three-wrap .fishing-stage__distance-line {
-  display: none;
-}
-
 .cast-spot-layer,
 .fishing-ambience,
 .fishing-figure {
@@ -365,7 +278,6 @@
 
 .fishing-stage--active-cast .cast-spot-layer,
 .fishing-stage--active-cast .cast-scatter,
-.fishing-stage--active-cast .fishing-stage__distance-line,
 .fishing-stage--active-cast .fishing-stage__waterline {
   display: none;
 }
@@ -726,18 +638,6 @@
   box-shadow: 0 0 18px rgb(152 229 244 / 26%);
 }
 
-.fishing-stage__distance-line {
-  position: absolute;
-  left: 8%;
-  top: 16%;
-  width: calc(var(--bobber-x) - 8%);
-  height: calc(var(--bobber-y) - 16%);
-  border-right: 2px solid rgb(255 255 255 / 26%);
-  border-bottom: 2px solid rgb(255 255 255 / 18%);
-  border-radius: 0 0 48% 0;
-  transform-origin: left top;
-}
-
 .fishing-stage__bobber {
   position: absolute;
   left: var(--bobber-x);
@@ -749,8 +649,7 @@
 }
 
 .fishing-stage__bobber-top,
-.fishing-stage__bobber-bottom,
-.fishing-stage__line {
+.fishing-stage__bobber-bottom {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -773,13 +672,6 @@
   border: 1px solid rgb(76 67 42 / 35%);
   border-radius: 4px 4px 12px 12px;
   background: linear-gradient(180deg, #fff9df 0%, #d8efe9 100%);
-}
-
-.fishing-stage__line {
-  top: -120px;
-  width: 2px;
-  height: 138px;
-  background: rgb(255 255 255 / 38%);
 }
 
 .fishing-stage__bobber--hidden {
@@ -1340,12 +1232,6 @@
     background: transparent;
   }
 
-  .fishing-stage__panorama-hint {
-    top: 90px;
-    font-size: 0.64rem;
-    padding: 4px 7px;
-  }
-
   .fishing-minigame__controls {
     position: absolute;
     left: 8px;
@@ -1447,8 +1333,7 @@
     opacity: 0.42;
   }
 
-  .fishing-stage__waterline,
-  .fishing-stage__distance-line {
+  .fishing-stage__waterline {
     opacity: 0.24;
   }
 

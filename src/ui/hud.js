@@ -4,17 +4,14 @@ import {
   inventoryMarkup,
   keepnetMarkup,
   logMarkup,
-  marketMarkup,
   tackleMarkup,
 } from './panels.js';
 import { locationSceneMarkup } from './locationScene.js';
 import { mapOverlayMarkup } from './mapOverlay.js';
-import { mountExperimentalFishing3d } from './experimentalFishing3d.js';
 import { getLanguage, t } from '../i18n/i18n.js';
 
 export function createHud(root, handlers) {
   const shownFeedbackIds = new Set();
-  let panoramaDrag = null;
 
   root.addEventListener('input', (event) => {
     const input = event.target.closest('[data-audio-setting]');
@@ -32,6 +29,20 @@ export function createHud(root, handlers) {
     }
 
     handlers.onAudioSetting(checkbox.dataset.audioSetting, checkbox.checked ? 'true' : 'false');
+  });
+
+  root.addEventListener('submit', (event) => {
+    const form = event.target.closest('[data-cheat-form]');
+    if (!form) {
+      return;
+    }
+
+    event.preventDefault();
+    const input = form.querySelector('[data-cheat-input]');
+    handlers.onCheat(input?.value ?? '');
+    if (input) {
+      input.value = '';
+    }
   });
 
   root.addEventListener('click', (event) => {
@@ -62,36 +73,6 @@ export function createHud(root, handlers) {
     else handlers.onAction(action);
   });
 
-  root.addEventListener('pointerdown', (event) => {
-    const panorama = event.target.closest('[data-panorama-drag]');
-    if (!panorama || event.target.closest('button, input, label, summary')) {
-      return;
-    }
-
-    panoramaDrag = {
-      element: panorama,
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startPan: Number(panorama.dataset.panoramaPan ?? 0),
-    };
-    panorama.classList.add('is-dragging');
-    panorama.setPointerCapture?.(event.pointerId);
-  });
-
-  root.addEventListener('pointermove', (event) => {
-    if (!panoramaDrag || panoramaDrag.pointerId !== event.pointerId) {
-      return;
-    }
-
-    const nextPan = clamp(panoramaDrag.startPan + (event.clientX - panoramaDrag.startX) * 0.12, -24, 24);
-    panoramaDrag.element.dataset.panoramaPan = String(nextPan);
-    panoramaDrag.element.style.setProperty('--panorama-pan', `${nextPan}`);
-  });
-
-  root.addEventListener('pointerup', (event) => stopPanoramaDrag(event.pointerId));
-  root.addEventListener('pointercancel', (event) => stopPanoramaDrag(event.pointerId));
-  root.addEventListener('lostpointercapture', (event) => stopPanoramaDrag(event.pointerId));
-
   return {
     render(state, context) {
       const visibleFeedback = (state.feedback ?? []).filter((feedback) => !shownFeedbackIds.has(feedback.id));
@@ -103,12 +84,14 @@ export function createHud(root, handlers) {
       const journalCollapsed = collapsedPanels.journal ? ' is-collapsed' : '';
       const tackleCollapsed = collapsedPanels.tackle ? ' is-collapsed' : '';
       const guideCollapsed = collapsedPanels.guide ? ' is-collapsed' : '';
-      const marketCollapsed = collapsedPanels.market ? ' is-collapsed' : '';
-      const profileCollapsed = collapsedPanels.profile ? ' is-collapsed' : '';
       const settingsCollapsed = collapsedPanels.settings ? ' is-collapsed' : '';
 
       root.innerHTML = `
         ${mapOverlayMarkup(renderState)}
+        <div class="coin-hud" aria-label="${t('coins')}">
+          <span class="coin-hud__icon" aria-hidden="true"></span>
+          <strong>${state.money}</strong>
+        </div>
 
         <section class="panel status-panel${statusCollapsed}">
           <div class="panel-toggle-row">
@@ -118,23 +101,19 @@ export function createHud(root, handlers) {
             </button>
           </div>
           <div class="panel-collapsible">
-            <div class="money">
-              <span>${t('coins')}</span>
-              <strong>${state.money}</strong>
-            </div>
             <p class="hint"><strong>${context.zoneLabel}</strong><br>${context.hint}</p>
             <p class="clock-line">${t('dayLabel', { day: state.day })} · ${t(`timePhase${toPascalCase(context.timePhase ?? 'morning')}`)} · ${context.clock ?? ''}</p>
             <details class="mobile-menu">
-              <summary>${t('menu')}</summary>
+              <summary aria-label="${t('menu')}" title="${t('menu')}">
+                <span></span><span></span><span></span>
+              </summary>
               <div class="mobile-menu__sheet">
                 <nav class="mobile-menu__list">
                   ${menuButton('inventory', 'inventory', collapsedPanels)}
                   ${menuButton('keepnet', 'keepnet', collapsedPanels)}
                   ${menuButton('tackle', 'tackle', collapsedPanels)}
-                  ${menuButton('market', 'market', collapsedPanels)}
                   ${menuButton('guide', 'fishermanGuide', collapsedPanels)}
                   ${menuButton('journal', 'catchJournal', collapsedPanels)}
-                  ${menuButton('profile', 'profile', collapsedPanels)}
                   ${menuButton('settings', 'settings', collapsedPanels)}
                 </nav>
                 <div class="mobile-menu__service">
@@ -149,16 +128,10 @@ export function createHud(root, handlers) {
               ${menuButton('inventory', 'inventory', collapsedPanels)}
               ${menuButton('keepnet', 'keepnet', collapsedPanels)}
               ${menuButton('tackle', 'tackle', collapsedPanels)}
-              ${menuButton('market', 'market', collapsedPanels)}
               ${menuButton('guide', 'fishermanGuide', collapsedPanels)}
               ${menuButton('journal', 'catchJournal', collapsedPanels)}
-              ${menuButton('profile', 'profile', collapsedPanels)}
               ${menuButton('settings', 'settings', collapsedPanels)}
             </nav>
-            <div class="debug-line">
-              <span>${t('currentZone')}: <strong>${context.zoneLabel}</strong></span>
-              <span>${t('availableActions')}: <strong>${context.availableActionLabels.join(', ')}</strong></span>
-            </div>
             <div class="save-row">
               <button data-action="save" type="button">${t('save')}</button>
               <button data-action="load" type="button">${t('load')}</button>
@@ -177,18 +150,6 @@ export function createHud(root, handlers) {
           </div>
           <div class="panel-collapsible">
             <ul class="inventory-list">${inventoryMarkup(state)}</ul>
-          </div>
-        </section>
-
-        <section class="panel market-panel${marketCollapsed}">
-          <div class="panel-toggle-row">
-            <p class="section-label">${t('market')}</p>
-            <button class="panel-toggle" data-action="panel:toggle:market" type="button" aria-label="${panelToggleLabel(collapsedPanels.market)}">
-              ${panelToggleIcon(collapsedPanels.market)}
-            </button>
-          </div>
-          <div class="panel-collapsible">
-            ${marketMarkup(state)}
           </div>
         </section>
 
@@ -240,22 +201,6 @@ export function createHud(root, handlers) {
           </div>
         </section>
 
-        <section class="panel profile-panel${profileCollapsed}">
-          <div class="panel-toggle-row">
-            <p class="section-label">${t('profile')}</p>
-            <button class="panel-toggle" data-action="panel:toggle:profile" type="button" aria-label="${panelToggleLabel(collapsedPanels.profile)}">
-              ${panelToggleIcon(collapsedPanels.profile)}
-            </button>
-          </div>
-          <div class="panel-collapsible">
-            <div class="profile-grid">
-              <span>${t('coins')} <strong>${state.money}</strong></span>
-              <span>${t('dayLabel', { day: state.day })} <strong>${context.clock ?? ''}</strong></span>
-              <span>${t('totalFish')} <strong>${state.fishBasket?.length ?? 0}</strong></span>
-            </div>
-          </div>
-        </section>
-
         <section class="panel settings-panel${settingsCollapsed}">
           <div class="panel-toggle-row">
             <p class="section-label">${t('settings')}</p>
@@ -285,6 +230,14 @@ export function createHud(root, handlers) {
               </div>
             </section>
             <section class="settings-block">
+              <p class="section-label">${t('cheats')}</p>
+              <form class="cheat-form" data-cheat-form>
+                <input data-cheat-input type="text" inputmode="text" placeholder="+1000" autocomplete="off" />
+                <button type="submit">${t('apply')}</button>
+              </form>
+              <small>${t('cheatsHint')}</small>
+            </section>
+            <section class="settings-block">
               <p class="section-label">${t('sound')}</p>
               <div class="audio-settings">
                 <label class="audio-toggle">
@@ -303,51 +256,6 @@ export function createHud(root, handlers) {
                   <span>${t('musicVolume')}</span>
                   <input data-audio-setting="musicVolume" type="range" min="0" max="1" step="0.05" value="${state.settings.audio.musicVolume}" />
                 </label>
-              </div>
-            </section>
-            <section class="settings-block">
-              <p class="section-label">${t('music')}</p>
-              <div class="settings-info-card">
-                <span>${t('musicCurrentTrack')}</span>
-                <strong>${t(musicTrackLabelKey(state.settings.audio.musicTrackId))}</strong>
-                <small>${t('musicMode')}: ${t(`musicMode${toPascalCase(state.settings.audio.musicMode ?? 'fixed')}`)}</small>
-              </div>
-              <div class="hint-mode-grid">
-                ${['fixed', 'random'].map((mode) => `
-                  <button class="hint-mode${state.settings.audio.musicMode === mode ? ' is-selected' : ''}" data-action="music:mode:${mode}" type="button">
-                    ${t(`musicMode${toPascalCase(mode)}`)}
-                  </button>
-                `).join('')}
-              </div>
-              <div class="settings-action-row">
-                <button data-action="music:next" type="button">${t('musicNextTrack')}</button>
-                <button data-action="music:random" type="button">${t('musicRandomTrack')}</button>
-              </div>
-            </section>
-            <section class="settings-block">
-              <p class="section-label">${t('experimentalFeatures')}</p>
-              <div class="settings-flag-card">
-                <div>
-                  <strong>${t('experimental3DFishing')}</strong>
-                  <small>${t('experimental3DFishingNote')}</small>
-                </div>
-                <button
-                  class="hint-mode${state.settings?.fishing?.experimental3D ? ' is-selected' : ''}"
-                  data-action="settings:toggle3dFishing"
-                  type="button"
-                >
-                  ${state.settings?.fishing?.experimental3D ? t('enabled') : t('disabled')}
-                </button>
-              </div>
-            </section>
-            <section class="settings-block">
-              <p class="section-label">${t('debugTools')}</p>
-              <div class="settings-flag-card">
-                <div>
-                  <strong>${t('debugAddCoins')}</strong>
-                  <small>${t('debugCoinsHint')}</small>
-                </div>
-                <button data-action="settings:debugCoins" type="button">${t('debugAddCoins')}</button>
               </div>
             </section>
           </div>
@@ -371,18 +279,9 @@ export function createHud(root, handlers) {
         shownFeedbackIds.add(feedback.id);
       }
 
-      mountExperimentalFishing3d(root);
     },
   };
 
-  function stopPanoramaDrag(pointerId) {
-    if (!panoramaDrag || panoramaDrag.pointerId !== pointerId) {
-      return;
-    }
-
-    panoramaDrag.element.classList.remove('is-dragging');
-    panoramaDrag = null;
-  }
 }
 
 function actionButtonMarkup(action) {
@@ -410,16 +309,4 @@ function panelToggleLabel(isCollapsed) {
 
 function toPascalCase(value) {
   return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-function musicTrackLabelKey(trackId) {
-  return {
-    ambient_day: 'musicTrackAmbientDay',
-    ambient_evening: 'musicTrackAmbientEvening',
-    theme: 'musicTrackTheme',
-  }[trackId] ?? 'musicTrackAmbientDay';
-}
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
 }

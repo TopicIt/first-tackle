@@ -75,13 +75,6 @@ export const shopItems = [
     description: 'Reach farther waters',
     type: 'tool',
   },
-  {
-    id: 'smoker',
-    label: 'Smoker',
-    price: 165,
-    description: 'Smoke fish for better market value',
-    type: 'tool',
-  },
 ];
 
 export function createInitialState() {
@@ -116,6 +109,9 @@ export function createInitialState() {
       farWatersUnlocked: false,
       selectedWater: 'canal',
       greadaUnlocked: false,
+      visitedWaters: {
+        canal: true,
+      },
     },
     market: createInitialMarketState(),
     timers: {
@@ -167,8 +163,6 @@ export function createInitialState() {
       },
       fishing: {
         biteHints: 'subtle',
-        experimental3D: false,
-        lastMode: 'classic',
       },
     },
     audioQueue: [],
@@ -177,18 +171,13 @@ export function createInitialState() {
       selectedHotspot: null,
       catchResult: null,
       fishingMinigame: null,
-      pendingFishingMethod: null,
       collapsedPanels: {
         status: false,
         inventory: true,
-        shop: true,
-        fishPrices: true,
         keepnet: true,
         journal: true,
         tackle: true,
         guide: true,
-        market: true,
-        profile: true,
         settings: true,
         fishingControls: true,
         fishingResult: true,

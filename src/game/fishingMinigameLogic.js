@@ -9,6 +9,7 @@ import {
   syncInventoryFromFishBasket,
 } from './fishInventory.js';
 import { countItem, hasItem, removeItem } from './inventory.js';
+import { normalizeWaterId } from './locations.js';
 import { pushFeedback, pushLog, queueSound } from './state.js';
 import { getTackleEffects } from './tackle.js';
 import { advanceTime, getTimePhase } from './time.js';
@@ -68,14 +69,10 @@ export function openFishingMinigame(state, method) {
   state.ui.collapsedPanels = {
     ...(state.ui.collapsedPanels ?? {}),
     inventory: true,
-    shop: true,
-    fishPrices: true,
     keepnet: true,
     tackle: true,
     guide: true,
     journal: true,
-    market: true,
-    profile: true,
     settings: true,
     fishingControls: false,
     fishingResult: true,
@@ -477,10 +474,8 @@ export function getCastSpotTarget(spotId) {
 }
 
 export function getAvailableCastSpots(state, method) {
-  const selectedWater = state.travel?.selectedWater ?? 'canal';
-  const waterSpots = selectedWater === 'greada'
-    ? castSpots.filter((spot) => spot.waterId === 'greada')
-    : castSpots.filter((spot) => !spot.waterId);
+  const selectedWater = normalizeWaterId(state.travel?.selectedWater);
+  const waterSpots = castSpots.filter((spot) => (spot.waterId ?? 'canal') === selectedWater);
   return waterSpots.map((spot) => ({
     ...spot,
     scatterRadius: getCastScatterRadius(state, method, spot),
@@ -826,12 +821,7 @@ function getFishWeight(state, minigame, fishId, profile, spot) {
 
   score *= getTimeMultiplier(state, fishId);
 
-  if (state.travel?.selectedWater === 'greada') {
-    if (fishId === 'crucian') score *= 1.24;
-    if (fishId === 'rotan') score *= 0.62;
-    if (fishId === 'loach') score *= 0.72;
-    if (fishId === 'canadian_catfish') score *= ['evening', 'night'].includes(getTimePhase(state)) ? 1.55 : 0.42;
-  }
+  score *= getWaterFishMultiplier(state, fishId);
 
   if (fishId === 'rotan' && minigame.selectedZone === 'near_bank' && minigame.method === 'handline') {
     score *= 1.25;
@@ -890,24 +880,22 @@ function getTackleBonus(state, method) {
 
 function canUseCastSpot(state, method, spot) {
   const effects = getTackleEffects(state);
-  const selectedWater = state.travel?.selectedWater ?? 'canal';
-  if (spot.waterId && spot.waterId !== selectedWater) {
-    return { allowed: false, reasonKey: 'requiresBicycle' };
+  const selectedWater = normalizeWaterId(state.travel?.selectedWater);
+  if ((spot.waterId ?? 'canal') !== selectedWater) {
+    return { allowed: false, reasonKey: 'wrongWater' };
   }
 
-  if (spot.id === 'far_shadow' && effects.reachBonus <= 0) {
+  const needsBetterLine = spot.allowedMethods.includes('betterLine');
+  if (needsBetterLine && effects.reachBonus <= 0) {
     return { allowed: false, reasonKey: 'requiresBetterRodOrLine' };
-  }
-
-  if (spot.id === 'greada_mud' && !state.travel?.greadaUnlocked) {
-    return { allowed: false, reasonKey: 'logNeedBicycleForTravel' };
   }
 
   if (method === 'handline' && !spot.allowedMethods.includes('handline')) {
     return { allowed: false, reasonKey: 'tooFarForHandline' };
   }
 
-  if ((method === 'stickRod' || method === 'liveBait') && !spot.allowedMethods.includes('stickRod') && !['far_shadow', 'greada_mud'].includes(spot.id)) {
+  const rodCanReach = spot.allowedMethods.includes('stickRod') || (needsBetterLine && effects.reachBonus > 0);
+  if ((method === 'stickRod' || method === 'liveBait') && !rodCanReach) {
     return { allowed: false, reasonKey: 'requiresStickRod' };
   }
 
@@ -1001,19 +989,44 @@ function shouldBreakHomemadeRod(state, catchResult) {
 }
 
 function adjustCatchForWater(state, catchResult) {
-  if (state.travel?.selectedWater !== 'greada') {
-    return;
+  const waterId = normalizeWaterId(state.travel?.selectedWater);
+  const multipliers = {
+    sluice: { bleak: [1.05, 1.18], roach: [1.08, 1.2] },
+    fire_ponds: { crucian: [1.12, 1.28], rudd: [1.08, 1.22] },
+    greada: { crucian: [1.12, 1.32], canadian_catfish: [1.08, 1.24] },
+    lake_tur: { rudd: [1.12, 1.28], pike: [1.1, 1.22] },
+    mining_lake: { pike: [1.18, 1.34], canadian_catfish: [1.18, 1.38] },
+  };
+  const range = multipliers[waterId]?.[catchResult.id];
+  if (range) {
+    catchResult.weightGrams = Math.round(catchResult.weightGrams * randomBetween(...range));
   }
-
-  if (catchResult.id === 'crucian') {
-    catchResult.weightGrams = Math.round(catchResult.weightGrams * randomBetween(1.12, 1.32));
-  }
-
-  if (catchResult.id === 'canadian_catfish') {
-    catchResult.weightGrams = Math.round(catchResult.weightGrams * randomBetween(1.08, 1.24));
-  }
-
   catchResult.weightGrams = Math.max(1, catchResult.weightGrams);
+}
+
+function getWaterFishMultiplier(state, fishId) {
+  const waterId = normalizeWaterId(state.travel?.selectedWater);
+  const phase = getTimePhase(state);
+  const multipliers = {
+    canal: { rotan: 1.15, crucian: 1.02, pike: 0.75, canadian_catfish: 0 },
+    sluice: { bleak: 1.35, roach: 1.2, pike: 1.05, loach: 0.55, canadian_catfish: 0 },
+    fire_ponds: { crucian: 1.24, rudd: 1.3, roach: 1.12, rotan: 0.62, canadian_catfish: 0 },
+    greada: {
+      crucian: 1.24,
+      rotan: 0.62,
+      loach: 0.82,
+      canadian_catfish: ['evening', 'night'].includes(phase) ? 1.55 : 0.42,
+      pike: 0.35,
+    },
+    lake_tur: { roach: 1.28, rudd: 1.22, pike: 1.25, rotan: 0.35, canadian_catfish: 0 },
+    mining_lake: {
+      pike: 1.45,
+      canadian_catfish: ['evening', 'night'].includes(phase) ? 1.65 : 0.72,
+      loach: 1.18,
+      rotan: 0.2,
+    },
+  };
+  return multipliers[waterId]?.[fishId] ?? 1;
 }
 
 function resetAfterResult(state, minigame) {

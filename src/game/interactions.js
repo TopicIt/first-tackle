@@ -15,11 +15,12 @@ import {
   getWormSearchCooldown,
   hangFishToDry,
   saltFish,
-  smokeFish,
   searchForWorms,
   waitUntilTomorrow,
 } from './fishing.js';
 import { hasItem } from './inventory.js';
+import { BICYCLE_WATER_IDS, BUS_WATER_IDS, canSelectWaterForFishing, getFishingLocation, getFishingLocationList, isFishingLocation } from './locations.js';
+import { arriveAtWater, buyBusTicket, travelByBicycle } from './travel.js';
 import { interactionZones } from './world.js';
 import { getTimePhase } from './time.js';
 import { getActiveRig, getTackleEffects } from './tackle.js';
@@ -56,7 +57,7 @@ export function getInteractionContext(state, playerPosition) {
     });
   }
 
-  if (zone.id === 'pond') {
+  if (zone.id === 'canal') {
     actions.push({
       id: 'minigame:start:handline',
       label: t('startHandlineFishing'),
@@ -99,7 +100,7 @@ export function getInteractionContext(state, playerPosition) {
 
 export function getLocationSceneContext(state, zoneId) {
   const zone = interactionZones[zoneId];
-  if (!zone) {
+  if (!zone && !isFishingLocation(zoneId) && zoneId !== 'fishing_select') {
     return {
       ...idleContext,
       zoneLabel: t('roadsideVillage'),
@@ -206,13 +207,6 @@ export function runAction(actionId, state, context = idleContext) {
     collectTaranka(state);
   }
 
-  if (actionId === 'smoke:fish') {
-    if (context.zoneId !== 'house') {
-      return;
-    }
-    smokeFish(state);
-  }
-
   if (actionId === 'wait:tomorrow') {
     if (context.zoneId !== 'house') {
       return;
@@ -262,29 +256,22 @@ export function runAction(actionId, state, context = idleContext) {
     buyShopItem(state, actionId.replace('buy:', ''));
   }
 
-  if (actionId === 'travel:farther') {
-    if (!state.purchased.bicycle) {
-      pushTravelLog(state, 'logNeedBicycleForTravel');
-      return;
-    }
-    state.travel ??= {};
-    state.travel.farWatersUnlocked = true;
-    state.travel.greadaUnlocked = true;
-    pushTravelLog(state, 'logTravelWatersUnlocked');
+  if (actionId.startsWith('travel:water:')) {
+    travelByBicycle(state, actionId.replace('travel:water:', ''));
   }
 
-  if (actionId === 'travel:greada') {
-    if (!state.purchased.bicycle) {
-      pushTravelLog(state, 'logNeedBicycleForTravel');
-      return;
+  if (actionId.startsWith('select:water:')) {
+    const waterId = actionId.replace('select:water:', '');
+    if (canSelectWaterForFishing(state, waterId)) {
+      arriveAtWater(state, waterId);
+    } else {
+      const location = getFishingLocation(waterId);
+      pushActionLog(state, location?.access === 'bus' ? 'logNeedBusTicket' : 'logNeedBicycleForTravel');
     }
-    state.travel ??= {};
-    state.travel.farWatersUnlocked = true;
-    state.travel.greadaUnlocked = true;
-    state.travel.selectedWater = 'greada';
-    state.ui.activeScene = 'greada';
-    state.ui.selectedHotspot = 'greada';
-    pushTravelLog(state, 'logTravelGreada');
+  }
+
+  if (actionId.startsWith('ticket:buy:')) {
+    buyBusTicket(state, actionId.replace('ticket:buy:', ''));
   }
 }
 
@@ -308,16 +295,24 @@ function getZoneHint(zoneId) {
     return t('hintGarden');
   }
 
-  if (zoneId === 'pond') {
+  if (zoneId === 'canal') {
     return t('hintPond');
   }
 
-  if (zoneId === 'greada') {
-    return t('hintGreada');
+  if (isFishingLocation(zoneId)) {
+    return t(getFishingLocation(zoneId).descriptionKey);
   }
 
   if (zoneId === 'market') {
     return t('hintMarket');
+  }
+
+  if (zoneId === 'bus_station') {
+    return t('hintBusStation');
+  }
+
+  if (zoneId === 'fishing_select') {
+    return t('hintFishingSelect');
   }
 
   return t('roadsideHint');
@@ -331,10 +326,10 @@ function getSceneActions(state, zoneId) {
         label: t('craftStickRod'),
         disabled: !canCraftStickRod(state),
       },
-      {
+      ...(!state.tackle?.owned?.simple_stick_rod && !hasItem(state, 'stickRod') ? [{
         id: 'gather:rodStick',
         label: t('gatherRodStick'),
-      },
+      }] : []),
       {
         id: 'gather:stones',
         label: t('gatherSmallStones'),
@@ -358,11 +353,6 @@ function getSceneActions(state, zoneId) {
         id: 'collect:taranka',
         label: t('collectTaranka'),
         disabled: countFishByStatus(state, 'ready_taranka') === 0,
-      },
-      {
-        id: 'smoke:fish',
-        label: t('smokeFish'),
-        disabled: !state.hasSmoker || (countFishByStatus(state, 'fresh') === 0 && countFishByStatus(state, 'cleaned') === 0),
       },
       {
         id: 'wait:tomorrow',
@@ -394,19 +384,35 @@ function getSceneActions(state, zoneId) {
         label: cooldown > 0 ? t('compostIn', { seconds: Math.ceil(cooldown) }) : t('searchCompost'),
         disabled: cooldown > 0,
       },
-      {
+      ...(!state.tackle?.owned?.goose_feather_float ? [{
         id: 'search:feather',
         label: featherOnCooldown ? t('feathersTryLater') : t('searchGooseFeather'),
         disabled: featherOnCooldown,
-      },
-      {
+      }] : []),
+      ...(!state.tackle?.owned?.simple_stick_rod && !hasItem(state, 'stickRod') ? [{
         id: 'gather:rodStick',
         label: t('gatherRodStick'),
-      },
+      }] : []),
     ];
   }
 
-  if (zoneId === 'pond' || zoneId === 'greada') {
+  if (zoneId === 'fishing_select') {
+    return getFishingLocationList().map((location) => {
+      const available = canSelectWaterForFishing(state, location.id);
+      const selected = (state.travel?.selectedWater ?? 'canal') === location.id;
+      return {
+        id: `select:water:${location.id}`,
+        label: selected
+          ? t('waterSelectedAction', { destination: t(location.labelKey) })
+          : t('selectWaterAction', { destination: t(location.labelKey) }),
+        disabled: !available,
+        variant: available ? 'secondary' : 'future',
+        reason: available ? '' : t(location.access === 'bus' ? 'requiresBusTicket' : 'requiresBicycle'),
+      };
+    });
+  }
+
+  if (isFishingLocation(zoneId)) {
     const activeRig = getActiveRig(state);
     const waterActions = [
       {
@@ -429,33 +435,18 @@ function getSceneActions(state, zoneId) {
       },
     ];
 
-    if (zoneId === 'greada') {
+    if (zoneId !== 'canal') {
       return waterActions;
     }
 
     return [
       ...waterActions,
-      {
-        id: 'travel:farther',
-        label: state.purchased.bicycle ? t('travelFarther') : t('buyBicycleToReachWaters'),
-        disabled: !state.purchased.bicycle,
-        variant: state.purchased.bicycle ? 'secondary' : 'future',
-      },
-      {
-        id: 'travel:greada',
-        label: state.purchased.bicycle ? t('travelGreada') : t('requiresBicycle'),
-        disabled: !state.purchased.bicycle,
-        variant: state.purchased.bicycle ? 'secondary' : 'future',
-      },
+      ...bicycleRouteActions(state),
     ];
   }
 
   if (zoneId === 'market') {
     return [
-      {
-        id: 'panel:toggle:market',
-        label: t('openMarket'),
-      },
       {
         id: 'market:tab:sell',
         label: t('marketTabSell'),
@@ -471,11 +462,20 @@ function getSceneActions(state, zoneId) {
     ];
   }
 
-  return [];
-}
+  if (zoneId === 'bus_station') {
+    return BUS_WATER_IDS.map((waterId) => {
+      const location = getFishingLocation(waterId);
+      const price = location.ticketCost ?? 0;
+      return {
+        id: `ticket:buy:${waterId}`,
+        label: t('buyTicketTo', { destination: t(location.labelKey), coins: price }),
+        disabled: state.money < price,
+        variant: state.money < price ? 'future' : 'secondary',
+      };
+    });
+  }
 
-function pushTravelLog(state, key) {
-  state.log = [{ key, params: {}, createdAt: Date.now(), count: 1 }, ...(state.log ?? [])].slice(0, 6);
+  return [];
 }
 
 function summarizeActions(actions) {
@@ -491,10 +491,14 @@ function getZoneLabel(zoneId) {
   const labels = {
     house: 'zoneHouse',
     garden: 'zoneGarden',
-    pond: 'zonePond',
-    greada: 'zoneGreada',
+    canal: 'zoneCanal',
     market: 'zoneMarket',
+    bus_station: 'zoneBusStation',
+    fishing_select: 'mapFishing',
   };
+  if (isFishingLocation(zoneId)) {
+    return t(getFishingLocation(zoneId).labelKey);
+  }
   return t(labels[zoneId] ?? 'roadsideVillage');
 }
 
@@ -502,9 +506,10 @@ function getOpenSceneAction(zoneId) {
   const labels = {
     house: 'openHouse',
     garden: 'openGarden',
-    pond: 'openPond',
-    greada: 'openGreada',
+    canal: 'openPond',
     market: 'openMarket',
+    bus_station: 'openBusStation',
+    fishing_select: 'openFishingSelect',
   };
 
   return {
@@ -512,4 +517,22 @@ function getOpenSceneAction(zoneId) {
     label: t(labels[zoneId] ?? 'actions'),
     variant: 'scene',
   };
+}
+
+function pushActionLog(state, key) {
+  state.log = [{ key, params: {}, createdAt: Date.now(), count: 1 }, ...(state.log ?? [])].slice(0, 6);
+}
+
+function bicycleRouteActions(state) {
+  return BICYCLE_WATER_IDS.map((waterId) => {
+    const location = getFishingLocation(waterId);
+    return {
+      id: `travel:water:${waterId}`,
+      label: state.purchased?.bicycle
+        ? t('travelToWater', { destination: t(location.labelKey) })
+        : t('requiresBicycle'),
+      disabled: !state.purchased?.bicycle,
+      variant: state.purchased?.bicycle ? 'secondary' : 'future',
+    };
+  });
 }

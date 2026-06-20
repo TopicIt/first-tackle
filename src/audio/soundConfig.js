@@ -11,22 +11,6 @@ export const musicTracks = [
       assetPath('/assets/audio/music/ambient_day.mp3.mp3'),
     ],
   },
-  {
-    id: 'ambient_evening',
-    labelKey: 'musicTrackAmbientEvening',
-    sources: [
-      assetPath('/assets/audio/music/ambient_evening.mp3'),
-      assetPath('/assets/audio/music/ambient_evening.mp3.mp3'),
-    ],
-  },
-  {
-    id: 'theme',
-    labelKey: 'musicTrackTheme',
-    sources: [
-      assetPath('/assets/audio/music/theme.mp3'),
-      assetPath('/assets/audio/music/theme.mp3.mp3'),
-    ],
-  },
 ];
 
 export function getMusicTrack(trackId) {

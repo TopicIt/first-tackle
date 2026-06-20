@@ -46,14 +46,16 @@ const itemImages = {
   primitiveTackle: '/assets/items/primitive_tackle.png',
   stickRod: '/assets/items/tackle_components.png',
   taranka: '/assets/items/taranka_drying.png',
-  smokedFish: '/assets/items/smoker.png',
-  smoker: '/assets/items/smoker.png',
+  smokedFish: '/assets/items/taranka_drying.png',
 };
 
 const waterImages = {
+  canal: '/assets/locations/pond_location_concept.png',
+  sluice: '/assets/locations/pond_location_concept.png',
+  fire_ponds: '/assets/locations/pond_location_concept.png',
   greada: '/assets/locations/greada_location_concept.png',
-  home_canal: '/assets/locations/pond_location_concept.png',
-  old_pond: '/assets/locations/pond_location_concept.png',
+  lake_tur: '/assets/locations/pond_location_concept.png',
+  mining_lake: '/assets/locations/greada_location_concept.png',
 };
 
 export function inventoryMarkup(state) {
@@ -70,35 +72,6 @@ export function inventoryMarkup(state) {
     .join('');
 
   return rows || '<li class="row"><span>Empty</span><strong>0</strong></li>';
-}
-
-export function shopMarkup(state) {
-  return shopItems
-    .map((item) => {
-      const owned = item.type !== 'consumable' && (item.id === 'smoker' ? state.hasSmoker : state.purchased[item.id]);
-      return `
-        <li class="row">
-          <span>${getShopItemLabel(item.id)}</span>
-          <strong>${owned ? t('owned') : `${item.price} ${t('coins').toLowerCase()}`}</strong>
-        </li>
-      `;
-    })
-    .join('');
-}
-
-export function fishPricesMarkup(state) {
-  return fishData
-    .map((fish) => {
-      const price = getMarketPriceInfo(state, fish.id);
-      return `
-        <li class="row price-row trend-${price.trend}">
-          <span>${t(fish.nameKey)}</span>
-          <strong>${trendArrow(price.trend)} ${price.currentPrice} (${price.multiplier.toFixed(2)}x)</strong>
-          <small>${t(trendKey(price.trend))}</small>
-        </li>
-      `;
-    })
-    .join('');
 }
 
 export function marketMarkup(state) {
@@ -236,7 +209,6 @@ export function getShopItemLabel(itemId) {
     sharperHook: 'componentSharperHook',
     properRod: 'componentProperRod',
     bicycle: 'itemBicycle',
-    smoker: 'itemSmoker',
     salt: 'itemSalt',
     hooksPack: 'itemHooksPack',
   };
@@ -320,54 +292,6 @@ function itemImage(itemId) {
   return itemImages[itemId] ? assetPath(itemImages[itemId]) : assetPath('/assets/items/tackle_components.png');
 }
 
-function legacyMarketSellMarkup(state) {
-  const freshEntries = getFishEntries(state, 'fresh');
-  const freshValue = freshEntries.reduce((total, entry) => total + getFishSaleValue(state, entry), 0);
-  const tarankaEntries = getFishEntries(state, 'taranka');
-  const tarankaValue = tarankaEntries.reduce((total, entry) => total + getFishSaleValue(state, entry), 0);
-  const smokedEntries = getFishEntries(state, 'smoked');
-  const smokedValue = smokedEntries.reduce((total, entry) => total + getFishSaleValue(state, entry), 0);
-
-  return `
-    <div class="market-summary">
-      <p>${t('marketSellHint')}</p>
-      <strong>${t('freshFish')}: ${freshEntries.length} · ${freshValue} ${t('coins').toLowerCase()}</strong>
-    </div>
-    <div class="market-card-grid">
-      <article class="market-card">
-        <img src="${assetPath('/assets/fish/catch_result_frame.png')}" alt="" />
-        <div>
-          <h3>${t('sellFreshFish')}</h3>
-          <p>${t('marketFreshnessNote')}</p>
-          <strong>${freshValue} ${t('coins').toLowerCase()}</strong>
-        </div>
-        <button data-action="sell:fish" type="button"${freshEntries.length === 0 ? ' disabled' : ''}>${t('sell')}</button>
-        ${marketReasonMarkup(freshEntries.length === 0 ? t('reasonNoFreshFish') : '')}
-      </article>
-      <article class="market-card">
-        <img src="${assetPath('/assets/items/taranka_drying.png')}" alt="" />
-        <div>
-          <h3>${t('sellTaranka')}</h3>
-          <p>${t('marketTarankaNote')}</p>
-          <strong>${countFishByStatus(state, 'taranka')} · ${tarankaValue} ${t('coins').toLowerCase()}</strong>
-        </div>
-        <button data-action="sell:taranka" type="button"${tarankaEntries.length === 0 ? ' disabled' : ''}>${t('sell')}</button>
-        ${marketReasonMarkup(tarankaEntries.length === 0 ? t('reasonNoTaranka') : '')}
-      </article>
-      <article class="market-card">
-        <img src="${itemImage('smoker')}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
-        <div>
-          <h3>${t('sellSmokedFish')}</h3>
-          <p>${t('marketSmokedNote')}</p>
-          <strong>${smokedEntries.length} В· ${smokedValue} ${t('coins').toLowerCase()}</strong>
-        </div>
-        <button data-action="sell:smoked" type="button"${smokedEntries.length === 0 ? ' disabled' : ''}>${t('sell')}</button>
-        ${marketReasonMarkup(smokedEntries.length === 0 ? t('reasonNoSmokedFish') : '')}
-      </article>
-    </div>
-  `;
-}
-
 function marketSellMarkup(state) {
   const freshEntries = getFishEntries(state, 'fresh');
   const freshGroups = getFreshFishSaleGroups(state);
@@ -418,8 +342,9 @@ function marketSellMarkup(state) {
         <button data-action="sell:taranka" type="button"${tarankaEntries.length === 0 ? ' disabled' : ''}>${t('sell')}</button>
         ${marketReasonMarkup(tarankaEntries.length === 0 ? t('reasonNoTaranka') : '')}
       </article>
+      ${smokedEntries.length > 0 ? `
       <article class="market-card">
-        <img src="${itemImage('smoker')}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
+        <img src="${itemImage('smokedFish')}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
         <div>
           <h3>${t('sellSmokedFish')}</h3>
           <p>${t('marketSmokedNote')}</p>
@@ -428,6 +353,7 @@ function marketSellMarkup(state) {
         <button data-action="sell:smoked" type="button"${smokedEntries.length === 0 ? ' disabled' : ''}>${t('sell')}</button>
         ${marketReasonMarkup(smokedEntries.length === 0 ? t('reasonNoSmokedFish') : '')}
       </article>
+      ` : ''}
     </div>
   `;
 }
@@ -436,7 +362,7 @@ function marketBuyMarkup(state) {
   return `
     <div class="market-card-grid">
       ${shopItems.map((item) => {
-        const owned = item.type !== 'consumable' && (item.id === 'smoker' ? state.hasSmoker : state.purchased[item.id]);
+        const owned = item.type !== 'consumable' && state.purchased[item.id];
         const disabledReason = owned
           ? t('reasonAlreadyOwned')
           : state.money < item.price
@@ -488,7 +414,6 @@ function shopDescriptionKey(itemId) {
     sharperHook: 'shopDescSharperHook',
     properRod: 'shopDescProperRod',
     bicycle: 'shopDescBicycle',
-    smoker: 'shopDescSmoker',
     salt: 'shopDescSalt',
     hooksPack: 'shopDescHooks',
   };
@@ -585,7 +510,9 @@ function fishGuideMarkup(state) {
 
 function watersGuideMarkup(state) {
   return waterGuide.map((water) => {
-    const unlocked = water.unlocked || state.purchased?.bicycle || state.travel?.farWatersUnlocked;
+    const unlocked = water.unlocked
+      || Boolean(state.travel?.visitedWaters?.[water.id])
+      || (water.access === 'bicycle' && state.purchased?.bicycle);
     return `
       <article class="guide-card guide-card--wide">
         <img src="${assetPath(waterImages[water.id] ?? '/assets/locations/pond_location_concept.png')}" onerror="this.src='${assetPath('/assets/locations/pond_location_concept.png')}'" alt="" />

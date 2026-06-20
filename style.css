@@ -134,41 +134,6 @@ button:disabled {
   padding: 14px;
 }
 
-.shop-panel {
-  grid-column: 3;
-  grid-row: 2;
-  align-self: start;
-  max-height: 30vh;
-  overflow: auto;
-  padding: 14px;
-}
-
-.fish-prices-panel {
-  grid-column: 3;
-  grid-row: 3;
-  align-self: end;
-  max-height: 34vh;
-  overflow: auto;
-  padding: 14px;
-}
-
-.market-panel {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  grid-column: 3;
-  grid-row: 1 / span 3;
-  align-self: start;
-  max-height: 74vh;
-  overflow: hidden;
-  padding: 14px;
-}
-
-.market-panel .panel-collapsible {
-  min-height: 0;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
 .inventory-panel.is-collapsed {
   justify-self: end;
 }
@@ -215,7 +180,6 @@ button:disabled {
   z-index: 30;
 }
 
-.profile-panel,
 .settings-panel {
   grid-column: 3;
   grid-row: 2;
@@ -227,8 +191,7 @@ button:disabled {
   padding: 14px;
 }
 
-.settings-panel .panel-collapsible,
-.profile-panel .panel-collapsible {
+.settings-panel .panel-collapsible {
   min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
@@ -251,38 +214,10 @@ button:disabled {
   letter-spacing: 0;
 }
 
-.money {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.money strong {
-  color: #ffd66b;
-  font-size: 1.6rem;
-}
-
 .hint {
   min-height: 42px;
   margin: 0;
   color: #cfe7dd;
-}
-
-.debug-line {
-  display: grid;
-  gap: 4px;
-  margin: 10px 0;
-  border-radius: 6px;
-  background: rgb(255 255 255 / 7%);
-  padding: 8px 9px;
-  color: #dcebe3;
-  font-size: 0.82rem;
-}
-
-.debug-line strong {
-  color: #ffffff;
 }
 
 .clock-line {
@@ -304,6 +239,42 @@ button:disabled {
 
 .mobile-menu {
   display: none;
+}
+
+.coin-hud {
+  pointer-events: none;
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 55;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 999px;
+  background: rgb(10 18 17 / 66%);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 24%);
+  color: #ffe28a;
+  font-weight: 900;
+  padding: 7px 12px;
+  backdrop-filter: blur(8px);
+}
+
+.coin-hud strong {
+  color: #fff7d0;
+}
+
+.coin-hud__icon {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border: 1px solid rgb(121 82 17 / 54%);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 34% 30%, rgb(255 248 184 / 96%) 0 18%, transparent 19%),
+    linear-gradient(145deg, #ffe28a, #e7a92f 62%, #9b681d);
+  box-shadow: inset -2px -2px 0 rgb(98 62 14 / 22%), 0 1px 5px rgb(0 0 0 / 24%);
 }
 
 .main-menu button {
@@ -384,6 +355,30 @@ button:disabled {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+.cheat-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.cheat-form input {
+  min-width: 0;
+  min-height: 36px;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 8px;
+  background: rgb(7 14 14 / 28%);
+  color: #fff8df;
+  font: inherit;
+  font-weight: 800;
+  padding: 8px 10px;
+}
+
+.cheat-form button {
+  min-height: 36px;
+  background: #f3c45f;
+  padding: 8px 10px;
 }
 
 .settings-flag-card {
@@ -489,8 +484,7 @@ button:disabled {
 
 .market-tabs,
 .market-card-grid,
-.market-price-grid,
-.profile-grid {
+.market-price-grid {
   display: grid;
   gap: 8px;
 }
@@ -524,8 +518,7 @@ button:disabled {
 
 .market-summary,
 .market-card,
-.market-price-card,
-.profile-grid span {
+.market-price-card {
   border-radius: 8px;
   background: rgb(255 255 255 / 7%);
   padding: 9px;
@@ -679,13 +672,6 @@ button:disabled {
 .market-price-card strong,
 .market-price-card small {
   min-width: 0;
-}
-
-.profile-grid span {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  color: #dbe8e1;
 }
 
 .mini-panel,
@@ -1027,11 +1013,30 @@ button:disabled {
     border-radius: 14px;
   }
 
+  .coin-hud {
+    top: max(10px, env(safe-area-inset-top));
+    right: 10px;
+    z-index: 98;
+    min-height: 38px;
+    border-radius: 999px;
+    background: rgb(8 16 15 / 62%);
+    padding: 7px 11px;
+  }
+
   .status-panel {
-    width: min(100%, 430px);
+    pointer-events: none;
+    width: auto;
     max-height: none;
     overflow: visible;
-    padding: 10px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    padding: 0;
+  }
+
+  .status-panel .panel-toggle-row {
+    display: none;
   }
 
   .status-panel .panel-toggle {
@@ -1042,18 +1047,24 @@ button:disabled {
     font-size: 1.05rem;
   }
 
-  .money {
-    margin-bottom: 6px;
-  }
-
-  .hint,
-  .debug-line {
+  .hint {
     display: none;
   }
 
   .clock-line {
-    margin-top: 6px;
+    pointer-events: none;
+    position: fixed;
+    left: 60px;
+    top: max(10px, env(safe-area-inset-top));
+    max-width: calc(100vw - 178px);
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    margin: 0;
     font-size: 0.78rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .main-menu {
@@ -1061,9 +1072,13 @@ button:disabled {
   }
 
   .mobile-menu {
-    position: relative;
+    pointer-events: auto;
+    position: fixed;
+    left: 8px;
+    top: max(8px, env(safe-area-inset-top));
+    z-index: 98;
     display: block;
-    margin-top: 8px;
+    margin: 0;
   }
 
   .mobile-menu > summary,
@@ -1072,20 +1087,33 @@ button:disabled {
   }
 
   .mobile-menu summary {
-    display: grid;
-    place-items: center;
-    min-height: 38px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 44px;
+    min-height: 44px;
     border-radius: 999px;
-    background: #f3c45f;
-    color: #14221d;
+    border: 1px solid rgb(255 255 255 / 16%);
+    background: rgb(8 16 15 / 32%);
+    color: #f8f4e7;
     cursor: pointer;
-    font-size: 0.82rem;
-    font-weight: 900;
     list-style: none;
+    box-shadow: 0 8px 20px rgb(0 0 0 / 16%);
+    backdrop-filter: blur(8px);
   }
 
   .mobile-menu summary::-webkit-details-marker {
     display: none;
+  }
+
+  .mobile-menu summary span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    border-radius: 999px;
+    background: currentColor;
   }
 
   .mobile-menu[open] {
@@ -1108,7 +1136,7 @@ button:disabled {
     position: fixed;
     left: 8px;
     right: 8px;
-    top: 72px;
+    top: calc(max(8px, env(safe-area-inset-top)) + 52px);
     bottom: max(8px, env(safe-area-inset-bottom));
     z-index: 95;
     display: grid;
@@ -1133,7 +1161,7 @@ button:disabled {
 
   .mobile-menu__list button,
   .mobile-menu__service button {
-    min-height: 36px;
+    min-height: 44px;
     border: 1px solid rgb(255 255 255 / 12%);
     background: rgb(238 241 232 / 90%);
     color: #14221d;
@@ -1150,12 +1178,10 @@ button:disabled {
   }
 
   .inventory-panel,
-  .market-panel,
   .keepnet-panel,
   .journal-panel,
   .tackle-panel,
   .guide-panel,
-  .profile-panel,
   .settings-panel {
     position: fixed;
     display: grid;
@@ -1173,12 +1199,10 @@ button:disabled {
   }
 
   .inventory-panel .panel-collapsible,
-  .market-panel .panel-collapsible,
   .keepnet-panel .panel-collapsible,
   .journal-panel .panel-collapsible,
   .tackle-panel .panel-collapsible,
   .guide-panel .panel-collapsible,
-  .profile-panel .panel-collapsible,
   .settings-panel .panel-collapsible {
     min-height: 0;
     overflow-y: auto;
@@ -1186,18 +1210,15 @@ button:disabled {
   }
 
   .inventory-panel:not(.is-collapsed),
-  .market-panel:not(.is-collapsed),
   .keepnet-panel:not(.is-collapsed),
   .journal-panel:not(.is-collapsed),
   .tackle-panel:not(.is-collapsed),
   .guide-panel:not(.is-collapsed),
-  .profile-panel:not(.is-collapsed),
   .settings-panel:not(.is-collapsed) {
     z-index: 96;
   }
 
-  .guide-panel,
-  .market-panel {
+  .guide-panel {
     top: 48px;
     bottom: 12px;
     max-height: min(92vh, calc(100vh - 60px));
@@ -1252,6 +1273,10 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .cheat-form {
+    grid-template-columns: 1fr;
+  }
+
   .market-tabs button {
     min-height: 34px;
     font-size: 0.78rem;
@@ -1275,8 +1300,7 @@ button:disabled {
     display: none;
   }
 
-  .location-scene .guide-panel,
-  .location-scene .market-panel {
+  .location-scene .guide-panel {
     z-index: 70;
   }
 

@@ -2,6 +2,7 @@ import './locationScene.css';
 import { logMarkup, marketMarkup } from './panels.js';
 import { fishingMinigameMarkup } from './fishingMinigame.js';
 import { getFishData } from '../game/fishData.js';
+import { getFishingLocation, isFishingLocation } from '../game/locations.js';
 import { t, translateEntry } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
 import { getLocationImage } from '../utils/locationAsset.js';
@@ -21,20 +22,6 @@ const sceneConfigs = {
     bgClass: 'scene-bg--slow-pan',
     effects: ['scene-insects', 'scene-cloud-shadow', 'scene-floating-dust'],
   },
-  pond: {
-    titleKey: 'scenePondTitle',
-    descriptionKey: 'scenePondDescription',
-    image: getLocationImage('pond'),
-    bgClass: 'scene-bg--slow-zoom',
-    effects: ['scene-water-ripples', 'scene-bobber', 'scene-cloud-shadow'],
-  },
-  greada: {
-    titleKey: 'sceneGreadaTitle',
-    descriptionKey: 'sceneGreadaDescription',
-    image: getLocationImage('greada'),
-    bgClass: 'scene-bg--slow-zoom',
-    effects: ['scene-water-ripples', 'scene-bobber', 'scene-cloud-shadow', 'scene-road-dust'],
-  },
   market: {
     titleKey: 'sceneMarketTitle',
     descriptionKey: 'sceneMarketDescription',
@@ -42,11 +29,25 @@ const sceneConfigs = {
     bgClass: 'scene-bg--slow-pan',
     effects: ['scene-road-dust', 'scene-light-sweep'],
   },
+  bus_station: {
+    titleKey: 'sceneBusStationTitle',
+    descriptionKey: 'sceneBusStationDescription',
+    image: assetPath('/assets/locations/market_location_concept.png'),
+    bgClass: 'scene-bg--slow-pan',
+    effects: ['scene-road-dust', 'scene-light-sweep'],
+  },
+  fishing_select: {
+    titleKey: 'sceneFishingSelectTitle',
+    descriptionKey: 'sceneFishingSelectDescription',
+    image: getLocationImage('canal'),
+    bgClass: 'scene-bg--slow-zoom',
+    effects: ['scene-water-ripples', 'scene-cloud-shadow'],
+  },
 };
 
 export function locationSceneMarkup(state, context) {
   const sceneId = state.ui?.activeScene;
-  const config = sceneConfigs[sceneId];
+  const config = sceneConfigs[sceneId] ?? fishingSceneConfig(sceneId);
   if (!config) {
     return '';
   }
@@ -96,7 +97,6 @@ export function locationSceneMarkup(state, context) {
             <ul class="log-list">${logMarkup(state)}</ul>
           </section>
 
-          ${sceneId === 'pond' ? travelPreviewMarkup(state) : ''}
         </div>
       </div>
 
@@ -105,50 +105,6 @@ export function locationSceneMarkup(state, context) {
       </div>
 
       ${fishingMinigameMarkup(state)}
-      ${fishingModeChoiceMarkup(state)}
-    </section>
-  `;
-}
-
-function travelPreviewMarkup(state) {
-  const unlocked = Boolean(state.purchased?.bicycle || state.travel?.farWatersUnlocked);
-  return `
-    <details class="travel-preview"${unlocked ? ' open' : ''}>
-      <summary>${t('travelFarther')}</summary>
-      <p>${unlocked ? t('farWatersUnlocked') : t('buyBicycleToReachWaters')}</p>
-      <div class="travel-preview__routes">
-        <button class="${unlocked ? '' : 'is-locked'}" data-action="travel:greada" type="button"${unlocked ? '' : ' disabled'}>${t('zoneGreada')}</button>
-        <span class="${unlocked ? '' : 'is-locked'}">${unlocked ? t('farWatersUnlocked') : t('requiresBicycle')}</span>
-      </div>
-    </details>
-  `;
-}
-
-function fishingModeChoiceMarkup(state) {
-  const method = state.ui?.pendingFishingMethod;
-  if (!method) {
-    return '';
-  }
-
-  const lastMode = state.settings?.fishing?.lastMode ?? 'classic';
-  return `
-    <section class="fishing-mode-choice" role="dialog" aria-label="${t('chooseFishingMode')}">
-      <button class="fishing-mode-choice__backdrop" data-action="fishingMode:cancel" type="button" aria-label="${t('close')}"></button>
-      <div class="fishing-mode-choice__card">
-        <p class="section-label">${t('chooseFishingMode')}</p>
-        <h3>${t('chooseFishingModeTitle')}</h3>
-        <div class="fishing-mode-choice__actions">
-          <button class="${lastMode === 'classic' ? 'is-selected' : ''}" data-action="fishingMode:classic" type="button">
-            <strong>${t('classic2DFishing')}</strong>
-            <small>${t('classic2DFishingNote')}</small>
-          </button>
-          <button class="${lastMode === 'experimental' ? 'is-selected' : ''}" data-action="fishingMode:experimental" type="button">
-            <strong>${t('experimental3DFishingChoice')}</strong>
-            <small>${t('experimental3DFishingNote')}</small>
-          </button>
-        </div>
-        <button class="fishing-mode-choice__cancel" data-action="fishingMode:cancel" type="button">${t('close')}</button>
-      </div>
     </section>
   `;
 }
@@ -179,6 +135,7 @@ function actionButtonMarkup(action) {
   return `
     <button class="${variant.trim()}" data-action="${action.id}" type="button"${disabled}>
       ${action.label}
+      ${action.reason ? `<small>${action.reason}</small>` : ''}
     </button>
   `;
 }
@@ -188,7 +145,7 @@ function feedbackMarkup(feedback) {
 }
 
 function fishResultMarkup(state) {
-  if (!['pond', 'greada'].includes(state.ui?.activeScene) || state.ui?.fishingMinigame?.open) {
+  if (!isFishingLocation(state.ui?.activeScene) || state.ui?.fishingMinigame?.open) {
     return '';
   }
 
@@ -219,4 +176,19 @@ function fishResultMarkup(state) {
       <p>${t(fish.descriptionKey)}</p>
     </section>
   `;
+}
+
+function fishingSceneConfig(sceneId) {
+  const location = getFishingLocation(sceneId);
+  if (!location) {
+    return null;
+  }
+
+  return {
+    titleKey: location.titleKey,
+    descriptionKey: location.descriptionKey,
+    image: getLocationImage(location.imageId),
+    bgClass: 'scene-bg--slow-zoom',
+    effects: ['scene-water-ripples', 'scene-bobber', 'scene-cloud-shadow'],
+  };
 }
