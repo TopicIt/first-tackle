@@ -3,33 +3,34 @@ import { logMarkup } from './panels.js';
 import { fishingMinigameMarkup } from './fishingMinigame.js';
 import { getFishData } from '../game/fishData.js';
 import { t, translateEntry } from '../i18n/i18n.js';
+import { assetPath } from '../utils/assetPath.js';
 
 const sceneConfigs = {
   house: {
     titleKey: 'sceneHouseTitle',
     descriptionKey: 'sceneHouseDescription',
-    image: '/assets/locations/house_location_concept.png',
+    image: assetPath('/assets/locations/house_location_concept.png'),
     bgClass: 'scene-bg--slow-zoom',
     effects: ['scene-light-sweep', 'scene-floating-dust', 'scene-cloud-shadow', 'scene-warm-haze'],
   },
   garden: {
     titleKey: 'sceneGardenTitle',
     descriptionKey: 'sceneGardenDescription',
-    image: '/assets/locations/garden_location_concept.png',
+    image: assetPath('/assets/locations/garden_location_concept.png'),
     bgClass: 'scene-bg--slow-pan',
     effects: ['scene-insects', 'scene-cloud-shadow', 'scene-floating-dust'],
   },
   pond: {
     titleKey: 'scenePondTitle',
     descriptionKey: 'scenePondDescription',
-    image: '/assets/locations/pond_location_concept.png',
+    image: assetPath('/assets/locations/pond_location_concept.png'),
     bgClass: 'scene-bg--slow-zoom',
     effects: ['scene-water-ripples', 'scene-bobber', 'scene-cloud-shadow'],
   },
   market: {
     titleKey: 'sceneMarketTitle',
     descriptionKey: 'sceneMarketDescription',
-    image: '/assets/locations/world_map_concept.png',
+    image: assetPath('/assets/locations/world_map_concept.png'),
     bgClass: 'scene-bg--slow-pan',
     effects: ['scene-road-dust', 'scene-light-sweep'],
   },

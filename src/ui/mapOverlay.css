@@ -17,7 +17,7 @@
 
 .illustrated-map__image {
   inset: -2%;
-  background-image: url('/assets/locations/world_map_concept.png');
+  background-image: var(--illustrated-map-image);
   background-position: center;
   background-size: cover;
   filter: saturate(1.08) contrast(1.04);

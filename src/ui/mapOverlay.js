@@ -1,11 +1,13 @@
 import { MAP_HOTSPOTS } from '../game/mapHotspots.js';
 import { ROAD_CAR_LOOP_MS, ROAD_CAR_PATH, ROAD_CAR_VISIBLE_RATIO } from '../game/mapPaths.js';
 import { t } from '../i18n/i18n.js';
+import { assetPath } from '../utils/assetPath.js';
 import './mapOverlay.css';
 
 export function mapOverlayMarkup(state) {
+  const mapImageStyle = `--illustrated-map-image: url('${assetPath('/assets/locations/world_map_concept.png')}')`;
   return `
-    <section class="illustrated-map" aria-label="${t('mapHint')}">
+    <section class="illustrated-map" style="${mapImageStyle}" aria-label="${t('mapHint')}">
       <div class="illustrated-map__image" aria-hidden="true"></div>
       <div class="illustrated-map__breath" aria-hidden="true"></div>
       <div class="illustrated-map__water" aria-hidden="true"></div>

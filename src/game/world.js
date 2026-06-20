@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { assetPath } from '../utils/assetPath.js';
 
 const zoneColors = {
   house: 0xe3c173,
@@ -371,7 +372,7 @@ function addReeds(scene) {
 }
 
 function addMapLife(scene) {
-  const texture = new THREE.TextureLoader().load('/assets/locations/world_map_concept.png');
+  const texture = new THREE.TextureLoader().load(assetPath('/assets/locations/world_map_concept.png'));
   texture.colorSpace = THREE.SRGBColorSpace;
 
   const mapPlane = new THREE.Mesh(

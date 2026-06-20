@@ -2,6 +2,7 @@ import './fishingMinigame.css';
 import { getFishData } from '../game/fishData.js';
 import { getAvailableBaits } from '../game/fishingMinigameLogic.js';
 import { t } from '../i18n/i18n.js';
+import { assetPath } from '../utils/assetPath.js';
 
 const castZoneKeys = {
   near_bank: 'castZoneNearBank',
@@ -30,13 +31,13 @@ export function fishingMinigameMarkup(state) {
   return `
     <section class="fishing-minigame" aria-label="${t('fishingTitle')}">
       <div class="fishing-minigame__backdrop">
-        <img class="fishing-minigame__base" src="/assets/fishing/canal_fishing_base.png" alt="" />
-        <img class="fishing-minigame__zones" src="/assets/fishing/canal_fishing_cast_zones.png" alt="" />
+        <img class="fishing-minigame__base" src="${assetPath('/assets/fishing/canal_fishing_base.png')}" alt="" />
+        <img class="fishing-minigame__zones" src="${assetPath('/assets/fishing/canal_fishing_cast_zones.png')}" alt="" />
         ${minigame.phase === 'waiting' || minigame.phase === 'animating'
-          ? '<img class="fishing-minigame__state-art" src="/assets/fishing/canal_fishing_waiting_bobber.png" alt="" />'
+          ? `<img class="fishing-minigame__state-art" src="${assetPath('/assets/fishing/canal_fishing_waiting_bobber.png')}" alt="" />`
           : ''}
         ${minigame.phase === 'strike_window'
-          ? '<img class="fishing-minigame__state-art fishing-minigame__state-art--bite" src="/assets/fishing/canal_fishing_bite.png" alt="" />'
+          ? `<img class="fishing-minigame__state-art fishing-minigame__state-art--bite" src="${assetPath('/assets/fishing/canal_fishing_bite.png')}" alt="" />`
           : ''}
       </div>
 
@@ -64,7 +65,7 @@ export function fishingMinigameMarkup(state) {
               <div class="bait-grid">
                 ${getAvailableBaits(state).map((bait) => baitButtonMarkup(bait, minigame.selectedBait)).join('')}
               </div>
-              <img class="fishing-panel__art" src="/assets/items/bait_types_clean.png" alt="" />
+              <img class="fishing-panel__art" src="${assetPath('/assets/items/bait_types_clean.png')}" alt="" />
             </section>
 
             <section class="fishing-panel">
@@ -236,14 +237,14 @@ function getBobberHintKey(minigame) {
 
 function getCatchImage(fishId) {
   if (fishId === 'rotan') {
-    return '/assets/fish/catch_rotan_card.png';
+    return assetPath('/assets/fish/catch_rotan_card.png');
   }
 
   if (fishId === 'crucian') {
-    return '/assets/fish/catch_crucian_card.png';
+    return assetPath('/assets/fish/catch_crucian_card.png');
   }
 
-  return '/assets/fish/catch_result_frame.png';
+  return assetPath('/assets/fish/catch_result_frame.png');
 }
 
 function toPascalCase(value) {
