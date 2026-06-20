@@ -77,7 +77,7 @@ export function openFishingMinigame(state, method) {
     market: true,
     profile: true,
     settings: true,
-    fishingControls: true,
+    fishingControls: false,
     fishingResult: true,
   };
   state.ui.fishingMinigame = createFishingMinigameState(method);
@@ -189,6 +189,10 @@ export function castLine(state, nowMs) {
   minigame.statusKey = 'fishingCasting';
   minigame.result = null;
   minigame.currentCatchEntryId = null;
+  state.ui.collapsedPanels = {
+    ...(state.ui.collapsedPanels ?? {}),
+    fishingControls: true,
+  };
   minigame.nextStepAt = nowMs + 850;
   minigame.fishCandidateId = chooseFishCandidate(state, minigame);
   minigame.currentPattern = minigame.fishCandidateId ? buildPattern(minigame.fishCandidateId) : [];
@@ -361,6 +365,10 @@ export function castAgain(state) {
   minigame.strikeWindowEndAt = 0;
   minigame.currentCatchEntryId = null;
   minigame.consumedBait = null;
+  state.ui.collapsedPanels = {
+    ...(state.ui.collapsedPanels ?? {}),
+    fishingControls: false,
+  };
   autoSelectFirstAvailableBait(state, minigame);
   if (!minigame.selectedBait) {
     minigame.statusKey = 'fishingNoBaitAvailable';
@@ -388,6 +396,10 @@ export function recastLine(state) {
   minigame.nextStepAt = 0;
   minigame.strikeWindowStartAt = 0;
   minigame.strikeWindowEndAt = 0;
+  state.ui.collapsedPanels = {
+    ...(state.ui.collapsedPanels ?? {}),
+    fishingControls: false,
+  };
   queueSound(state, 'water_ripple');
 }
 
@@ -504,13 +516,8 @@ export function runFishingContextAction(state, nowMs) {
     return;
   }
 
-  if (minigame.phase === 'strike_window' || minigame.phase === 'animating') {
+  if (minigame.phase === 'strike_window' || minigame.phase === 'animating' || minigame.phase === 'waiting' || minigame.phase === 'cast') {
     strikeLine(state, nowMs);
-    return;
-  }
-
-  if (minigame.phase === 'waiting' || minigame.phase === 'cast') {
-    recastLine(state);
   }
 }
 
@@ -534,7 +541,11 @@ export function getFishingContextAction(state) {
   }
 
   if (minigame.phase === 'waiting' || minigame.phase === 'cast' || minigame.phase === 'animating') {
-    return { labelKey: minigame.phase === 'animating' ? 'action' : 'recast', enabled: true, variant: 'recast' };
+    return {
+      labelKey: hintMode === 'off' ? 'action' : 'strike',
+      enabled: true,
+      variant: 'action',
+    };
   }
 
   if (minigame.phase === 'result') {

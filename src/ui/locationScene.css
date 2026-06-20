@@ -185,11 +185,15 @@
 }
 
 .scene-header {
+  position: relative;
   display: flex;
   align-items: start;
   justify-content: space-between;
   gap: 18px;
-  padding: 16px;
+  border-color: rgb(255 255 255 / 10%);
+  background: rgb(18 27 24 / 34%);
+  box-shadow: none;
+  padding: 16px 58px 16px 16px;
 }
 
 .scene-header h2 {
@@ -202,18 +206,31 @@
 .scene-header p {
   max-width: 680px;
   margin: 0;
-  color: #d9eadf;
+  color: rgb(217 234 223 / 88%);
 }
 
-.scene-close,
+.location-scene .scene-close,
 .scene-action-grid button {
   min-height: 40px;
   padding: 10px 12px;
 }
 
-.scene-close {
-  flex: 0 0 auto;
-  background: #f0eee5;
+.location-scene .scene-close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 999px;
+  background: rgb(6 12 11 / 38%);
+  color: #f7fff8;
+  font-size: 1.25rem;
+  line-height: 1;
+  backdrop-filter: blur(8px);
 }
 
 .scene-body {
@@ -233,15 +250,22 @@
 
 .travel-preview {
   grid-column: 1 / -1;
-  border: 1px solid rgb(255 255 255 / 18%);
+  border: 1px solid rgb(255 255 255 / 12%);
   border-radius: 8px;
-  background: rgb(18 27 24 / 78%);
-  box-shadow: 0 18px 52px rgb(0 0 0 / 30%);
+  background: rgb(18 27 24 / 58%);
+  box-shadow: 0 12px 36px rgb(0 0 0 / 22%);
   backdrop-filter: blur(12px);
 }
 
+.travel-preview summary {
+  cursor: pointer;
+  color: #fff8df;
+  font-weight: 900;
+  list-style-position: inside;
+}
+
 .travel-preview p {
-  margin: 0 0 10px;
+  margin: 10px 0;
   color: #d9eadf;
 }
 
@@ -539,6 +563,18 @@
   .scene-header,
   .scene-body {
     display: grid;
+  }
+
+  .scene-header {
+    padding: 13px 52px 13px 13px;
+  }
+
+  .location-scene .scene-close {
+    right: 10px;
+    top: 10px;
+    width: 30px;
+    min-height: 30px;
+    font-size: 1.08rem;
   }
 
   .scene-body {

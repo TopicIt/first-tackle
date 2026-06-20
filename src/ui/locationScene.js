@@ -60,7 +60,7 @@ export function locationSceneMarkup(state, context) {
             <h2>${t(config.titleKey)}</h2>
             <p>${t(config.descriptionKey)}</p>
           </div>
-          <button class="scene-close" data-scene-close="true" type="button" aria-label="${t('close')}">${t('close')}</button>
+          <button class="scene-close" data-scene-close="true" type="button" aria-label="${t('close')}">&times;</button>
         </header>
 
         <div class="scene-body">
@@ -94,14 +94,14 @@ export function locationSceneMarkup(state, context) {
 function travelPreviewMarkup(state) {
   const unlocked = Boolean(state.purchased?.bicycle || state.travel?.farWatersUnlocked);
   return `
-    <section class="travel-preview">
-      <p class="section-label">${t('travelFarther')}</p>
+    <details class="travel-preview"${unlocked ? ' open' : ''}>
+      <summary>${t('travelFarther')}</summary>
       <p>${unlocked ? t('farWatersUnlocked') : t('buyBicycleToReachWaters')}</p>
       <div class="travel-preview__routes">
         <span class="${unlocked ? '' : 'is-locked'}">${t('oldPond')}</span>
         <span class="${unlocked ? '' : 'is-locked'}">${t('riverBend')}</span>
       </div>
-    </section>
+    </details>
   `;
 }
 

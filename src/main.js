@@ -333,6 +333,8 @@ function normalizePanelStateForViewport(state) {
     return;
   }
 
+  state.ui.collapsedPanels.status = false;
+
   for (const panelId of ['inventory', 'keepnet', 'tackle', 'market', 'guide', 'journal', 'profile', 'settings', 'shop', 'fishPrices']) {
     state.ui.collapsedPanels[panelId] = true;
   }

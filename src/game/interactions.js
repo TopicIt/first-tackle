@@ -107,7 +107,7 @@ export function getLocationSceneContext(state, zoneId) {
     };
   }
 
-  const actions = [getOpenSceneAction(zoneId)];
+  const actions = [];
 
   return {
     zoneId,

@@ -32,6 +32,7 @@ export function fishingMinigameMarkup(state) {
   const hintMode = state.settings?.fishing?.biteHints ?? 'beginner';
   const contextAction = getFishingContextAction(state);
   const floatStyle = state.tackle?.equipped?.float ?? 'none';
+  const activeFishing = isActiveFishingPhase(minigame.phase);
 
   return `
     <section class="fishing-minigame" aria-label="${t('fishingTitle')}">
@@ -144,6 +145,9 @@ export function fishingMinigameMarkup(state) {
                 >
                   ${t(contextAction.labelKey)}
                 </button>
+                ${activeFishing
+                  ? `<button class="fishing-context-action__side" data-action="minigame:recast" type="button">${t('takeRodOut')}</button>`
+                  : ''}
                 <span>${t('spaceAction')}</span>
               </div>
             </div>
@@ -215,6 +219,10 @@ function selectedScatterMarkup(state, minigame) {
 function selectedSpotChip(minigame) {
   const spot = minigame.selectedSpot ? getCastSpot(minigame.selectedSpot) : null;
   return spot ? `<span class="fishing-spot-chip">${t(spot.labelKey)}</span>` : '';
+}
+
+function isActiveFishingPhase(phase) {
+  return ['cast', 'waiting', 'animating', 'strike_window'].includes(phase);
 }
 
 function catchResultCardMarkup(state, fish, result, minigame, collapsedPanels) {

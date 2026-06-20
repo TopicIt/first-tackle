@@ -825,6 +825,10 @@ button:disabled {
     padding: 10px;
   }
 
+  .status-panel .panel-toggle {
+    display: none;
+  }
+
   .title {
     font-size: 1.05rem;
   }

@@ -41,6 +41,7 @@ export function createHud(root, handlers) {
 
     const languageButton = event.target.closest('button[data-language-toggle]');
     if (languageButton) {
+      languageButton.closest('.mobile-menu')?.removeAttribute('open');
       handlers.onToggleLanguage();
       return;
     }
@@ -51,6 +52,8 @@ export function createHud(root, handlers) {
     }
 
     const action = button.dataset.action;
+    button.closest('.mobile-menu')?.removeAttribute('open');
+
     if (action === 'save') handlers.onSave();
     else if (action === 'load') handlers.onLoad();
     else if (action === 'reset') handlers.onReset();
