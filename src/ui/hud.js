@@ -126,21 +126,23 @@ export function createHud(root, handlers) {
             <p class="clock-line">${t('dayLabel', { day: state.day })} · ${t(`timePhase${toPascalCase(context.timePhase ?? 'morning')}`)} · ${context.clock ?? ''}</p>
             <details class="mobile-menu">
               <summary>${t('menu')}</summary>
-              <nav class="mobile-menu__list">
-                ${menuButton('inventory', 'inventory', collapsedPanels)}
-                ${menuButton('keepnet', 'keepnet', collapsedPanels)}
-                ${menuButton('tackle', 'tackle', collapsedPanels)}
-                ${menuButton('market', 'market', collapsedPanels)}
-                ${menuButton('guide', 'fishermanGuide', collapsedPanels)}
-                ${menuButton('journal', 'catchJournal', collapsedPanels)}
-                ${menuButton('profile', 'profile', collapsedPanels)}
-                ${menuButton('settings', 'settings', collapsedPanels)}
-              </nav>
-              <div class="mobile-menu__service">
-                <button data-action="save" type="button">${t('save')}</button>
-                <button data-action="load" type="button">${t('load')}</button>
-                <button data-action="reset" type="button">${t('reset')}</button>
-                <button data-language-toggle="true" type="button" aria-label="Switch language">${getLanguage().toUpperCase()} / ${t('languageToggle')}</button>
+              <div class="mobile-menu__sheet">
+                <nav class="mobile-menu__list">
+                  ${menuButton('inventory', 'inventory', collapsedPanels)}
+                  ${menuButton('keepnet', 'keepnet', collapsedPanels)}
+                  ${menuButton('tackle', 'tackle', collapsedPanels)}
+                  ${menuButton('market', 'market', collapsedPanels)}
+                  ${menuButton('guide', 'fishermanGuide', collapsedPanels)}
+                  ${menuButton('journal', 'catchJournal', collapsedPanels)}
+                  ${menuButton('profile', 'profile', collapsedPanels)}
+                  ${menuButton('settings', 'settings', collapsedPanels)}
+                </nav>
+                <div class="mobile-menu__service">
+                  <button data-action="save" type="button">${t('save')}</button>
+                  <button data-action="load" type="button">${t('load')}</button>
+                  <button data-action="reset" type="button">${t('reset')}</button>
+                  <button data-language-toggle="true" type="button" aria-label="Switch language">${getLanguage().toUpperCase()} / ${t('languageToggle')}</button>
+                </div>
               </div>
             </details>
             <nav class="main-menu">
@@ -262,6 +264,16 @@ export function createHud(root, handlers) {
             </button>
           </div>
           <div class="panel-collapsible">
+            <section class="settings-block">
+              <p class="section-label">${t('language')}</p>
+              <div class="settings-flag-card">
+                <div>
+                  <strong>${getLanguage().toUpperCase()}</strong>
+                  <small>${t('languageToggle')}</small>
+                </div>
+                <button data-language-toggle="true" type="button">${t('languageToggle')}</button>
+              </div>
+            </section>
             <section class="settings-block">
               <p class="section-label">${t('biteHints')}</p>
               <div class="hint-mode-grid">

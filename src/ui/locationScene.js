@@ -4,6 +4,7 @@ import { fishingMinigameMarkup } from './fishingMinigame.js';
 import { getFishData } from '../game/fishData.js';
 import { t, translateEntry } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
+import { getLocationImage } from '../utils/locationAsset.js';
 
 const sceneConfigs = {
   house: {
@@ -23,14 +24,14 @@ const sceneConfigs = {
   pond: {
     titleKey: 'scenePondTitle',
     descriptionKey: 'scenePondDescription',
-    image: assetPath('/assets/locations/pond_location_concept.png'),
+    image: getLocationImage('pond'),
     bgClass: 'scene-bg--slow-zoom',
     effects: ['scene-water-ripples', 'scene-bobber', 'scene-cloud-shadow'],
   },
   greada: {
     titleKey: 'sceneGreadaTitle',
     descriptionKey: 'sceneGreadaDescription',
-    image: assetPath('/assets/locations/greada_location_concept.png'),
+    image: getLocationImage('greada'),
     bgClass: 'scene-bg--slow-zoom',
     effects: ['scene-water-ripples', 'scene-bobber', 'scene-cloud-shadow', 'scene-road-dust'],
   },

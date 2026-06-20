@@ -74,6 +74,8 @@ function mergeState(base, saved) {
       ...base.travel,
       ...(saved.travel ?? {}),
       farWatersUnlocked: Boolean(saved.travel?.farWatersUnlocked ?? saved.purchased?.bicycle ?? base.travel.farWatersUnlocked),
+      greadaUnlocked: Boolean(saved.travel?.greadaUnlocked ?? saved.travel?.farWatersUnlocked ?? saved.purchased?.bicycle ?? base.travel.greadaUnlocked),
+      selectedWater: saved.travel?.selectedWater === 'greada' ? 'greada' : base.travel.selectedWater,
     },
     market: mergeMarketState(saved.market, base.day),
     time: {

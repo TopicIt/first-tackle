@@ -1,9 +1,12 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
-import { fishing3dBackdropPath, fishing3dSkyPath, selectedNatureModels } from '../three/selectedNatureModels.js';
+import { SkeletonUtils } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { getFishing3dSceneConfig, fishing3dSkyPath } from '../three/selectedNatureModels.js';
 
 const mountedCanvases = new WeakSet();
+const gltfLoader = new GLTFLoader();
+const modelTemplateCache = new Map();
 
 export function mountExperimentalFishing3d(root) {
   const canvas = root.querySelector('[data-fishing-3d-canvas]');
@@ -15,6 +18,8 @@ export function mountExperimentalFishing3d(root) {
 }
 
 function createFishingScene(canvas) {
+  const locationId = canvas.dataset.locationId === 'greada' ? 'greada' : 'pond';
+  const sceneConfig = getFishing3dSceneConfig(locationId);
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.35));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -32,10 +37,10 @@ function createFishingScene(canvas) {
   sun.position.set(-4, 7, 3);
   scene.add(sun);
 
-  addBackdrop(scene);
-  addWater(scene);
+  addBackdrop(scene, sceneConfig.backdropPath);
+  addWater(scene, locationId);
   const bobber = addRodAndBobber(scene);
-  addSelectedNature(scene);
+  addSelectedNature(scene, sceneConfig.placements);
   loadHdrSky(scene);
   wireDragLook(canvas, {
     onDelta(dx, dy) {
@@ -64,9 +69,9 @@ function createFishingScene(canvas) {
   renderFrame();
 }
 
-function addBackdrop(scene) {
+function addBackdrop(scene, backdropPath) {
   const texture = new THREE.TextureLoader().load(
-    fishing3dBackdropPath,
+    backdropPath,
     (loaded) => {
       loaded.colorSpace = THREE.SRGBColorSpace;
     },
@@ -79,10 +84,11 @@ function addBackdrop(scene) {
   scene.add(plane);
 }
 
-function addWater(scene) {
+function addWater(scene, locationId) {
+  const isGreada = locationId === 'greada';
   const bank = new THREE.Mesh(
     new THREE.CircleGeometry(5.4, 48),
-    new THREE.MeshStandardMaterial({ color: 0x806c45, roughness: 0.92 }),
+    new THREE.MeshStandardMaterial({ color: isGreada ? 0x67573c : 0x806c45, roughness: 0.92 }),
   );
   bank.rotation.x = -Math.PI / 2;
   bank.scale.set(1.25, 0.78, 1);
@@ -92,8 +98,8 @@ function addWater(scene) {
   const water = new THREE.Mesh(
     new THREE.CircleGeometry(4.7, 64),
     new THREE.MeshStandardMaterial({
-      color: 0x387f8d,
-      roughness: 0.28,
+      color: isGreada ? 0x4b5f4e : 0x387f8d,
+      roughness: isGreada ? 0.42 : 0.28,
       metalness: 0.04,
       transparent: true,
       opacity: 0.82,
@@ -139,19 +145,20 @@ function addRodAndBobber(scene) {
   return bobber;
 }
 
-function addSelectedNature(scene) {
-  const loader = new GLTFLoader();
-  for (const model of selectedNatureModels) {
-    loader.load(
-      model.path,
-      (gltf) => {
-        const object = gltf.scene;
-        placeObject(object, model);
-        scene.add(object);
-      },
-      undefined,
-      () => scene.add(createFallbackObject(model)),
-    );
+function addSelectedNature(scene, placements) {
+  const natureGroup = new THREE.Group();
+  scene.add(natureGroup);
+
+  // Placements are generated once per scene/location so rerenders do not reshuffle the set.
+  for (const placement of placements) {
+    loadNatureObject(placement)
+      .then((object) => {
+        placeObject(object, placement);
+        natureGroup.add(object);
+      })
+      .catch(() => {
+        natureGroup.add(createFallbackObject(placement));
+      });
   }
 }
 
@@ -196,6 +203,35 @@ function createFallbackObject(model) {
   }
   placeObject(group, model);
   return group;
+}
+
+async function loadNatureObject(model) {
+  const cached = modelTemplateCache.get(model.id);
+  if (cached) {
+    return cloneTemplate(await cached);
+  }
+
+  const promise = new Promise((resolve, reject) => {
+    gltfLoader.load(
+      model.path,
+      (gltf) => resolve(gltf.scene),
+      undefined,
+      reject,
+    );
+  });
+  modelTemplateCache.set(model.id, promise);
+  return cloneTemplate(await promise);
+}
+
+function cloneTemplate(template) {
+  const clone = SkeletonUtils.clone(template);
+  clone.traverse((node) => {
+    if (node.isMesh) {
+      node.castShadow = true;
+      node.receiveShadow = true;
+    }
+  });
+  return clone;
 }
 
 function placeObject(object, model) {

@@ -408,6 +408,7 @@ function fishingStageMarkup(state, minigame, options) {
           <canvas
             class="fishing-stage__three-canvas"
             data-fishing-3d-canvas
+            data-location-id="${state.travel?.selectedWater === 'greada' ? 'greada' : 'pond'}"
             data-phase="${minigame.phase}"
             data-bobber-state="${minigame.bobberState}"
             aria-label="${t('experimental3DFishing')}"

@@ -251,6 +251,7 @@ export function strikeLine(state, nowMs) {
 
   if (roll <= successChance) {
     const catchResult = rollFishById(minigame.fishCandidateId);
+    adjustCatchForWater(state, catchResult);
     catchResult.value = getFreshFishValue(catchResult);
     if (!tutorialCatchActive && shouldBreakHomemadeRod(state, catchResult)) {
       removeItem(state, 'stickRod');
@@ -997,6 +998,22 @@ function shouldBreakHomemadeRod(state, catchResult) {
 
   const breakChance = catchResult.weightGrams > 650 ? 0.85 : 0.55;
   return Math.random() < breakChance;
+}
+
+function adjustCatchForWater(state, catchResult) {
+  if (state.travel?.selectedWater !== 'greada') {
+    return;
+  }
+
+  if (catchResult.id === 'crucian') {
+    catchResult.weightGrams = Math.round(catchResult.weightGrams * randomBetween(1.12, 1.32));
+  }
+
+  if (catchResult.id === 'canadian_catfish') {
+    catchResult.weightGrams = Math.round(catchResult.weightGrams * randomBetween(1.08, 1.24));
+  }
+
+  catchResult.weightGrams = Math.max(1, catchResult.weightGrams);
 }
 
 function resetAfterResult(state, minigame) {

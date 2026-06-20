@@ -219,10 +219,19 @@ button:disabled {
 .settings-panel {
   grid-column: 3;
   grid-row: 2;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   align-self: start;
   max-height: 44vh;
-  overflow: auto;
+  overflow: hidden;
   padding: 14px;
+}
+
+.settings-panel .panel-collapsible,
+.profile-panel .panel-collapsible {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .log-panel {
@@ -1020,8 +1029,8 @@ button:disabled {
 
   .status-panel {
     width: min(100%, 430px);
-    max-height: 48vh;
-    overflow: auto;
+    max-height: none;
+    overflow: visible;
     padding: 10px;
   }
 
@@ -1057,6 +1066,11 @@ button:disabled {
     margin-top: 8px;
   }
 
+  .mobile-menu > summary,
+  .mobile-menu > .mobile-menu__sheet {
+    pointer-events: auto;
+  }
+
   .mobile-menu summary {
     display: grid;
     place-items: center;
@@ -1084,36 +1098,37 @@ button:disabled {
     inset: 0;
     z-index: -1;
     background: rgb(6 12 11 / 42%);
-    pointer-events: none;
+  }
+
+  .mobile-menu__sheet {
+    display: none;
+  }
+
+  .mobile-menu[open] .mobile-menu__sheet {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    top: 72px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    z-index: 95;
+    display: grid;
+    align-content: start;
+    gap: 10px;
+    overflow-y: auto;
+    border: 1px solid rgb(255 255 255 / 10%);
+    border-radius: 18px;
+    background: rgb(12 21 20 / 97%);
+    padding: 14px 14px calc(22px + env(safe-area-inset-bottom));
+    box-shadow: 0 22px 48px rgb(0 0 0 / 34%);
   }
 
   .mobile-menu__list,
   .mobile-menu__service {
     display: grid;
     gap: 6px;
-    margin-top: 7px;
     border-radius: 14px;
-    background: rgb(12 21 20 / 96%);
+    background: rgb(255 255 255 / 4%);
     padding: 8px;
-    box-shadow: 0 18px 42px rgb(0 0 0 / 30%);
-  }
-
-  .mobile-menu[open] .mobile-menu__list {
-    position: fixed;
-    left: 8px;
-    right: 8px;
-    top: 72px;
-    z-index: 95;
-    margin: 0;
-  }
-
-  .mobile-menu[open] .mobile-menu__service {
-    position: fixed;
-    left: 8px;
-    right: 8px;
-    top: 404px;
-    z-index: 95;
-    margin: 0;
   }
 
   .mobile-menu__list button,
@@ -1143,21 +1158,31 @@ button:disabled {
   .profile-panel,
   .settings-panel {
     position: fixed;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
     left: 8px;
     right: 8px;
     top: 72px;
-    bottom: 76px;
+    bottom: 12px;
     z-index: 60;
     width: auto;
-    max-height: none;
+    max-height: min(92vh, calc(100vh - 84px));
     overflow: hidden;
     padding: 12px;
     background: rgb(16 25 24 / 78%);
   }
 
-  .market-panel .panel-collapsible {
+  .inventory-panel .panel-collapsible,
+  .market-panel .panel-collapsible,
+  .keepnet-panel .panel-collapsible,
+  .journal-panel .panel-collapsible,
+  .tackle-panel .panel-collapsible,
+  .guide-panel .panel-collapsible,
+  .profile-panel .panel-collapsible,
+  .settings-panel .panel-collapsible {
+    min-height: 0;
     overflow-y: auto;
-    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    padding-bottom: max(20px, calc(20px + env(safe-area-inset-bottom)));
   }
 
   .inventory-panel:not(.is-collapsed),
@@ -1174,7 +1199,8 @@ button:disabled {
   .guide-panel,
   .market-panel {
     top: 48px;
-    bottom: 52px;
+    bottom: 12px;
+    max-height: min(92vh, calc(100vh - 60px));
   }
 
   .actions-panel {

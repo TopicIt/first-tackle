@@ -1,13 +1,18 @@
 import { MAP_HOTSPOTS } from '../game/mapHotspots.js';
 import { t } from '../i18n/i18n.js';
-import { assetPath } from '../utils/assetPath.js';
+import { worldMapAsset } from '../utils/worldMapAsset.js';
 import './mapOverlay.css';
 
 export function mapOverlayMarkup(state) {
-  const mapImageStyle = `--illustrated-map-image: url('${assetPath('/assets/locations/world_map_concept.png')}')`;
   return `
-    <section class="illustrated-map" style="${mapImageStyle}" aria-label="${t('mapHint')}">
-      <div class="illustrated-map__image" aria-hidden="true"></div>
+    <section class="illustrated-map" aria-label="${t('mapHint')}" data-map-asset="test-world-map-concept1">
+      <img
+        class="illustrated-map__image"
+        src="${worldMapAsset.primary}"
+        alt=""
+        aria-hidden="true"
+        onerror="this.onerror=null;this.src='${worldMapAsset.fallback}'"
+      />
       <div class="illustrated-map__breath" aria-hidden="true"></div>
       <div class="illustrated-map__water" aria-hidden="true"></div>
       <div class="illustrated-map__hotspots">

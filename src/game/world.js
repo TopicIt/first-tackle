@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { assetPath } from '../utils/assetPath.js';
+import { worldMapAsset } from '../utils/worldMapAsset.js';
 
 const zoneColors = {
   house: 0xe3c173,
@@ -376,21 +376,16 @@ function addReeds(scene) {
 }
 
 function addMapLife(scene) {
-  const texture = new THREE.TextureLoader().load(assetPath('/assets/locations/world_map_concept.png'));
-  texture.colorSpace = THREE.SRGBColorSpace;
-
-  const mapPlane = new THREE.Mesh(
-    new THREE.PlaneGeometry(22, 15),
-    new THREE.MeshBasicMaterial({
-      map: texture,
-      transparent: true,
-      opacity: 0.16,
-      depthWrite: false,
-    }),
-  );
+  const mapPlaneMaterial = new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 0.16,
+    depthWrite: false,
+  });
+  const mapPlane = new THREE.Mesh(new THREE.PlaneGeometry(22, 15), mapPlaneMaterial);
   mapPlane.rotation.x = -Math.PI / 2;
   mapPlane.position.set(0, 0.065, -0.7);
   scene.add(mapPlane);
+  loadMapTexture(mapPlaneMaterial, worldMapAsset.primary, worldMapAsset.fallback);
 
   const waterShimmer = new THREE.Mesh(
     new THREE.RingGeometry(1.15, 1.34, 32),
@@ -407,4 +402,24 @@ function addMapLife(scene) {
   scene.add(waterShimmer);
 
   return { waterShimmer };
+}
+
+function loadMapTexture(material, primaryPath, fallbackPath) {
+  const loader = new THREE.TextureLoader();
+  loader.load(
+    primaryPath,
+    (texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      material.map = texture;
+      material.needsUpdate = true;
+    },
+    undefined,
+    () => {
+      loader.load(fallbackPath, (texture) => {
+        texture.colorSpace = THREE.SRGBColorSpace;
+        material.map = texture;
+        material.needsUpdate = true;
+      });
+    },
+  );
 }

@@ -73,6 +73,7 @@ const hud = createHud(hudRoot, {
         gameState.travel.selectedWater = 'canal';
       }
       if (sceneId === 'greada') {
+        gameState.travel.farWatersUnlocked = true;
         gameState.travel.greadaUnlocked = true;
         gameState.travel.selectedWater = 'greada';
       }
@@ -121,6 +122,9 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'scene:map') {
       gameState.ui.activeScene = null;
+      if (gameState.travel?.selectedWater === 'greada') {
+        gameState.travel.selectedWater = 'canal';
+      }
       closeFishingMinigame(gameState);
       renderHud();
       return;
@@ -363,6 +367,9 @@ const hud = createHud(hudRoot, {
   },
   onCloseScene() {
     audio.activate();
+    if (gameState.travel?.selectedWater === 'greada') {
+      gameState.travel.selectedWater = 'canal';
+    }
     gameState.ui.activeScene = null;
     closeFishingMinigame(gameState);
     renderHud();

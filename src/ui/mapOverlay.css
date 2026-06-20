@@ -15,11 +15,12 @@
 }
 
 .illustrated-map__image {
-  inset: -2%;
-  background-image: var(--illustrated-map-image);
-  background-position: center;
-  background-size: cover;
+  inset: -2% -1.5% -1%;
+  width: calc(100% + 3%);
+  height: calc(100% + 3%);
   filter: saturate(1.08) contrast(1.04);
+  object-fit: cover;
+  object-position: center 56%;
   transform: scale(1.02);
   animation: mapSlowBreath 38s ease-in-out infinite alternate;
 }
@@ -210,6 +211,10 @@
 }
 
 @media (max-width: 760px) {
+  .illustrated-map__image {
+    object-position: 56% 68%;
+  }
+
   .map-hotspot__label {
     top: 24px;
     font-size: 0.66rem;
