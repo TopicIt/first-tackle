@@ -523,7 +523,7 @@ export function runFishingContextAction(state, nowMs) {
 
 export function getFishingContextAction(state) {
   const minigame = state.ui.fishingMinigame;
-  const hintMode = state.settings?.fishing?.biteHints ?? 'beginner';
+  const hintMode = state.settings?.fishing?.biteHints ?? 'subtle';
   if (!minigame?.open) {
     return { labelKey: 'action', enabled: false, variant: 'idle' };
   }
@@ -913,7 +913,7 @@ function getTimeMultiplier(state, fishId) {
 }
 
 function getStrikeWindowStatusKey(state) {
-  const mode = state.settings?.fishing?.biteHints ?? 'beginner';
+  const mode = state.settings?.fishing?.biteHints ?? 'subtle';
   if (mode === 'off') {
     return 'fishingWatchBobber';
   }
@@ -924,7 +924,7 @@ function getStrikeWindowStatusKey(state) {
 }
 
 function getCycleStatusKey(state, minigame) {
-  const mode = state.settings?.fishing?.biteHints ?? 'beginner';
+  const mode = state.settings?.fishing?.biteHints ?? 'subtle';
   if (mode === 'off') {
     return 'fishingWatchWater';
   }
@@ -935,7 +935,7 @@ function getCycleStatusKey(state, minigame) {
 }
 
 function getWaitingStatusKey(state) {
-  const mode = state.settings?.fishing?.biteHints ?? 'beginner';
+  const mode = state.settings?.fishing?.biteHints ?? 'subtle';
   if (mode === 'off') {
     return 'fishingWatchWater';
   }

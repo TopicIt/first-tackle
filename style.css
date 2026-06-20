@@ -61,11 +61,11 @@ button:disabled {
   pointer-events: auto;
   position: relative;
   z-index: 2;
-  border: 1px solid rgb(255 255 255 / 16%);
+  border: 1px solid rgb(255 255 255 / 12%);
   border-radius: 8px;
-  background: rgb(21 31 28 / 82%);
-  box-shadow: 0 16px 42px rgb(0 0 0 / 26%);
-  backdrop-filter: blur(12px);
+  background: rgb(21 31 28 / 64%);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 18%);
+  backdrop-filter: blur(9px);
 }
 
 .panel-toggle-row {
@@ -951,7 +951,18 @@ button:disabled {
     max-height: none;
     overflow: auto;
     padding: 12px;
-    background: rgb(16 25 24 / 94%);
+    background: rgb(16 25 24 / 78%);
+  }
+
+  .inventory-panel:not(.is-collapsed),
+  .market-panel:not(.is-collapsed),
+  .keepnet-panel:not(.is-collapsed),
+  .journal-panel:not(.is-collapsed),
+  .tackle-panel:not(.is-collapsed),
+  .guide-panel:not(.is-collapsed),
+  .profile-panel:not(.is-collapsed),
+  .settings-panel:not(.is-collapsed) {
+    z-index: 96;
   }
 
   .guide-panel,
@@ -961,14 +972,7 @@ button:disabled {
   }
 
   .actions-panel {
-    position: fixed;
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
-    z-index: 35;
-    width: auto;
-    margin: 0;
-    padding: 8px;
+    display: none;
   }
 
   .action-grid {

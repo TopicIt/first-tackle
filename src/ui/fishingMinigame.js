@@ -29,7 +29,7 @@ export function fishingMinigameMarkup(state) {
   const collapsedPanels = state.ui?.collapsedPanels ?? {};
   const controlsCollapsed = collapsedPanels.fishingControls ? ' is-controls-collapsed' : '';
   const resultCollapsed = collapsedPanels.fishingResult ? ' is-result-collapsed' : '';
-  const hintMode = state.settings?.fishing?.biteHints ?? 'beginner';
+  const hintMode = state.settings?.fishing?.biteHints ?? 'subtle';
   const contextAction = getFishingContextAction(state);
   const floatStyle = state.tackle?.equipped?.float ?? 'none';
   const activeFishing = isActiveFishingPhase(minigame.phase);
@@ -54,7 +54,7 @@ export function fishingMinigameMarkup(state) {
             <h2>${t(methodKeys[minigame.method])}</h2>
             <p class="fishing-minigame__status">${t(minigame.statusKey)}</p>
           </div>
-          <button class="scene-close" data-action="minigame:back" type="button">${t('backToPond')}</button>
+          <button class="fishing-minigame__close" data-action="minigame:back" type="button" aria-label="${t('close')}" title="${t('close')}">&times;</button>
         </header>
 
         <div class="fishing-minigame__layout${controlsCollapsed}${resultCollapsed}">
@@ -68,6 +68,7 @@ export function fishingMinigameMarkup(state) {
             <div class="fishing-minigame__controls-body">
             <section class="fishing-panel fishing-panel__quick-nav">
               <button data-action="panel:toggle:tackle" type="button">${t('tackle')}</button>
+              <button data-action="panel:toggle:keepnet" type="button">${t('keepnet')}</button>
               <button data-action="panel:toggle:guide" type="button">${t('fishermanGuide')}</button>
             </section>
 
@@ -115,6 +116,7 @@ export function fishingMinigameMarkup(state) {
                 <span class="fishing-figure__shadow"></span>
                 <span class="fishing-figure__body"></span>
                 <span class="fishing-figure__head"></span>
+                <span class="fishing-figure__hat"></span>
                 <span class="fishing-figure__arm"></span>
                 <span class="fishing-figure__rod"></span>
                 <span class="fishing-figure__line"></span>
@@ -150,6 +152,7 @@ export function fishingMinigameMarkup(state) {
                   : ''}
                 <span>${t('spaceAction')}</span>
               </div>
+              <button class="fishing-keepnet-shortcut" data-action="panel:toggle:keepnet" type="button">${t('keepnet')}</button>
             </div>
           </section>
 
@@ -258,7 +261,6 @@ function catchResultCardMarkup(state, fish, result, minigame, collapsedPanels) {
         <button data-action="minigame:release" type="button">${t('release')}</button>
         <button data-action="minigame:keep" type="button">${t('close')}</button>
         <button data-action="minigame:castAgain" type="button">${t('castAgain')}</button>
-        <button data-action="minigame:back" type="button">${t('backToPond')}</button>
       </div>
       </div>
     </section>
@@ -282,7 +284,6 @@ function sidePanelMarkup(state, minigame, collapsedPanels) {
           </div>
           <div class="fishing-result__actions">
             <button data-action="minigame:castAgain" type="button">${t('castAgain')}</button>
-            <button data-action="minigame:back" type="button">${t('backToPond')}</button>
           </div>
         ` : `
           <div class="fishing-side-scroll">

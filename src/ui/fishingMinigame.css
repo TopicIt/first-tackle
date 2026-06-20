@@ -40,11 +40,11 @@
 .fishing-minigame__header,
 .fishing-panel,
 .fishing-result {
-  border: 1px solid rgb(255 255 255 / 18%);
+  border: 1px solid rgb(255 255 255 / 12%);
   border-radius: 8px;
-  background: rgb(17 26 28 / 82%);
-  box-shadow: 0 18px 52px rgb(0 0 0 / 28%);
-  backdrop-filter: blur(12px);
+  background: rgb(17 26 28 / 56%);
+  box-shadow: 0 12px 34px rgb(0 0 0 / 18%);
+  backdrop-filter: blur(9px);
 }
 
 .fishing-minigame__header {
@@ -52,7 +52,26 @@
   align-items: start;
   justify-content: space-between;
   gap: 18px;
-  padding: 10px 14px;
+  background: rgb(9 17 18 / 42%);
+  padding: 10px 54px 10px 14px;
+}
+
+.fishing-minigame__close {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 999px;
+  background: rgb(6 12 11 / 36%);
+  color: #f7fff8;
+  font-size: 1.22rem;
+  line-height: 1;
+  backdrop-filter: blur(8px);
 }
 
 .fishing-minigame__header h2 {
@@ -328,6 +347,7 @@
 .fishing-figure__shadow,
 .fishing-figure__body,
 .fishing-figure__head,
+.fishing-figure__hat,
 .fishing-figure__arm,
 .fishing-figure__rod,
 .fishing-figure__line {
@@ -337,7 +357,7 @@
 
 .fishing-figure__shadow {
   left: 5%;
-  bottom: 8%;
+  bottom: 5%;
   width: 150px;
   height: 34px;
   border-radius: 50%;
@@ -347,7 +367,7 @@
 
 .fishing-figure__body {
   left: 9%;
-  bottom: 12%;
+  bottom: 9%;
   width: 42px;
   height: 118px;
   border-radius: 24px 24px 12px 12px;
@@ -359,7 +379,7 @@
 
 .fishing-figure__head {
   left: 8.6%;
-  bottom: calc(12% + 112px);
+  bottom: calc(9% + 112px);
   width: 38px;
   height: 38px;
   border-radius: 50%;
@@ -368,9 +388,43 @@
   animation: fisherIdle 5s ease-in-out infinite;
 }
 
+.fishing-figure__hat {
+  left: 7.9%;
+  bottom: calc(9% + 141px);
+  width: 50px;
+  height: 15px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #e5bf61, #9a6b2d);
+  box-shadow: 0 5px 12px rgb(0 0 0 / 24%);
+  transform: rotateZ(-6deg);
+  animation: fisherIdle 5s ease-in-out infinite;
+}
+
+.fishing-figure__hat::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: -13px;
+  width: 24px;
+  height: 18px;
+  border-radius: 14px 14px 7px 7px;
+  background: linear-gradient(145deg, #f1d077, #b87d33);
+}
+
+.fishing-figure__hat::after {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: -1px;
+  width: 34px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgb(111 68 28 / 62%);
+}
+
 .fishing-figure__arm {
   left: calc(9% + 30px);
-  bottom: calc(12% + 70px);
+  bottom: calc(9% + 70px);
   width: 72px;
   height: 12px;
   border-radius: 999px;
@@ -381,7 +435,7 @@
 
 .fishing-figure__rod {
   left: calc(9% + 80px);
-  bottom: calc(12% + 92px);
+  bottom: calc(9% + 92px);
   width: 260px;
   height: 5px;
   border-radius: 999px;
@@ -392,7 +446,7 @@
 
 .fishing-figure__line {
   left: calc(9% + 316px);
-  bottom: calc(12% + 202px);
+  bottom: calc(9% + 202px);
   width: 2px;
   height: calc(var(--bobber-y, 52%) - 8%);
   background: linear-gradient(rgb(255 255 255 / 50%), rgb(255 255 255 / 12%));
@@ -410,7 +464,7 @@
 
 .fishing-figure--handline .fishing-figure__line {
   left: calc(9% + 94px);
-  bottom: calc(12% + 83px);
+  bottom: calc(9% + 83px);
   height: calc(var(--bobber-y, 52%) + 16%);
   transform: rotate(9deg);
 }
@@ -673,7 +727,7 @@
 }
 
 .fishing-stage__bobber--hooked {
-  animation: bobberHooked 0.28s linear infinite;
+  animation: bobberHooked 0.28s linear 3 forwards;
 }
 
 .fishing-stage__bobber--missed,
@@ -871,6 +925,22 @@
   padding: 4px 9px;
 }
 
+.fishing-keepnet-shortcut {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  z-index: 9;
+  min-height: 34px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 999px;
+  background: rgb(8 17 18 / 50%);
+  color: #eff8ef;
+  font-size: 0.76rem;
+  font-weight: 850;
+  padding: 7px 11px;
+  backdrop-filter: blur(8px);
+}
+
 @keyframes strikePulse {
   from { transform: scale(1); }
   to { transform: scale(1.03); }
@@ -1045,9 +1115,9 @@
     z-index: 12;
     align-items: center;
     border-radius: 999px;
-    background: rgb(8 16 17 / 58%);
+    background: rgb(8 16 17 / 40%);
     box-shadow: none;
-    padding: 6px 8px 6px 12px;
+    padding: 6px 44px 6px 12px;
   }
 
   .fishing-minigame__header .section-label,
@@ -1064,11 +1134,12 @@
     white-space: nowrap;
   }
 
-  .scene-close {
+  .fishing-minigame__close {
+    right: 8px;
+    top: 6px;
+    width: 30px;
     min-height: 30px;
-    border-radius: 999px;
-    font-size: 0.72rem;
-    padding: 5px 9px;
+    font-size: 1.05rem;
   }
 
   .fishing-minigame__layout,
@@ -1123,7 +1194,7 @@
 
   .fishing-panel {
     border-radius: 12px;
-    background: rgb(12 22 23 / 72%);
+    background: rgb(12 22 23 / 50%);
     box-shadow: none;
     padding: 8px;
   }
@@ -1157,6 +1228,15 @@
 
   .fishing-panel__quick-nav {
     grid-template-columns: 1fr;
+  }
+
+  .fishing-keepnet-shortcut {
+    top: 54px;
+    right: 8px;
+    min-height: 28px;
+    background: rgb(8 17 18 / 42%);
+    font-size: 0.68rem;
+    padding: 5px 9px;
   }
 
   .cast-spot {
@@ -1240,7 +1320,7 @@
     max-height: 82dvh;
     overflow: auto;
     border-radius: 18px;
-    background: rgb(15 25 24 / 96%);
+    background: rgb(15 25 24 / 88%);
     padding: 12px;
     transform: translate(-50%, -50%);
   }

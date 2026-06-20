@@ -147,7 +147,7 @@ export function createInitialState() {
         musicVolume: 0.45,
       },
       fishing: {
-        biteHints: 'beginner',
+        biteHints: 'subtle',
       },
     },
     audioQueue: [],
