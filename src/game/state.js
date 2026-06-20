@@ -75,6 +75,13 @@ export const shopItems = [
     description: 'Reach farther waters',
     type: 'tool',
   },
+  {
+    id: 'smoker',
+    label: 'Smoker',
+    price: 165,
+    description: 'Smoke fish for better market value',
+    type: 'tool',
+  },
 ];
 
 export function createInitialState() {
@@ -83,14 +90,15 @@ export function createInitialState() {
     inventory: {
       thread: 1,
       simpleHook: 1,
-      worms: 0,
+      worms: 2,
       larvae: 0,
-      primitiveTackle: 0,
+      primitiveTackle: 1,
       stickRod: 0,
       cleanedFish: 0,
       saltedFish: 0,
       dryingFish: 0,
       taranka: 0,
+      smokedFish: 0,
       salt: 0,
       hooksPack: 0,
       rotan: 0,
@@ -103,6 +111,7 @@ export function createInitialState() {
       canadian_catfish: 0,
     },
     purchased: {},
+    hasSmoker: false,
     travel: {
       farWatersUnlocked: false,
       selectedWater: 'canal',
@@ -122,6 +131,13 @@ export function createInitialState() {
       z: 1.5,
     },
     fishBasket: [],
+    progress: {
+      firstTackleReady: true,
+      firstCatchDone: false,
+    },
+    stats: {
+      totalFishCaught: 0,
+    },
     catchJournal: {},
     trophies: [],
     tackle: {

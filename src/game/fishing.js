@@ -1,5 +1,5 @@
 import { addItem, countItem, hasItem, removeItem } from './inventory.js';
-import { advanceFishStatus, ensureFishState, takeFreshFish } from './fishInventory.js';
+import { advanceFishStatus, countFishByStatus, ensureFishState, takeFreshFish } from './fishInventory.js';
 import { advanceMarketDay, freshFishAtRisk } from './market.js';
 import { ownTackleComponent } from './tackle.js';
 import { advanceTime, getTimePhase, resetToMorning } from './time.js';
@@ -8,28 +8,11 @@ import { nowSeconds, pushFeedback, pushLog, queueSound } from './state.js';
 const WORM_SEARCH_COOLDOWN = 8;
 
 export function canCraftPrimitiveTackle(state) {
-  return (
-    !hasItem(state, 'primitiveTackle') &&
-    hasItem(state, 'thread') &&
-    hasItem(state, 'simpleHook')
-  );
+  return false;
 }
 
 export function craftPrimitiveTackle(state) {
-  if (!canCraftPrimitiveTackle(state)) {
-    pushLog(state, 'logNeedTackleParts');
-    return;
-  }
-
-  removeItem(state, 'thread');
-  removeItem(state, 'simpleHook');
-  addItem(state, 'primitiveTackle');
-  ownTackleComponent(state, 'grandma_thread');
-  ownTackleComponent(state, 'old_dull_hook');
-  ownTackleComponent(state, 'small_stone');
-  pushFeedback(state, 'feedbackTackle', {}, 'item');
-  pushLog(state, 'logCraftedTackle');
-  queueSound(state, 'craft_item');
+  pushLog(state, 'logStarterTackleReady');
 }
 
 export function canCraftStickRod(state) {
@@ -169,7 +152,12 @@ export function cleanFish(state) {
 }
 
 export function saltFish(state) {
-  if (!hasItem(state, 'cleanedFish')) {
+  const eligibleCleanedFish = getTarankaEligibleCount(state, 'cleaned');
+  if (eligibleCleanedFish === 0) {
+    if (hasItem(state, 'cleanedFish')) {
+      pushLog(state, 'logTarankaFishTooLarge');
+      return;
+    }
     pushLog(state, 'logNeedCleanedFish');
     return;
   }
@@ -179,9 +167,8 @@ export function saltFish(state) {
     return;
   }
 
-  removeItem(state, 'cleanedFish');
   removeItem(state, 'salt');
-  advanceFishStatus(state, 'cleaned', 'salted');
+  advanceFishStatus(state, 'cleaned', 'salted', 1, isTarankaEligible);
   pushFeedback(state, 'feedbackSaltedFish', {}, 'fish');
   pushLog(state, 'logSaltedFish');
 }
@@ -200,7 +187,7 @@ export function hangFishToDry(state) {
 
 export function waitUntilTomorrow(state) {
   ensureFishState(state);
-  const drying = countItem(state, 'dryingFish');
+  const drying = countFishByStatus(state, 'drying');
   const hasFreshRisk = freshFishAtRisk(state);
   state.timers.wormSearchReadyAt = 0;
   state.day += 1;
@@ -212,13 +199,46 @@ export function waitUntilTomorrow(state) {
   }
 
   if (drying > 0) {
-    advanceFishStatus(state, 'drying', 'taranka', drying);
-    pushFeedback(state, 'feedbackTaranka', { count: drying }, 'fish');
-    pushLog(state, 'logDriedFish', { count: drying });
+    advanceFishStatus(state, 'drying', 'ready_taranka', drying);
+    pushFeedback(state, 'feedbackTarankaReady', { count: drying }, 'fish');
+    pushLog(state, 'logDriedFishReady', { count: drying });
     return;
   }
 
   pushLog(state, 'logMorningAgain');
+}
+
+export function collectTaranka(state) {
+  const ready = countFishByStatus(state, 'ready_taranka');
+  if (ready === 0) {
+    pushLog(state, 'logNoTarankaReady');
+    return;
+  }
+
+  advanceFishStatus(state, 'ready_taranka', 'taranka', ready);
+  pushFeedback(state, 'feedbackTaranka', { count: ready }, 'fish');
+  pushLog(state, 'logCollectedTaranka', { count: ready });
+  queueSound(state, 'dry_fish');
+}
+
+export function smokeFish(state) {
+  ensureFishState(state);
+  if (!state.hasSmoker) {
+    pushLog(state, 'logNeedSmoker');
+    return;
+  }
+
+  const candidate = (state.fishBasket ?? []).find((entry) => ['cleaned', 'fresh'].includes(entry.status));
+  if (!candidate) {
+    pushLog(state, 'logNeedFishToSmoke');
+    return;
+  }
+
+  candidate.status = 'smoked';
+  advanceTime(state, 90);
+  pushFeedback(state, 'feedbackSmokedFish', {}, 'fish');
+  pushLog(state, 'logSmokedFish', { fishKey: candidate.fishId });
+  queueSound(state, 'dry_fish');
 }
 
 function getBaitAmount(method) {
@@ -235,4 +255,12 @@ function getBaitAmount(method) {
 
 function hasAnyBait(state) {
   return hasItem(state, 'worms') || hasItem(state, 'larvae');
+}
+
+function getTarankaEligibleCount(state, status) {
+  return (state.fishBasket ?? []).filter((entry) => entry.status === status && isTarankaEligible(entry)).length;
+}
+
+function isTarankaEligible(entry) {
+  return !['pike', 'canadian_catfish'].includes(entry.fishId) && entry.weightGrams <= 260;
 }

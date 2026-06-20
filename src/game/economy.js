@@ -33,10 +33,27 @@ export function sellTaranka(state) {
     return;
   }
 
-  const earned = soldEntries.reduce((total, entry) => total + Math.max(14, Math.round((entry.value + 5) * 1.08)), 0);
+  const earned = soldEntries.reduce((total, entry) => total + getFishSaleValue(state, entry), 0);
   state.money += earned;
   pushFeedback(state, 'feedbackCoins', { coins: earned }, 'coins');
   pushLog(state, 'logSoldTaranka', { count: amount, coins: earned });
+  queueSound(state, 'coins');
+  queueSound(state, 'sell_item');
+}
+
+export function sellSmokedFish(state) {
+  ensureMarketState(state);
+  const soldEntries = sellFishByStatus(state, 'smoked');
+  const amount = soldEntries.length;
+  if (amount === 0) {
+    pushLog(state, 'logNoSmokedFish');
+    return;
+  }
+
+  const earned = soldEntries.reduce((total, entry) => total + getFishSaleValue(state, entry), 0);
+  state.money += earned;
+  pushFeedback(state, 'feedbackCoins', { coins: earned }, 'coins');
+  pushLog(state, 'logSoldSmokedFish', { count: amount, coins: earned });
   queueSound(state, 'coins');
   queueSound(state, 'sell_item');
 }
@@ -47,7 +64,8 @@ export function buyShopItem(state, itemId) {
     return;
   }
 
-  if (item.type !== 'consumable' && state.purchased[itemId]) {
+  const alreadyOwned = itemId === 'smoker' ? state.hasSmoker : state.purchased[itemId];
+  if (item.type !== 'consumable' && alreadyOwned) {
     pushLog(state, 'logAlreadyOwned', { itemKey: getShopItemKey(itemId) });
     return;
   }
@@ -67,6 +85,9 @@ export function buyShopItem(state, itemId) {
   }
 
   state.purchased[itemId] = true;
+  if (itemId === 'smoker') {
+    state.hasSmoker = true;
+  }
   if (itemId === 'bicycle') {
     state.travel ??= {};
     state.travel.farWatersUnlocked = true;
@@ -98,6 +119,7 @@ function getShopItemKey(itemId) {
     sharperHook: 'componentSharperHook',
     properRod: 'componentProperRod',
     bicycle: 'itemBicycle',
+    smoker: 'itemSmoker',
     salt: 'itemSalt',
     hooksPack: 'itemHooksPack',
   };

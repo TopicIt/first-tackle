@@ -10,6 +10,7 @@ export const itemLabels = {
   saltedFish: 'itemSaltedFish',
   dryingFish: 'itemDryingFish',
   taranka: 'itemTaranka',
+  smokedFish: 'itemSmokedFish',
   salt: 'itemSalt',
   hooksPack: 'itemHooksPack',
 };

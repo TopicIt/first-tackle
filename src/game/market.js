@@ -11,6 +11,7 @@ const trendCycle = ['rising', 'stable', 'falling', 'stable'];
 export function ensureMarketState(state) {
   state.market ??= { day: state.day ?? 1, prices: {} };
   state.market.prices ??= {};
+  state.hasSmoker = Boolean(state.hasSmoker ?? state.purchased?.smoker);
   for (const fish of fishData) {
     state.market.prices[fish.id] ??= { multiplier: 1, trend: trendCycle[fish.id.length % trendCycle.length] };
   }
@@ -47,12 +48,13 @@ export function getFishSaleValue(state, entry) {
   const fish = getFishData(entry.fishId);
   const baseValue = entry.value || fish?.basePrice || 1;
   const market = getMarketPriceInfo(state, entry.fishId);
-  return Math.max(1, Math.round(baseValue * market.multiplier * getFreshnessMultiplier(state, entry)));
+  const processedMultiplier = getProcessedMultiplier(entry);
+  return Math.max(1, Math.round(baseValue * market.multiplier * getFreshnessMultiplier(state, entry) * processedMultiplier));
 }
 
 export function getFreshnessInfo(state, entry) {
   const age = Math.max(0, (state.day ?? 1) - (entry.caughtAtDay ?? state.day ?? 1));
-  if (entry.status === 'taranka') {
+  if (entry.status === 'taranka' || entry.status === 'smoked') {
     return { key: 'freshnessPreserved', multiplier: 1, age };
   }
   if (age <= 1) {
@@ -73,6 +75,24 @@ export function freshFishAtRisk(state) {
 
 function getFreshnessMultiplier(state, entry) {
   return getFreshnessInfo(state, entry).multiplier;
+}
+
+function getProcessedMultiplier(entry) {
+  if (entry.status === 'taranka') {
+    if (entry.weightGrams <= 70) return 3;
+    if (entry.weightGrams <= 160) return 2.15;
+    return 1.55;
+  }
+
+  if (entry.status === 'smoked') {
+    if (entry.fishId === 'canadian_catfish') return 2.5;
+    if (entry.fishId === 'pike') return 2.35;
+    if (entry.fishId === 'crucian' && entry.weightGrams >= 150) return 2.1;
+    if (entry.weightGrams >= 180) return 2;
+    return 1.8;
+  }
+
+  return 1;
 }
 
 function nextTrend(fishId, day) {

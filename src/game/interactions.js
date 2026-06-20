@@ -1,12 +1,12 @@
-import { buyShopItem, sellAllFish, sellTaranka } from './economy.js';
+import { buyShopItem, sellAllFish, sellSmokedFish, sellTaranka } from './economy.js';
 import {
   countFishByStatus,
   getFishEntries,
 } from './fishInventory.js';
 import {
-  canCraftPrimitiveTackle,
   canCraftStickRod,
   cleanFish,
+  collectTaranka,
   craftPrimitiveTackle,
   craftStickRod,
   gatherGooseFeather,
@@ -15,6 +15,7 @@ import {
   getWormSearchCooldown,
   hangFishToDry,
   saltFish,
+  smokeFish,
   searchForWorms,
   waitUntilTomorrow,
 } from './fishing.js';
@@ -198,6 +199,20 @@ export function runAction(actionId, state, context = idleContext) {
     hangFishToDry(state);
   }
 
+  if (actionId === 'collect:taranka') {
+    if (context.zoneId !== 'house') {
+      return;
+    }
+    collectTaranka(state);
+  }
+
+  if (actionId === 'smoke:fish') {
+    if (context.zoneId !== 'house') {
+      return;
+    }
+    smokeFish(state);
+  }
+
   if (actionId === 'wait:tomorrow') {
     if (context.zoneId !== 'house') {
       return;
@@ -217,6 +232,13 @@ export function runAction(actionId, state, context = idleContext) {
       return;
     }
     sellTaranka(state);
+  }
+
+  if (actionId === 'sell:smoked') {
+    if (context.zoneId !== 'market') {
+      return;
+    }
+    sellSmokedFish(state);
   }
 
   if (actionId.startsWith('buy:')) {
@@ -273,11 +295,6 @@ function getSceneActions(state, zoneId) {
   if (zoneId === 'house') {
     return [
       {
-        id: 'craft:tackle',
-        label: t('craftPrimitiveTackle'),
-        disabled: !canCraftPrimitiveTackle(state),
-      },
-      {
         id: 'craft:stickRod',
         label: t('craftStickRod'),
         disabled: !canCraftStickRod(state),
@@ -304,6 +321,16 @@ function getSceneActions(state, zoneId) {
         id: 'dry:fish',
         label: t('hangFish'),
         disabled: !hasItem(state, 'saltedFish'),
+      },
+      {
+        id: 'collect:taranka',
+        label: t('collectTaranka'),
+        disabled: countFishByStatus(state, 'ready_taranka') === 0,
+      },
+      {
+        id: 'smoke:fish',
+        label: t('smokeFish'),
+        disabled: !state.hasSmoker || (countFishByStatus(state, 'fresh') === 0 && countFishByStatus(state, 'cleaned') === 0),
       },
       {
         id: 'wait:tomorrow',

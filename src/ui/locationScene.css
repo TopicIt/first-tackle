@@ -248,6 +248,18 @@
   padding: 14px;
 }
 
+.scene-market {
+  min-width: 0;
+}
+
+.scene-market .market-card {
+  grid-template-columns: 54px 1fr auto;
+}
+
+.scene-market .market-card__reason {
+  grid-column: 2 / -1;
+}
+
 .travel-preview {
   grid-column: 1 / -1;
   border: 1px solid rgb(255 255 255 / 12%);

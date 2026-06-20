@@ -68,6 +68,7 @@ function mergeState(base, saved) {
       ...base.purchased,
       ...(saved.purchased ?? {}),
     },
+    hasSmoker: Boolean(saved.hasSmoker ?? saved.purchased?.smoker ?? base.hasSmoker),
     travel: {
       ...base.travel,
       ...(saved.travel ?? {}),
@@ -84,6 +85,20 @@ function mergeState(base, saved) {
       ...(saved.player ?? {}),
     },
     fishBasket: Array.isArray(saved.fishBasket) ? saved.fishBasket : base.fishBasket,
+    progress: {
+      ...base.progress,
+      ...(saved.progress ?? {}),
+      firstTackleReady: true,
+      firstCatchDone: Boolean(saved.progress?.firstCatchDone ?? saved.stats?.totalFishCaught > 0),
+    },
+    stats: {
+      ...base.stats,
+      ...(saved.stats ?? {}),
+      totalFishCaught: Math.max(
+        saved.stats?.totalFishCaught ?? 0,
+        saved.progress?.firstCatchDone ? 1 : 0,
+      ),
+    },
     catchJournal: {
       ...base.catchJournal,
       ...(saved.catchJournal ?? {}),

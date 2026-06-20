@@ -1,5 +1,5 @@
 import './locationScene.css';
-import { logMarkup } from './panels.js';
+import { logMarkup, marketMarkup } from './panels.js';
 import { fishingMinigameMarkup } from './fishingMinigame.js';
 import { getFishData } from '../game/fishData.js';
 import { t, translateEntry } from '../i18n/i18n.js';
@@ -70,6 +70,13 @@ export function locationSceneMarkup(state, context) {
               ${context.sceneActions.map(actionButtonMarkup).join('')}
             </div>
           </section>
+
+          ${sceneId === 'market' ? `
+            <section class="scene-actions scene-market">
+              <p class="section-label">${t('market')}</p>
+              ${marketMarkup(state)}
+            </section>
+          ` : ''}
 
           ${fishResultMarkup(state)}
 

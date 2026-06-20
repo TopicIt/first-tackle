@@ -50,7 +50,7 @@ export function createFishingMinigameState(method) {
 
 export function openFishingMinigame(state, method) {
   if (!hasItem(state, 'primitiveTackle')) {
-    pushLog(state, 'logCraftFirstTackleAtHome');
+    pushLog(state, 'logStarterTackleReady');
     return;
   }
 
@@ -216,11 +216,13 @@ export function strikeLine(state, nowMs) {
     return;
   }
 
+  const tutorialCatchActive = !state.progress?.firstCatchDone;
+
   if (minigame.phase !== 'strike_window') {
     minigame.statusKey = 'fishingTooEarly';
     minigame.result = { outcome: 'too_early' };
     minigame.bobberState = 'missed';
-    if (minigame.fishCandidateId && Math.random() < 0.32) {
+    if (!tutorialCatchActive && minigame.fishCandidateId && Math.random() < 0.32) {
       resolveMinigameResult(state, { outcome: 'escaped', statusKey: 'fishingScaredFish', sound: 'fish_escape' });
     } else {
       minigame.phase = 'waiting';
@@ -229,19 +231,20 @@ export function strikeLine(state, nowMs) {
     }
     return;
   }
-
   const fishProfile = getBiteProfile(minigame.fishCandidateId);
   const timingCenter = (minigame.strikeWindowStartAt + minigame.strikeWindowEndAt) / 2;
   const timingSpread = Math.max(1, (minigame.strikeWindowEndAt - minigame.strikeWindowStartAt) / 2);
   const reactionQuality = Math.max(0, 1 - Math.abs(nowMs - timingCenter) / timingSpread);
   const tackleBonus = getTackleBonus(state, minigame.method);
   const baitBonus = getBaitSuitability(minigame.fishCandidateId, minigame.selectedBait);
-  const successChance = clamp(0.2 + reactionQuality * 0.38 + tackleBonus + baitBonus * 0.16 - fishProfile.difficulty * 0.28, 0.08, 0.95);
+  const successChance = tutorialCatchActive
+    ? 1
+    : clamp(0.2 + reactionQuality * 0.38 + tackleBonus + baitBonus * 0.16 - fishProfile.difficulty * 0.28, 0.08, 0.95);
   const roll = Math.random();
 
   queueSound(state, 'strike');
 
-  if (['pike', 'canadian_catfish'].includes(minigame.fishCandidateId) && getTackleEffects(state).breakPenalty > 0 && roll < 0.42) {
+  if (!tutorialCatchActive && ['pike', 'canadian_catfish'].includes(minigame.fishCandidateId) && getTackleEffects(state).breakPenalty > 0 && roll < 0.42) {
     resolveMinigameResult(state, { outcome: 'line_broke', statusKey: 'fishingLineBroke', sound: 'line_break' });
     return;
   }
@@ -249,7 +252,7 @@ export function strikeLine(state, nowMs) {
   if (roll <= successChance) {
     const catchResult = rollFishById(minigame.fishCandidateId);
     catchResult.value = getFreshFishValue(catchResult);
-    if (shouldBreakHomemadeRod(state, catchResult)) {
+    if (!tutorialCatchActive && shouldBreakHomemadeRod(state, catchResult)) {
       removeItem(state, 'stickRod');
       state.tackle.owned.simple_stick_rod = false;
       if (state.tackle.equipped.rod === 'simple_stick_rod') {
@@ -275,7 +278,7 @@ export function strikeLine(state, nowMs) {
     return;
   }
 
-  if (minigame.method === 'handline' && roll > 0.82) {
+  if (!tutorialCatchActive && minigame.method === 'handline' && roll > 0.82) {
     resolveMinigameResult(state, { outcome: 'line_broke', statusKey: 'fishingLineBroke', sound: 'line_break' });
     return;
   }
@@ -581,7 +584,11 @@ function advancePatternStep(state, minigame, nowMs) {
     minigame.bobberState = 'strike_window';
     minigame.statusKey = getStrikeWindowStatusKey(state);
     minigame.strikeWindowStartAt = nowMs;
-    minigame.strikeWindowEndAt = nowMs + randomBetween(...profile.hookWindowMs);
+    minigame.strikeWindowEndAt = nowMs + randomBetween(...(
+      state.progress?.firstCatchDone
+        ? profile.hookWindowMs
+        : [Math.max(profile.hookWindowMs[0], 1200), Math.max(profile.hookWindowMs[1], 2200)]
+    ));
     queueSound(state, 'strong_bite');
     queueSound(state, 'line_tension');
     return;
@@ -678,6 +685,9 @@ function resolveMinigameResult(state, result) {
   queueSound(state, result.sound);
 
   if (result.outcome === 'caught' && result.catchResult) {
+    if ((state.stats?.totalFishCaught ?? 0) === 1) {
+      pushLog(state, 'logFirstCatch');
+    }
     pushFeedback(state, getFishData(result.catchResult.id).nameKey, {}, 'fish');
     pushLog(state, 'logCaughtFish', { fishKey: getFishData(result.catchResult.id).nameKey });
     return;
@@ -765,6 +775,10 @@ function consumeBait(state, baitId) {
 }
 
 function chooseFishCandidate(state, minigame) {
+  if (!state.progress?.firstCatchDone) {
+    return Math.random() < 0.65 ? 'rotan' : 'crucian';
+  }
+
   const spot = getCastSpot(minigame.selectedSpot);
   const weights = Object.entries(biteProfiles).map(([fishId, profile]) => ({
     fishId,

@@ -504,6 +504,12 @@ button:disabled {
   font-size: 0.78rem;
 }
 
+.market-card__reason {
+  grid-column: 2 / -1;
+  color: #ffe28a;
+  font-size: 0.74rem;
+}
+
 .market-card button {
   min-height: 34px;
   background: #f3c45f;
@@ -884,6 +890,7 @@ button:disabled {
     inset: 0;
     z-index: -1;
     background: rgb(6 12 11 / 42%);
+    pointer-events: none;
   }
 
   .mobile-menu__list,

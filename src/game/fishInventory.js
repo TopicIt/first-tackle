@@ -2,7 +2,7 @@ import { fishIds } from './inventory.js';
 import { getFishData } from './fishData.js';
 import { pushFeedback, pushLog } from './state.js';
 
-const trackedStatuses = ['fresh', 'cleaned', 'salted', 'drying', 'taranka', 'live_bait'];
+const trackedStatuses = ['fresh', 'cleaned', 'salted', 'drying', 'ready_taranka', 'taranka', 'smoked', 'live_bait'];
 const liveBaitSpecies = ['bleak', 'roach', 'rudd'];
 
 export function createFishEntry(catchResult, caughtAtDay, context = {}) {
@@ -25,11 +25,20 @@ export function ensureFishState(state) {
   state.catchJournal ??= {};
   state.trophies ??= [];
   state.day ??= 1;
+  state.progress ??= {};
+  state.stats ??= {};
+  state.progress.firstTackleReady = true;
+  state.progress.firstCatchDone = Boolean(state.progress.firstCatchDone ?? state.stats.totalFishCaught > 0);
+  state.stats.totalFishCaught ??= 0;
   if (state.fishBasket.length === 0) {
     migrateLegacyFishInventory(state);
   }
   state.fishBasket = state.fishBasket.map((entry) => normalizeFishEntry(entry, state.day));
   rebuildJournalFromBasket(state);
+  state.stats.totalFishCaught = state.fishBasket.length;
+  if (state.stats.totalFishCaught > 0) {
+    state.progress.firstCatchDone = true;
+  }
   syncInventoryFromFishBasket(state);
 }
 
@@ -37,6 +46,11 @@ export function addCaughtFish(state, catchResult, context = {}) {
   ensureFishState(state);
   const entry = createFishEntry(catchResult, state.day, context);
   state.fishBasket.push(entry);
+  state.stats.totalFishCaught = (state.stats.totalFishCaught ?? 0) + 1;
+  if (!state.progress.firstCatchDone) {
+    state.progress.firstCatchDone = true;
+    pushFeedback(state, 'feedbackFirstCatch', {}, 'trophy');
+  }
   updateCatchJournal(state, entry);
   syncInventoryFromFishBasket(state);
   return entry;
@@ -71,12 +85,12 @@ export function takeFreshFish(state) {
   return entry;
 }
 
-export function advanceFishStatus(state, fromStatus, toStatus, amount = 1) {
+export function advanceFishStatus(state, fromStatus, toStatus, amount = 1, predicate = null) {
   ensureFishState(state);
   const moved = [];
 
   for (const entry of state.fishBasket) {
-    if (entry.status === fromStatus) {
+    if (entry.status === fromStatus && (!predicate || predicate(entry))) {
       entry.status = toStatus;
       moved.push(entry);
       if (moved.length >= amount) {
@@ -226,6 +240,7 @@ function getInventoryKeyForStatus(status) {
     salted: 'saltedFish',
     drying: 'dryingFish',
     taranka: 'taranka',
+    smoked: 'smokedFish',
   };
 
   return inventoryKeys[status] ?? null;
@@ -244,6 +259,7 @@ function migrateLegacyFishInventory(state) {
     salted: 'saltedFish',
     drying: 'dryingFish',
     taranka: 'taranka',
+    smoked: 'smokedFish',
   })) {
     const count = state.inventory?.[inventoryKey] ?? 0;
     for (let index = 0; index < count; index += 1) {
