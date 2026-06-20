@@ -11,8 +11,8 @@ export const shopItems = [
   {
     id: 'betterLine',
     label: 'Better line',
-    price: 24,
-    description: 'Future upgrade',
+    price: 48,
+    description: 'Reaches farther shadows and protects against line breaks',
     type: 'tool',
   },
   {
@@ -39,6 +39,13 @@ export const shopItems = [
     type: 'consumable',
     itemId: 'hooksPack',
     amount: 5,
+  },
+  {
+    id: 'bicycle',
+    label: 'Bicycle',
+    price: 150,
+    description: 'Reach farther waters',
+    type: 'tool',
   },
 ];
 
@@ -67,6 +74,11 @@ export function createInitialState() {
       pike: 0,
     },
     purchased: {},
+    travel: {
+      farWatersUnlocked: false,
+      selectedWater: 'canal',
+    },
+    market: createInitialMarketState(),
     timers: {
       wormSearchReadyAt: 0,
     },
@@ -98,15 +110,32 @@ export function createInitialState() {
       collapsedPanels: {
         status: false,
         inventory: false,
+        shop: false,
+        fishPrices: false,
         keepnet: false,
         journal: false,
-        fishingControls: false,
-        fishingResult: false,
+        fishingControls: true,
+        fishingResult: true,
       },
       expandedKeepnetSpecies: {},
     },
     feedback: [],
     log: [],
+  };
+}
+
+export function createInitialMarketState() {
+  return {
+    day: 1,
+    prices: {
+      rotan: { multiplier: 1, trend: 'stable' },
+      crucian: { multiplier: 1, trend: 'rising' },
+      bleak: { multiplier: 1, trend: 'stable' },
+      roach: { multiplier: 1, trend: 'falling' },
+      rudd: { multiplier: 1, trend: 'rising' },
+      loach: { multiplier: 1.08, trend: 'stable' },
+      pike: { multiplier: 1.12, trend: 'rising' },
+    },
   };
 }
 

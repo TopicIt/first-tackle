@@ -31,11 +31,16 @@ export function createFishingMinigameState(method) {
     strikeWindowStartAt: 0,
     strikeWindowEndAt: 0,
     castTarget: null,
+    castAreaTarget: null,
     consumedBait: null,
     currentCatchEntryId: null,
     idleEventAt: 0,
     ambientEventAt: 0,
     falseActivityCount: 0,
+    biteCycle: 0,
+    biteCycleTotal: 0,
+    biteCyclePattern: [],
+    biteCyclePatternIndex: 0,
   };
 }
 
@@ -56,6 +61,15 @@ export function openFishingMinigame(state, method) {
   }
 
   state.ui.catchResult = null;
+  state.ui.collapsedPanels = {
+    ...(state.ui.collapsedPanels ?? {}),
+    inventory: true,
+    shop: true,
+    fishPrices: true,
+    journal: true,
+    fishingControls: true,
+    fishingResult: true,
+  };
   state.ui.fishingMinigame = createFishingMinigameState(method);
   autoSelectFirstAvailableBait(state, state.ui.fishingMinigame);
   if (method === 'liveBait' && getFishEntries(state, 'live_bait').length > 0) {
@@ -122,6 +136,7 @@ export function selectFishingSpot(state, spotId) {
 
   minigame.selectedSpot = spot.id;
   minigame.selectedZone = spot.zone;
+  minigame.castAreaTarget = spot.target;
   minigame.castTarget = spot.target;
   minigame.statusKey = 'fishingSpotSelected';
   queueSound(state, 'ui_click');
@@ -166,6 +181,11 @@ export function castLine(state, nowMs) {
   minigame.fishCandidateId = chooseFishCandidate(state, minigame);
   minigame.currentPattern = minigame.fishCandidateId ? buildPattern(minigame.fishCandidateId) : [];
   minigame.patternIndex = 0;
+  minigame.biteCycle = 0;
+  minigame.biteCycleTotal = minigame.fishCandidateId ? getBiteCycleTotal(minigame.fishCandidateId) : 0;
+  minigame.biteCyclePattern = [];
+  minigame.biteCyclePatternIndex = 0;
+  minigame.castTarget = rollCastTarget(getCastSpot(minigame.selectedSpot));
   minigame.falseActivityCount = 0;
   minigame.idleEventAt = nowMs + randomBetween(2500, 5200);
   minigame.ambientEventAt = nowMs + randomBetween(5000, 11000);
@@ -181,11 +201,16 @@ export function strikeLine(state, nowMs) {
   }
 
   if (minigame.phase !== 'strike_window') {
-    minigame.phase = 'result';
-    minigame.bobberState = 'missed';
     minigame.statusKey = 'fishingTooEarly';
     minigame.result = { outcome: 'too_early' };
-    queueSound(state, 'fish_escape');
+    minigame.bobberState = 'missed';
+    if (minigame.fishCandidateId && Math.random() < 0.32) {
+      resolveMinigameResult(state, { outcome: 'escaped', statusKey: 'fishingScaredFish', sound: 'fish_escape' });
+    } else {
+      minigame.phase = 'waiting';
+      minigame.nextStepAt = nowMs + randomBetween(900, 1700);
+      queueSound(state, 'water_ripple');
+    }
     return;
   }
 
@@ -306,6 +331,10 @@ export function castAgain(state) {
   minigame.fishCandidateId = null;
   minigame.currentPattern = [];
   minigame.patternIndex = 0;
+  minigame.biteCycle = 0;
+  minigame.biteCycleTotal = 0;
+  minigame.biteCyclePattern = [];
+  minigame.biteCyclePatternIndex = 0;
   minigame.nextStepAt = 0;
   minigame.strikeWindowStartAt = 0;
   minigame.strikeWindowEndAt = 0;
@@ -331,6 +360,10 @@ export function recastLine(state) {
   minigame.fishCandidateId = null;
   minigame.currentPattern = [];
   minigame.patternIndex = 0;
+  minigame.biteCycle = 0;
+  minigame.biteCycleTotal = 0;
+  minigame.biteCyclePattern = [];
+  minigame.biteCyclePatternIndex = 0;
   minigame.nextStepAt = 0;
   minigame.strikeWindowStartAt = 0;
   minigame.strikeWindowEndAt = 0;
@@ -393,8 +426,7 @@ export function tickFishingMinigame(state, nowMs) {
   }
 
   if (minigame.phase === 'strike_window' && nowMs > minigame.strikeWindowEndAt) {
-    resolveMinigameResult(state, { outcome: 'too_late', statusKey: 'fishingTooLate', sound: 'fish_escape' });
-    minigame.bobberState = 'missed';
+    advanceMissedBiteCycle(state, minigame, nowMs);
   }
 }
 
@@ -428,15 +460,76 @@ export function setBiteHintMode(state, mode) {
   queueSound(state, 'ui_click');
 }
 
-function advancePatternStep(state, minigame, nowMs) {
-  const step = minigame.currentPattern[minigame.patternIndex];
-  if (!step) {
-    resolveMinigameResult(state, { outcome: 'no_bite', statusKey: 'fishingNoBite', sound: 'water_ripple' });
-    minigame.bobberState = 'idle';
+export function runFishingContextAction(state, nowMs) {
+  const minigame = state.ui.fishingMinigame;
+  if (!minigame?.open) {
     return;
   }
 
-  minigame.patternIndex += 1;
+  if (canContextCast(minigame)) {
+    castLine(state, nowMs);
+    return;
+  }
+
+  if (minigame.phase === 'strike_window' || minigame.phase === 'animating') {
+    strikeLine(state, nowMs);
+    return;
+  }
+
+  if (minigame.phase === 'waiting' || minigame.phase === 'cast') {
+    recastLine(state);
+  }
+}
+
+export function getFishingContextAction(state) {
+  const minigame = state.ui.fishingMinigame;
+  const hintMode = state.settings?.fishing?.biteHints ?? 'beginner';
+  if (!minigame?.open) {
+    return { labelKey: 'action', enabled: false, variant: 'idle' };
+  }
+
+  if (canContextCast(minigame)) {
+    return { labelKey: 'cast', enabled: Boolean(minigame.selectedBait && minigame.selectedSpot), variant: 'cast' };
+  }
+
+  if (minigame.phase === 'strike_window') {
+    return {
+      labelKey: hintMode === 'off' ? 'action' : 'strike',
+      enabled: true,
+      variant: hintMode === 'beginner' ? 'strike' : 'action',
+    };
+  }
+
+  if (minigame.phase === 'waiting' || minigame.phase === 'cast' || minigame.phase === 'animating') {
+    return { labelKey: minigame.phase === 'animating' ? 'action' : 'recast', enabled: true, variant: 'recast' };
+  }
+
+  if (minigame.phase === 'result') {
+    return { labelKey: 'castAgain', enabled: true, variant: 'cast' };
+  }
+
+  return { labelKey: 'action', enabled: false, variant: 'idle' };
+}
+
+function advancePatternStep(state, minigame, nowMs) {
+  const activePattern = minigame.biteCyclePattern.length ? minigame.biteCyclePattern : minigame.currentPattern;
+  const activeIndex = minigame.biteCyclePattern.length ? minigame.biteCyclePatternIndex : minigame.patternIndex;
+  const step = activePattern[activeIndex];
+  if (!step) {
+    if (minigame.biteCycle < minigame.biteCycleTotal) {
+      startBiteCycle(state, minigame, nowMs);
+    } else {
+      resolveMinigameResult(state, { outcome: 'no_bite', statusKey: 'fishingNoBite', sound: 'water_ripple' });
+      minigame.bobberState = 'idle';
+    }
+    return;
+  }
+
+  if (minigame.biteCyclePattern.length) {
+    minigame.biteCyclePatternIndex += 1;
+  } else {
+    minigame.patternIndex += 1;
+  }
 
   if (step === 'strike_window') {
     const profile = getBiteProfile(minigame.fishCandidateId);
@@ -455,6 +548,35 @@ function advancePatternStep(state, minigame, nowMs) {
   minigame.statusKey = getPatternStatusKey(step);
   minigame.nextStepAt = nowMs + randomBetween(...(stateDurationsMs[step] ?? [500, 800]));
   queueSound(state, step === 'hard_dip' || step === 'sideways_pull' ? 'strong_bite' : 'tiny_nibble');
+}
+
+function canContextCast(minigame) {
+  return ['setup', 'result'].includes(minigame.phase);
+}
+
+function startBiteCycle(state, minigame, nowMs) {
+  minigame.biteCycle += 1;
+  minigame.biteCyclePattern = buildCyclePattern(minigame.fishCandidateId, minigame.biteCycle, minigame.biteCycleTotal);
+  minigame.biteCyclePatternIndex = 0;
+  minigame.phase = 'animating';
+  minigame.bobberState = 'idle';
+  minigame.statusKey = getCycleStatusKey(state, minigame);
+  minigame.nextStepAt = nowMs + randomBetween(550, 1100);
+}
+
+function advanceMissedBiteCycle(state, minigame, nowMs) {
+  minigame.bobberState = 'missed';
+  if (minigame.biteCycle < minigame.biteCycleTotal) {
+    minigame.phase = 'animating';
+    minigame.statusKey = getCycleStatusKey(state, minigame);
+    minigame.biteCyclePattern = ['idle'];
+    minigame.biteCyclePatternIndex = 0;
+    minigame.nextStepAt = nowMs + randomBetween(700, 1500);
+    queueSound(state, 'water_ripple');
+    return;
+  }
+
+  resolveMinigameResult(state, { outcome: 'too_late', statusKey: 'fishingTooLate', sound: 'fish_escape' });
 }
 
 function autoSelectFirstAvailableBait(state, minigame) {
@@ -476,6 +598,7 @@ function autoSelectFirstAvailableSpot(state, minigame) {
   minigame.selectedSpot = available.find((spot) => spot.id === preferredSpot)?.id ?? available[0]?.id ?? null;
   const spot = minigame.selectedSpot ? getCastSpot(minigame.selectedSpot) : null;
   minigame.selectedZone = spot?.zone ?? null;
+  minigame.castAreaTarget = spot?.target ?? null;
   minigame.castTarget = spot?.target ?? null;
 }
 
@@ -642,7 +765,26 @@ function getFishWeight(state, minigame, fishId, profile, spot) {
 
 function buildPattern(fishId) {
   const profile = getBiteProfile(fishId);
-  return profile.patterns[Math.floor(Math.random() * profile.patterns.length)] ?? ['idle', 'strike_window'];
+  return profile.patterns[Math.floor(Math.random() * profile.patterns.length)]?.filter((step) => step !== 'strike_window') ?? ['idle'];
+}
+
+function buildCyclePattern(fishId, cycle, total) {
+  const profiles = {
+    rotan: cycle === total ? ['hard_dip', 'submerged', 'strike_window'] : ['tiny_nibble', 'hard_dip', 'strike_window'],
+    crucian: cycle === total ? ['lift', 'slow_dip', 'strike_window'] : ['tiny_nibble', 'lift', 'strike_window'],
+    bleak: ['tiny_nibble', 'tiny_nibble', 'strike_window'],
+    roach: cycle === total ? ['tiny_nibble', 'idle', 'slow_dip', 'strike_window'] : ['tiny_nibble', 'slow_dip', 'strike_window'],
+    rudd: ['tiny_nibble', 'sideways_pull', 'strike_window'],
+    loach: cycle === total ? ['slow_dip', 'submerged', 'strike_window'] : ['idle', 'slow_dip', 'strike_window'],
+    pike: ['sideways_pull', 'hard_dip', 'strike_window'],
+  };
+  return profiles[fishId] ?? ['tiny_nibble', 'strike_window'];
+}
+
+function getBiteCycleTotal(fishId) {
+  const profile = getBiteProfile(fishId);
+  const [min, max] = profile.biteCycles ?? [2, 3];
+  return min + Math.floor(Math.random() * (max - min + 1));
 }
 
 function getBaitSuitability(fishId, baitId) {
@@ -696,6 +838,17 @@ function getStrikeWindowStatusKey(state) {
   return 'fishingStrikeNow';
 }
 
+function getCycleStatusKey(state, minigame) {
+  const mode = state.settings?.fishing?.biteHints ?? 'beginner';
+  if (mode === 'off') {
+    return 'fishingWatchWater';
+  }
+  if (mode === 'subtle') {
+    return 'fishingMovement';
+  }
+  return 'fishingBiteCycle';
+}
+
 function getWaitingStatusKey(state) {
   const mode = state.settings?.fishing?.biteHints ?? 'beginner';
   if (mode === 'off') {
@@ -709,6 +862,16 @@ function getWaitingStatusKey(state) {
 
 function randomBetween(min, max) {
   return min + Math.random() * (max - min);
+}
+
+function rollCastTarget(spot) {
+  const radius = spot.radius ?? { x: 3, y: 2 };
+  const angle = Math.random() * Math.PI * 2;
+  const distance = Math.sqrt(Math.random());
+  return {
+    x: clamp(spot.target.x + Math.cos(angle) * radius.x * distance, 12, 88),
+    y: clamp(spot.target.y + Math.sin(angle) * radius.y * distance, 24, 76),
+  };
 }
 
 function clamp(value, min, max) {

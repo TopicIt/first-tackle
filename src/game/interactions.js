@@ -82,6 +82,11 @@ export function getInteractionContext(state, playerPosition) {
       variant: 'future',
       disabled: Boolean(state.purchased.simpleFloat),
     });
+    actions.push({
+      id: 'buy:bicycle',
+      label: t('buyBicycle'),
+      disabled: Boolean(state.purchased.bicycle),
+    });
   }
 
   return {
@@ -208,6 +213,16 @@ export function runAction(actionId, state, context = idleContext) {
     }
     buyShopItem(state, actionId.replace('buy:', ''));
   }
+
+  if (actionId === 'travel:farther') {
+    if (!state.purchased.bicycle) {
+      pushTravelLog(state, 'logNeedBicycleForTravel');
+      return;
+    }
+    state.travel ??= {};
+    state.travel.farWatersUnlocked = true;
+    pushTravelLog(state, 'logTravelWatersUnlocked');
+  }
 }
 
 function getCurrentZone(playerPosition) {
@@ -317,6 +332,12 @@ function getSceneActions(state, zoneId) {
         label: t('startLiveBaitFishing'),
         disabled: !hasItem(state, 'stickRod') || getFishEntries(state, 'live_bait').length === 0,
       },
+      {
+        id: 'travel:farther',
+        label: state.purchased.bicycle ? t('travelFarther') : t('buyBicycleToReachWaters'),
+        disabled: !state.purchased.bicycle,
+        variant: state.purchased.bicycle ? 'secondary' : 'future',
+      },
     ];
   }
 
@@ -332,7 +353,7 @@ function getSceneActions(state, zoneId) {
         label: t('sellTaranka'),
         disabled: countItem(state, 'taranka') === 0,
       },
-      ...['shovel', 'betterLine', 'simpleFloat', 'salt', 'hooksPack'].map((itemId) => {
+      ...['shovel', 'betterLine', 'simpleFloat', 'bicycle', 'salt', 'hooksPack'].map((itemId) => {
         const item = state.purchased[itemId];
         return {
           id: `buy:${itemId}`,
@@ -352,10 +373,15 @@ function getBuyLabel(itemId) {
     shovel: 'buyShovel',
     betterLine: 'buyBetterLine',
     simpleFloat: 'buySimpleFloat',
+    bicycle: 'buyBicycle',
     salt: 'buySalt',
     hooksPack: 'buyHooksPack',
   };
   return t(labels[itemId] ?? itemId);
+}
+
+function pushTravelLog(state, key) {
+  state.log = [{ key, params: {}, createdAt: Date.now(), count: 1 }, ...(state.log ?? [])].slice(0, 6);
 }
 
 function summarizeActions(actions) {

@@ -91,9 +91,9 @@ function hotspotStyle(hotspot) {
 
 function getPathPosition(progress) {
   const segments = ROAD_CAR_PATH.length - 1;
-  const scaled = progress * segments;
-  const index = Math.floor(scaled);
-  const nextIndex = (index + 1) % ROAD_CAR_PATH.length;
+  const scaled = Math.min(progress, 0.999) * segments;
+  const index = Math.min(Math.floor(scaled), ROAD_CAR_PATH.length - 2);
+  const nextIndex = index + 1;
   const segmentProgress = scaled - index;
   const current = ROAD_CAR_PATH[index];
   const next = ROAD_CAR_PATH[nextIndex];

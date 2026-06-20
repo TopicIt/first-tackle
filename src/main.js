@@ -15,6 +15,7 @@ import {
   releaseCurrentCatch,
   releaseKeepnetFish,
   releaseSmallFish,
+  runFishingContextAction,
   selectFishingBait,
   selectFishingSpot,
   selectFishingZone,
@@ -26,6 +27,7 @@ import {
 import { getInteractionContext, getLocationSceneContext, runAction } from './game/interactions.js';
 import { loadGame, resetGame, saveGame } from './game/save.js';
 import { createAudioManager } from './audio/audioManager.js';
+import { ensureMarketState, freshFishAtRisk } from './game/market.js';
 import { createHud } from './ui/hud.js';
 import { updateMapOverlayMotion } from './ui/mapOverlay.js';
 import { getLanguage, toggleLanguage } from './i18n/i18n.js';
@@ -35,6 +37,7 @@ const hudRoot = document.querySelector('#hud');
 
 let gameState = loadGame() ?? createInitialState();
 ensureFishState(gameState);
+ensureMarketState(gameState);
 pushLog(gameState, 'logMorning');
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -133,6 +136,12 @@ const hud = createHud(hudRoot, {
       return;
     }
 
+    if (actionId === 'minigame:context') {
+      runFishingContextAction(gameState, performance.now());
+      renderHud();
+      return;
+    }
+
     if (actionId === 'minigame:strike') {
       strikeLine(gameState, performance.now());
       renderHud();
@@ -184,6 +193,9 @@ const hud = createHud(hudRoot, {
     const context = gameState.ui.activeScene
       ? getLocationSceneContext(gameState, gameState.ui.activeScene)
       : getInteractionContext(gameState, player.position);
+    if (actionId === 'wait:tomorrow' && freshFishAtRisk(gameState) && !window.confirm(t('freshFishMayLoseValueConfirm'))) {
+      return;
+    }
     runAction(actionId, gameState, context);
     syncPlayerToState();
     renderHud();
@@ -225,6 +237,7 @@ const hud = createHud(hudRoot, {
     if (loaded) {
       gameState = loaded;
       ensureFishState(gameState);
+      ensureMarketState(gameState);
       player.restore(gameState.player);
       audio.syncSettings(gameState.settings.audio);
       pushLog(gameState, 'logLoaded');
@@ -238,6 +251,7 @@ const hud = createHud(hudRoot, {
     resetGame();
     gameState = createInitialState();
     ensureFishState(gameState);
+    ensureMarketState(gameState);
     player.restore(gameState.player);
     audio.syncSettings(gameState.settings.audio);
     pushLog(gameState, 'logFreshMorning');
@@ -263,6 +277,8 @@ function renderHud() {
     fishBasket: gameState.fishBasket,
     catchJournal: gameState.catchJournal,
     trophies: gameState.trophies,
+    market: gameState.market,
+    travel: gameState.travel,
     ui: gameState.ui,
     feedback: gameState.feedback,
     log: gameState.log,
@@ -290,6 +306,21 @@ function resize() {
 }
 
 window.addEventListener('resize', resize);
+window.addEventListener('keydown', (event) => {
+  if (event.code !== 'Space' || !gameState.ui.fishingMinigame?.open) {
+    return;
+  }
+
+  const target = event.target;
+  if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
+    return;
+  }
+
+  event.preventDefault();
+  audio.activate();
+  runFishingContextAction(gameState, performance.now());
+  renderHud();
+});
 resize();
 renderHud();
 window.setInterval(() => {

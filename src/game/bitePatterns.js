@@ -6,6 +6,7 @@ export const castSpots = [
     labelKey: 'castSpotDamEdge',
     zone: 'near_bank',
     target: { x: 24, y: 67 },
+    radius: { x: 9, y: 6 },
     scale: 1.18,
     allowedMethods: ['handline', 'stickRod'],
     weights: { rotan: 4.8, crucian: 1.2, loach: 0.18, bleak: 0.45 },
@@ -15,6 +16,7 @@ export const castSpots = [
     labelKey: 'castSpotShallowWeeds',
     zone: 'near_bank',
     target: { x: 36, y: 57 },
+    radius: { x: 10, y: 7 },
     scale: 1.04,
     allowedMethods: ['handline', 'stickRod'],
     weights: { rotan: 2.4, crucian: 2.2, rudd: 1.8, roach: 0.7 },
@@ -24,6 +26,7 @@ export const castSpots = [
     labelKey: 'castSpotOpenMiddle',
     zone: 'mid_water',
     target: { x: 53, y: 46 },
+    radius: { x: 13, y: 8 },
     scale: 0.92,
     allowedMethods: ['stickRod'],
     weights: { crucian: 3.8, roach: 2.1, bleak: 1.8, rudd: 0.6 },
@@ -33,6 +36,7 @@ export const castSpots = [
     labelKey: 'castSpotReedPocket',
     zone: 'reed_edge',
     target: { x: 72, y: 43 },
+    radius: { x: 10, y: 8 },
     scale: 0.86,
     allowedMethods: ['stickRod'],
     weights: { rudd: 3.5, roach: 1.9, crucian: 1.6, pike: 0.16 },
@@ -42,6 +46,7 @@ export const castSpots = [
     labelKey: 'castSpotMuddyBottom',
     zone: 'mid_water',
     target: { x: 58, y: 66 },
+    radius: { x: 12, y: 7 },
     scale: 0.94,
     allowedMethods: ['stickRod'],
     weights: { loach: 0.28, crucian: 2.4, rotan: 0.8, roach: 0.7 },
@@ -51,6 +56,7 @@ export const castSpots = [
     labelKey: 'castSpotFarShadow',
     zone: 'reed_edge',
     target: { x: 84, y: 32 },
+    radius: { x: 10, y: 6 },
     scale: 0.72,
     allowedMethods: ['betterLine'],
     weights: { pike: 0.42, crucian: 2.4, roach: 1.8, rudd: 1.8 },
@@ -64,7 +70,8 @@ export function getCastSpot(spotId) {
 export const biteProfiles = {
   rotan: {
     difficulty: 0.28,
-    hookWindowMs: [1200, 1800],
+    hookWindowMs: [1700, 2600],
+    biteCycles: [2, 3],
     preferred: {
       methods: ['handline'],
       zones: ['near_bank'],
@@ -78,7 +85,8 @@ export const biteProfiles = {
   },
   crucian: {
     difficulty: 0.35,
-    hookWindowMs: [1800, 3000],
+    hookWindowMs: [2400, 3800],
+    biteCycles: [2, 3],
     preferred: {
       methods: ['stickRod'],
       zones: ['mid_water', 'reed_edge'],
@@ -92,7 +100,8 @@ export const biteProfiles = {
   },
   bleak: {
     difficulty: 0.54,
-    hookWindowMs: [800, 1300],
+    hookWindowMs: [1200, 1900],
+    biteCycles: [2, 3],
     preferred: {
       methods: ['stickRod'],
       zones: ['mid_water'],
@@ -105,7 +114,8 @@ export const biteProfiles = {
   },
   roach: {
     difficulty: 0.46,
-    hookWindowMs: [1200, 2000],
+    hookWindowMs: [1800, 2900],
+    biteCycles: [2, 3],
     preferred: {
       methods: ['stickRod'],
       zones: ['mid_water', 'reed_edge'],
@@ -118,7 +128,8 @@ export const biteProfiles = {
   },
   rudd: {
     difficulty: 0.42,
-    hookWindowMs: [1300, 2200],
+    hookWindowMs: [1900, 3200],
+    biteCycles: [2, 3],
     preferred: {
       methods: ['stickRod'],
       zones: ['reed_edge'],
@@ -131,7 +142,8 @@ export const biteProfiles = {
   },
   loach: {
     difficulty: 0.48,
-    hookWindowMs: [1800, 3000],
+    hookWindowMs: [2500, 4000],
+    biteCycles: [2, 3],
     preferred: {
       methods: ['handline', 'stickRod'],
       zones: ['near_bank'],
@@ -144,7 +156,8 @@ export const biteProfiles = {
   },
   pike: {
     difficulty: 0.82,
-    hookWindowMs: [900, 1400],
+    hookWindowMs: [1300, 2100],
+    biteCycles: [1, 2],
     preferred: {
       methods: ['liveBait'],
       zones: ['reed_edge'],

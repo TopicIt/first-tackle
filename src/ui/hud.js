@@ -63,6 +63,8 @@ export function createHud(root, handlers) {
       const collapsedPanels = state.ui?.collapsedPanels ?? {};
       const statusCollapsed = collapsedPanels.status ? ' is-collapsed' : '';
       const inventoryCollapsed = collapsedPanels.inventory ? ' is-collapsed' : '';
+      const shopCollapsed = collapsedPanels.shop ? ' is-collapsed' : '';
+      const fishPricesCollapsed = collapsedPanels.fishPrices ? ' is-collapsed' : '';
       const keepnetCollapsed = collapsedPanels.keepnet ? ' is-collapsed' : '';
       const journalCollapsed = collapsedPanels.journal ? ' is-collapsed' : '';
 
@@ -122,12 +124,31 @@ export function createHud(root, handlers) {
           </div>
           <div class="panel-collapsible">
             <ul class="inventory-list">${inventoryMarkup(state)}</ul>
-            <p class="section-label">${t('keepnet')}</p>
-            <div class="mini-panel">${keepnetMarkup(state)}</div>
+          </div>
+        </section>
+
+        <section class="panel shop-panel${shopCollapsed}">
+          <div class="panel-toggle-row">
             <p class="section-label">${t('shop')}</p>
+            <button class="panel-toggle" data-action="panel:toggle:shop" type="button">
+              ${collapsedPanels.shop ? t('show') : t('hide')}
+            </button>
+          </div>
+          <div class="panel-collapsible">
             <ul class="shop-list">${shopMarkup(state)}</ul>
+          </div>
+        </section>
+
+        <section class="panel fish-prices-panel${fishPricesCollapsed}">
+          <div class="panel-toggle-row">
             <p class="section-label">${t('fishPrices')}</p>
-            <ul class="shop-list">${fishPricesMarkup()}</ul>
+            <button class="panel-toggle" data-action="panel:toggle:fishPrices" type="button">
+              ${collapsedPanels.fishPrices ? t('show') : t('hide')}
+            </button>
+          </div>
+          <div class="panel-collapsible">
+            <p class="market-forecast">${t('tomorrowForecast')}</p>
+            <ul class="shop-list">${fishPricesMarkup(state)}</ul>
           </div>
         </section>
 

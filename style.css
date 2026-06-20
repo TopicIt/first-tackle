@@ -130,13 +130,33 @@ button:disabled {
   padding: 14px;
 }
 
+.shop-panel {
+  grid-column: 3;
+  grid-row: 2;
+  align-self: start;
+  max-height: 30vh;
+  overflow: auto;
+  padding: 14px;
+}
+
+.fish-prices-panel {
+  grid-column: 3;
+  grid-row: 3;
+  align-self: end;
+  max-height: 34vh;
+  overflow: auto;
+  padding: 14px;
+}
+
 .inventory-panel.is-collapsed {
   justify-self: end;
 }
 
 .keepnet-panel {
-  grid-column: 3;
+  grid-column: 2;
   grid-row: 2;
+  justify-self: end;
+  width: min(360px, 100%);
   align-self: end;
   max-height: 36vh;
   overflow: auto;
@@ -299,6 +319,35 @@ button:disabled {
 
 .row strong {
   color: #ffffff;
+}
+
+.row small {
+  grid-column: 1 / -1;
+  color: #bdd6ce;
+  font-size: 0.76rem;
+}
+
+.price-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+}
+
+.trend-rising strong {
+  color: #8fe0a1;
+}
+
+.trend-falling strong {
+  color: #ff9a8f;
+}
+
+.trend-stable strong {
+  color: #ffe28a;
+}
+
+.market-forecast {
+  margin: 0 0 8px;
+  color: #dcebe3;
+  font-size: 0.82rem;
 }
 
 .mini-panel,
@@ -468,6 +517,8 @@ button:disabled {
 
   .status-panel,
   .inventory-panel,
+  .shop-panel,
+  .fish-prices-panel,
   .keepnet-panel,
   .journal-panel,
   .actions-panel,
@@ -478,6 +529,11 @@ button:disabled {
 
   .inventory-panel {
     grid-row: 2;
+  }
+
+  .shop-panel,
+  .fish-prices-panel {
+    display: none;
   }
 
   .keepnet-panel,

@@ -5,6 +5,7 @@ export const itemLabels = {
   larvae: 'itemLarvae',
   primitiveTackle: 'itemPrimitiveTackle',
   stickRod: 'itemStickRod',
+  bicycle: 'itemBicycle',
   cleanedFish: 'itemCleanedFish',
   saltedFish: 'itemSaltedFish',
   dryingFish: 'itemDryingFish',

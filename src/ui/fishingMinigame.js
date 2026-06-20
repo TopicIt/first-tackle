@@ -1,6 +1,6 @@
 import './fishingMinigame.css';
 import { getFishData } from '../game/fishData.js';
-import { getAvailableBaits, getAvailableCastSpots } from '../game/fishingMinigameLogic.js';
+import { getAvailableBaits, getAvailableCastSpots, getFishingContextAction } from '../game/fishingMinigameLogic.js';
 import { getCastSpot } from '../game/bitePatterns.js';
 import { catchJournalMarkup, keepnetMarkup } from './panels.js';
 import { t } from '../i18n/i18n.js';
@@ -30,6 +30,7 @@ export function fishingMinigameMarkup(state) {
   const controlsCollapsed = collapsedPanels.fishingControls ? ' is-controls-collapsed' : '';
   const resultCollapsed = collapsedPanels.fishingResult ? ' is-result-collapsed' : '';
   const hintMode = state.settings?.fishing?.biteHints ?? 'beginner';
+  const contextAction = getFishingContextAction(state);
 
   return `
     <section class="fishing-minigame" aria-label="${t('fishingTitle')}">
@@ -113,7 +114,7 @@ export function fishingMinigameMarkup(state) {
                 <span class="reed reed--two"></span>
                 <span class="reed reed--three"></span>
               </div>
-              <div class="fishing-figure fishing-figure--${minigame.phase}" aria-hidden="true">
+              <div class="fishing-figure fishing-figure--${minigame.method} fishing-figure--${minigame.phase}" aria-hidden="true">
                 <span class="fishing-figure__shadow"></span>
                 <span class="fishing-figure__body"></span>
                 <span class="fishing-figure__head"></span>
@@ -136,6 +137,17 @@ export function fishingMinigameMarkup(state) {
                 <span class="fishing-stage__line"></span>
               </div>
               ${hintMode === 'off' ? '' : `<span class="fishing-stage__hint fishing-stage__hint--${hintMode}">${t(getBobberHintKey(minigame, hintMode))}</span>`}
+              <div class="fishing-context-action">
+                <button
+                  class="fishing-context-action__button fishing-context-action__button--${contextAction.variant}"
+                  data-action="minigame:context"
+                  type="button"
+                  ${contextAction.enabled ? '' : 'disabled'}
+                >
+                  ${t(contextAction.labelKey)}
+                </button>
+                <span>${t('spaceAction')}</span>
+              </div>
             </div>
           </section>
 
@@ -176,6 +188,7 @@ function castSpotMarkup(spot, selectedSpot) {
       class="cast-spot${selected}${disabled}"
       data-action="spot:${spot.id}"
       style="--spot-x:${spot.target.x}%;--spot-y:${spot.target.y}%;--spot-scale:${spot.scale};"
+      data-selected-label="${t(spot.labelKey)}"
       type="button"
       title="${spot.reasonKey ? t(spot.reasonKey) : t(spot.labelKey)}"
       ${spot.allowed ? '' : 'disabled'}
@@ -302,6 +315,10 @@ function strikeButtonClass(minigame, hintMode) {
 }
 
 function getBobberHintKey(minigame, hintMode) {
+  if (hintMode === 'beginner' && minigame.biteCycleTotal > 0 && ['animating', 'strike_window'].includes(minigame.phase)) {
+    return 'fishingBiteCycle';
+  }
+
   if (hintMode === 'subtle' && minigame.phase === 'strike_window') {
     return 'fishingSomethingHappening';
   }

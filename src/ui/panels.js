@@ -1,5 +1,6 @@
 import { fishData } from '../game/fishData.js';
 import { getCatchJournal, getKeepnetSummary } from '../game/fishInventory.js';
+import { getFreshnessInfo, getMarketPriceInfo } from '../game/market.js';
 import { getCastSpot } from '../game/bitePatterns.js';
 import { shopItems } from '../game/state.js';
 import { countItem, itemLabels } from '../game/inventory.js';
@@ -11,6 +12,7 @@ const inventoryOrder = [
   'simpleHook',
   'primitiveTackle',
   'stickRod',
+  'bicycle',
   'worms',
   'larvae',
   'cleanedFish',
@@ -58,16 +60,18 @@ export function shopMarkup(state) {
     .join('');
 }
 
-export function fishPricesMarkup() {
+export function fishPricesMarkup(state) {
   return fishData
-    .map(
-      (fish) => `
-        <li class="row">
+    .map((fish) => {
+      const price = getMarketPriceInfo(state, fish.id);
+      return `
+        <li class="row price-row trend-${price.trend}">
           <span>${t(fish.nameKey)}</span>
-          <strong>${fish.basePrice}</strong>
+          <strong>${trendArrow(price.trend)} ${price.currentPrice} (${price.multiplier.toFixed(2)}x)</strong>
+          <small>${t(trendKey(price.trend))}</small>
         </li>
-      `,
-    )
+      `;
+    })
     .join('');
 }
 
@@ -85,7 +89,7 @@ export function keepnetMarkup(state) {
       <span>${t('totalWeight')}: <strong>${summary.totalWeight}g</strong></span>
     </div>
     <div class="keepnet-species">
-      ${summary.species.map((group) => keepnetSpeciesMarkup(group, expanded[group.fishId])).join('')}
+      ${summary.species.map((group) => keepnetSpeciesMarkup(state, group, expanded[group.fishId])).join('')}
     </div>
   `;
 }
@@ -127,13 +131,14 @@ export function getShopItemLabel(itemId) {
     shovel: 'itemShovel',
     betterLine: 'itemBetterLine',
     simpleFloat: 'itemSimpleFloat',
+    bicycle: 'itemBicycle',
     salt: 'itemSalt',
     hooksPack: 'itemHooksPack',
   };
   return t(labels[itemId] ?? itemId);
 }
 
-function keepnetSpeciesMarkup(group, isExpanded) {
+function keepnetSpeciesMarkup(state, group, isExpanded) {
   const fish = fishData.find((entry) => entry.id === group.fishId);
   const entries = [...group.entries].sort((a, b) => b.weightGrams - a.weightGrams);
   return `
@@ -149,7 +154,7 @@ function keepnetSpeciesMarkup(group, isExpanded) {
       </button>
       ${isExpanded ? `
         <div class="keepnet-entry-list">
-          ${entries.map(keepnetEntryMarkup).join('')}
+          ${entries.map((entry) => keepnetEntryMarkup(state, entry)).join('')}
           <button class="keepnet-release-small" data-action="keepnet:releaseSmall:${group.fishId}" type="button">
             ${t('releaseSmallFish')}
           </button>
@@ -159,11 +164,13 @@ function keepnetSpeciesMarkup(group, isExpanded) {
   `;
 }
 
-function keepnetEntryMarkup(entry) {
+function keepnetEntryMarkup(state, entry) {
+  const freshness = getFreshnessInfo(state, entry);
   return `
     <div class="keepnet-entry">
       <span>${entry.weightGrams}g · ${t(statusKey(entry.status))}</span>
       <small>${entry.catchSpotId ? t(getCastSpot(entry.catchSpotId).labelKey) : t('unknownSpot')}</small>
+      <small>${t('freshness')}: ${t(freshness.key)}</small>
       <button data-action="keepnet:release:${entry.id}" type="button">${t('release')}</button>
     </div>
   `;
@@ -221,4 +228,16 @@ function toPascalCase(value) {
     .split('_')
     .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
     .join('');
+}
+
+function trendArrow(trend) {
+  return { rising: '▲', falling: '▼', stable: '•' }[trend] ?? '•';
+}
+
+function trendKey(trend) {
+  return {
+    rising: 'priceRising',
+    falling: 'priceFalling',
+    stable: 'priceStable',
+  }[trend] ?? 'priceStable';
 }

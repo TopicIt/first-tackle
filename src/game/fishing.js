@@ -1,5 +1,6 @@
 import { addItem, countItem, hasItem, removeItem } from './inventory.js';
 import { advanceFishStatus, ensureFishState, takeFreshFish } from './fishInventory.js';
+import { advanceMarketDay, freshFishAtRisk } from './market.js';
 import { nowSeconds, pushFeedback, pushLog, queueSound } from './state.js';
 
 const WORM_SEARCH_COOLDOWN = 8;
@@ -144,8 +145,14 @@ export function hangFishToDry(state) {
 export function waitUntilTomorrow(state) {
   ensureFishState(state);
   const drying = countItem(state, 'dryingFish');
+  const hasFreshRisk = freshFishAtRisk(state);
   state.timers.wormSearchReadyAt = 0;
   state.day += 1;
+  advanceMarketDay(state);
+
+  if (hasFreshRisk) {
+    pushLog(state, 'logFreshFishLostValue');
+  }
 
   if (drying > 0) {
     advanceFishStatus(state, 'drying', 'taranka', drying);

@@ -1,5 +1,6 @@
-import { SAVE_KEY, createInitialState } from './state.js';
+import { SAVE_KEY, createInitialMarketState, createInitialState } from './state.js';
 import { ensureFishState } from './fishInventory.js';
+import { ensureMarketState } from './market.js';
 
 export function saveGame(state) {
   const serializableState = {
@@ -26,6 +27,7 @@ export function loadGame() {
   try {
     const merged = mergeState(createInitialState(), JSON.parse(raw));
     ensureFishState(merged);
+    ensureMarketState(merged);
     return merged;
   } catch {
     return null;
@@ -64,6 +66,12 @@ function mergeState(base, saved) {
       ...base.purchased,
       ...(saved.purchased ?? {}),
     },
+    travel: {
+      ...base.travel,
+      ...(saved.travel ?? {}),
+      farWatersUnlocked: Boolean(saved.travel?.farWatersUnlocked ?? saved.purchased?.bicycle ?? base.travel.farWatersUnlocked),
+    },
+    market: mergeMarketState(saved.market, base.day),
     day: saved.day ?? base.day,
     player: {
       ...base.player,
@@ -89,5 +97,18 @@ function mergeState(base, saved) {
     },
     feedback: Array.isArray(saved.feedback) ? saved.feedback.slice(0, 4) : base.feedback,
     log: Array.isArray(saved.log) ? saved.log.slice(0, 6) : base.log,
+  };
+}
+
+function mergeMarketState(savedMarket, day) {
+  const baseMarket = createInitialMarketState();
+  return {
+    ...baseMarket,
+    ...(savedMarket ?? {}),
+    day: savedMarket?.day ?? day ?? baseMarket.day,
+    prices: {
+      ...baseMarket.prices,
+      ...(savedMarket?.prices ?? {}),
+    },
   };
 }

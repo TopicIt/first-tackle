@@ -226,8 +226,42 @@
 
 .scene-actions,
 .fish-card,
+.travel-preview,
 .scene-log {
   padding: 14px;
+}
+
+.travel-preview {
+  grid-column: 1 / -1;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 8px;
+  background: rgb(18 27 24 / 78%);
+  box-shadow: 0 18px 52px rgb(0 0 0 / 30%);
+  backdrop-filter: blur(12px);
+}
+
+.travel-preview p {
+  margin: 0 0 10px;
+  color: #d9eadf;
+}
+
+.travel-preview__routes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.travel-preview__routes span {
+  border-radius: 999px;
+  background: rgb(148 212 196 / 22%);
+  color: #fff8df;
+  font-weight: 800;
+  padding: 7px 10px;
+}
+
+.travel-preview__routes span.is-locked {
+  background: rgb(255 255 255 / 9%);
+  color: #b8c9c2;
 }
 
 .scene-action-grid {

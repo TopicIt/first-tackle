@@ -77,6 +77,8 @@ export function locationSceneMarkup(state, context) {
             <p class="section-label">${t('log')}</p>
             <ul class="log-list">${logMarkup(state)}</ul>
           </section>
+
+          ${sceneId === 'pond' ? travelPreviewMarkup(state) : ''}
         </div>
       </div>
 
@@ -85,6 +87,20 @@ export function locationSceneMarkup(state, context) {
       </div>
 
       ${fishingMinigameMarkup(state)}
+    </section>
+  `;
+}
+
+function travelPreviewMarkup(state) {
+  const unlocked = Boolean(state.purchased?.bicycle || state.travel?.farWatersUnlocked);
+  return `
+    <section class="travel-preview">
+      <p class="section-label">${t('travelFarther')}</p>
+      <p>${unlocked ? t('farWatersUnlocked') : t('buyBicycleToReachWaters')}</p>
+      <div class="travel-preview__routes">
+        <span class="${unlocked ? '' : 'is-locked'}">${t('oldPond')}</span>
+        <span class="${unlocked ? '' : 'is-locked'}">${t('riverBend')}</span>
+      </div>
     </section>
   `;
 }
