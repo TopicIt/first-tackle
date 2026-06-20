@@ -1,4 +1,11 @@
-import { fishPricesMarkup, inventoryMarkup, logMarkup, shopMarkup } from './panels.js';
+import {
+  catchJournalMarkup,
+  fishPricesMarkup,
+  inventoryMarkup,
+  keepnetMarkup,
+  logMarkup,
+  shopMarkup,
+} from './panels.js';
 import { locationSceneMarkup } from './locationScene.js';
 import { mapOverlayMarkup } from './mapOverlay.js';
 import { getLanguage, t } from '../i18n/i18n.js';
@@ -56,6 +63,8 @@ export function createHud(root, handlers) {
       const collapsedPanels = state.ui?.collapsedPanels ?? {};
       const statusCollapsed = collapsedPanels.status ? ' is-collapsed' : '';
       const inventoryCollapsed = collapsedPanels.inventory ? ' is-collapsed' : '';
+      const keepnetCollapsed = collapsedPanels.keepnet ? ' is-collapsed' : '';
+      const journalCollapsed = collapsedPanels.journal ? ' is-collapsed' : '';
 
       root.innerHTML = `
         ${mapOverlayMarkup(renderState)}
@@ -113,10 +122,36 @@ export function createHud(root, handlers) {
           </div>
           <div class="panel-collapsible">
             <ul class="inventory-list">${inventoryMarkup(state)}</ul>
+            <p class="section-label">${t('keepnet')}</p>
+            <div class="mini-panel">${keepnetMarkup(state)}</div>
             <p class="section-label">${t('shop')}</p>
             <ul class="shop-list">${shopMarkup(state)}</ul>
             <p class="section-label">${t('fishPrices')}</p>
             <ul class="shop-list">${fishPricesMarkup()}</ul>
+          </div>
+        </section>
+
+        <section class="panel keepnet-panel${keepnetCollapsed}">
+          <div class="panel-toggle-row">
+            <p class="section-label">${t('fishBasket')}</p>
+            <button class="panel-toggle" data-action="panel:toggle:keepnet" type="button">
+              ${collapsedPanels.keepnet ? t('show') : t('hide')}
+            </button>
+          </div>
+          <div class="panel-collapsible">
+            ${keepnetMarkup(state)}
+          </div>
+        </section>
+
+        <section class="panel journal-panel${journalCollapsed}">
+          <div class="panel-toggle-row">
+            <p class="section-label">${t('catchJournal')}</p>
+            <button class="panel-toggle" data-action="panel:toggle:journal" type="button">
+              ${collapsedPanels.journal ? t('show') : t('hide')}
+            </button>
+          </div>
+          <div class="panel-collapsible">
+            ${catchJournalMarkup(state)}
           </div>
         </section>
 

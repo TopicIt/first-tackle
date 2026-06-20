@@ -55,6 +55,10 @@ function mergeState(base, saved) {
         ...base.settings.audio,
         ...(saved.settings?.audio ?? {}),
       },
+      fishing: {
+        ...base.settings.fishing,
+        ...(saved.settings?.fishing ?? {}),
+      },
     },
     purchased: {
       ...base.purchased,
@@ -66,9 +70,22 @@ function mergeState(base, saved) {
       ...(saved.player ?? {}),
     },
     fishBasket: Array.isArray(saved.fishBasket) ? saved.fishBasket : base.fishBasket,
+    catchJournal: {
+      ...base.catchJournal,
+      ...(saved.catchJournal ?? {}),
+    },
+    trophies: Array.isArray(saved.trophies) ? saved.trophies : base.trophies,
     ui: {
       ...base.ui,
       ...(saved.ui ?? {}),
+      collapsedPanels: {
+        ...base.ui.collapsedPanels,
+        ...(saved.ui?.collapsedPanels ?? {}),
+      },
+      expandedKeepnetSpecies: {
+        ...base.ui.expandedKeepnetSpecies,
+        ...(saved.ui?.expandedKeepnetSpecies ?? {}),
+      },
     },
     feedback: Array.isArray(saved.feedback) ? saved.feedback.slice(0, 4) : base.feedback,
     log: Array.isArray(saved.log) ? saved.log.slice(0, 6) : base.log,

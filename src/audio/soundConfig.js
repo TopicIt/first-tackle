@@ -31,6 +31,10 @@ export const fallbackSoundPresets = {
   water_ripple: [
     { type: 'triangle', frequency: 240, duration: 0.16, gain: 0.05 },
   ],
+  bird_chirp: [
+    { type: 'sine', frequency: 1320, duration: 0.04, gain: 0.04 },
+    { type: 'sine', frequency: 1640, duration: 0.05, gain: 0.035, delay: 0.06 },
+  ],
   tiny_nibble: [
     { type: 'square', frequency: 700, duration: 0.03, gain: 0.05 },
     { type: 'square', frequency: 760, duration: 0.03, gain: 0.05, delay: 0.05 },
@@ -41,6 +45,10 @@ export const fallbackSoundPresets = {
   ],
   strike: [
     { type: 'triangle', frequency: 780, duration: 0.09, gain: 0.08 },
+  ],
+  line_tension: [
+    { type: 'sawtooth', frequency: 210, duration: 0.12, gain: 0.035 },
+    { type: 'triangle', frequency: 340, duration: 0.1, gain: 0.03, delay: 0.08 },
   ],
   catch_success: [
     { type: 'sine', frequency: 520, duration: 0.12, gain: 0.08 },

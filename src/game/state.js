@@ -76,12 +76,17 @@ export function createInitialState() {
       z: 1.5,
     },
     fishBasket: [],
+    catchJournal: {},
+    trophies: [],
     settings: {
       audio: {
         soundEnabled: true,
         musicEnabled: true,
         sfxVolume: 0.72,
         musicVolume: 0.45,
+      },
+      fishing: {
+        biteHints: 'beginner',
       },
     },
     audioQueue: [],
@@ -93,9 +98,12 @@ export function createInitialState() {
       collapsedPanels: {
         status: false,
         inventory: false,
+        keepnet: false,
+        journal: false,
         fishingControls: false,
         fishingResult: false,
       },
+      expandedKeepnetSpecies: {},
     },
     feedback: [],
     log: [],

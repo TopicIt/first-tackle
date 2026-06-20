@@ -1,6 +1,7 @@
 import { buyShopItem, sellAllFish, sellTaranka } from './economy.js';
 import {
   countFishByStatus,
+  getFishEntries,
 } from './fishInventory.js';
 import {
   canCraftPrimitiveTackle,
@@ -314,8 +315,7 @@ function getSceneActions(state, zoneId) {
       {
         id: 'minigame:start:liveBait',
         label: t('startLiveBaitFishing'),
-        disabled: true,
-        variant: 'future',
+        disabled: !hasItem(state, 'stickRod') || getFishEntries(state, 'live_bait').length === 0,
       },
     ];
   }

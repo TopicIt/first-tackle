@@ -9,9 +9,16 @@ import {
   castLine,
   closeFishingMinigame,
   keepCatch,
+  observeWater,
   openFishingMinigame,
+  recastLine,
+  releaseCurrentCatch,
+  releaseKeepnetFish,
+  releaseSmallFish,
   selectFishingBait,
+  selectFishingSpot,
   selectFishingZone,
+  setBiteHintMode,
   strikeLine,
   tickFishingMinigame,
   useCatchAsLiveBait,
@@ -56,6 +63,17 @@ const hud = createHud(hudRoot, {
 
     if (actionId.startsWith('panel:toggle:')) {
       const panelId = actionId.replace('panel:toggle:', '');
+      if (panelId.startsWith('keepnetSpecies:')) {
+        const fishId = panelId.replace('keepnetSpecies:', '');
+        gameState.ui.expandedKeepnetSpecies = {
+          ...(gameState.ui.expandedKeepnetSpecies ?? {}),
+          [fishId]: !gameState.ui.expandedKeepnetSpecies?.[fishId],
+        };
+        gameState.audioQueue.push('ui_click');
+        renderHud();
+        return;
+      }
+
       gameState.ui.collapsedPanels = {
         ...(gameState.ui.collapsedPanels ?? {}),
         [panelId]: !gameState.ui.collapsedPanels?.[panelId],
@@ -85,6 +103,30 @@ const hud = createHud(hudRoot, {
       return;
     }
 
+    if (actionId.startsWith('spot:')) {
+      selectFishingSpot(gameState, actionId.replace('spot:', ''));
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('biteHints:')) {
+      setBiteHintMode(gameState, actionId.replace('biteHints:', ''));
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('keepnet:releaseSmall:')) {
+      releaseSmallFish(gameState, actionId.replace('keepnet:releaseSmall:', ''));
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('keepnet:release:')) {
+      releaseKeepnetFish(gameState, actionId.replace('keepnet:release:', ''));
+      renderHud();
+      return;
+    }
+
     if (actionId === 'minigame:cast') {
       castLine(gameState, performance.now());
       renderHud();
@@ -103,6 +145,12 @@ const hud = createHud(hudRoot, {
       return;
     }
 
+    if (actionId === 'minigame:release') {
+      releaseCurrentCatch(gameState);
+      renderHud();
+      return;
+    }
+
     if (actionId === 'minigame:liveBait') {
       useCatchAsLiveBait(gameState);
       renderHud();
@@ -111,6 +159,18 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'minigame:castAgain') {
       castAgain(gameState);
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'minigame:recast') {
+      recastLine(gameState);
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'minigame:observe') {
+      observeWater(gameState);
       renderHud();
       return;
     }
@@ -199,6 +259,10 @@ function renderHud() {
     inventory: gameState.inventory,
     purchased: gameState.purchased,
     audio: gameState.settings.audio,
+    fishingSettings: gameState.settings.fishing,
+    fishBasket: gameState.fishBasket,
+    catchJournal: gameState.catchJournal,
+    trophies: gameState.trophies,
     ui: gameState.ui,
     feedback: gameState.feedback,
     log: gameState.log,
