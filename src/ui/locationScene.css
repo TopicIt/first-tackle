@@ -171,6 +171,7 @@
   gap: 14px;
   width: min(1040px, calc(100vw - 32px));
   min-height: min(680px, calc(100vh - 32px));
+  max-height: calc(100vh - 32px);
   margin: 16px auto;
 }
 
@@ -251,9 +252,10 @@
 .scene-body {
   display: grid;
   grid-template-columns: minmax(260px, 420px) minmax(240px, 320px) minmax(220px, 320px);
-  align-items: end;
+  align-items: stretch;
   justify-content: space-between;
   gap: 16px;
+  min-height: 0;
 }
 
 .scene-actions,
@@ -264,7 +266,12 @@
 }
 
 .scene-market {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
 }
 
 .scene-market .market-card {
@@ -273,6 +280,17 @@
 
 .scene-market .market-card__reason {
   grid-column: 2 / -1;
+}
+
+.scene-market .market-tabs {
+  top: 0;
+}
+
+.scene-market .market-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  padding-bottom: 18px;
 }
 
 .travel-preview {
@@ -584,6 +602,7 @@
   .scene-shell {
     width: calc(100vw - 20px);
     min-height: calc(100vh - 20px);
+    max-height: calc(100vh - 20px);
     margin: 10px auto;
   }
 
@@ -611,9 +630,15 @@
 
   .scene-body {
     grid-template-columns: 1fr;
+    overflow-y: auto;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
 
   .scene-log {
     display: none;
+  }
+
+  .scene-market {
+    max-height: none;
   }
 }

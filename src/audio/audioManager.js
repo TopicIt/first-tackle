@@ -3,6 +3,7 @@ import { availableAudioAssets, defaultMusicTrackId, fallbackSoundPresets, getMus
 export function createAudioManager(initialSettings) {
   let audioContext = null;
   let activated = false;
+  let hasStartedMusic = false;
   let settings = { ...initialSettings };
   let musicAudio = null;
   let currentMusicId = normalizeTrackId(initialSettings?.musicTrackId);
@@ -22,20 +23,28 @@ export function createAudioManager(initialSettings) {
         audioContext.resume();
       }
 
+      if (activated) {
+        return;
+      }
+
       activated = true;
-      startMusic(getStartupTrackId(), { forceRestart: true });
+      if (settings.musicEnabled) {
+        startMusic(getStartupTrackId(), { forceRestart: true });
+      }
     },
     syncSettings(nextSettings) {
+      const previousMusicEnabled = settings.musicEnabled;
       settings = {
         ...settings,
         ...nextSettings,
         musicTrackId: normalizeTrackId(nextSettings?.musicTrackId ?? settings.musicTrackId),
         musicMode: nextSettings?.musicMode ?? settings.musicMode ?? 'fixed',
       };
+      const shouldSwitchTrack = currentMusicId !== settings.musicTrackId;
       currentMusicId = settings.musicTrackId;
 
       if (!settings.musicEnabled) {
-        stopMusic(false);
+        pauseMusic();
         return;
       }
 
@@ -44,8 +53,22 @@ export function createAudioManager(initialSettings) {
         musicAudio.loop = settings.musicMode !== 'random';
       }
 
-      if (activated) {
-        startMusic(currentMusicId, { forceRestart: false });
+      if (!activated) {
+        return;
+      }
+
+      if (shouldSwitchTrack && hasStartedMusic) {
+        startMusic(currentMusicId, { forceRestart: true });
+        return;
+      }
+
+      if (!previousMusicEnabled && hasStartedMusic && musicAudio) {
+        musicAudio.play().catch(() => {});
+        return;
+      }
+
+      if (!hasStartedMusic) {
+        startMusic(getStartupTrackId(), { forceRestart: true });
       }
     },
     startMusic,
@@ -59,6 +82,9 @@ export function createAudioManager(initialSettings) {
     },
     getCurrentTrackId() {
       return currentMusicId;
+    },
+    isUnlocked() {
+      return activated;
     },
     playSound(soundId) {
       if (!activated || !settings.soundEnabled) {
@@ -98,14 +124,16 @@ export function createAudioManager(initialSettings) {
     }
 
     if (!settings.musicEnabled) {
-      stopMusic(false);
+      pauseMusic();
       return track.id;
     }
 
     if (musicAudio && previousTrackId === track.id && !forceRestart) {
       musicAudio.volume = settings.musicVolume;
       musicAudio.loop = settings.musicMode !== 'random';
-      musicAudio.play().catch(() => {});
+      if (musicAudio.paused) {
+        musicAudio.play().catch(() => {});
+      }
       return track.id;
     }
 
@@ -122,6 +150,7 @@ export function createAudioManager(initialSettings) {
     musicAudio.loop = settings.musicMode !== 'random';
     musicAudio.addEventListener('ended', handleMusicEnded);
     musicAudio.addEventListener('error', handleMusicError);
+    hasStartedMusic = true;
     loadTrackSource(track);
   }
 
@@ -174,6 +203,14 @@ export function createAudioManager(initialSettings) {
     if (clearTrack) {
       currentMusicId = normalizeTrackId(defaultMusicTrackId);
     }
+  }
+
+  function pauseMusic() {
+    if (!musicAudio) {
+      return;
+    }
+
+    musicAudio.pause();
   }
 
   function getAdjacentTrackId(trackId, offset) {

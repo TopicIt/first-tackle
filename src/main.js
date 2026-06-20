@@ -506,7 +506,6 @@ function animate() {
   gameState.settings.audio.musicTrackId = audio.getCurrentTrackId();
   syncPlayerToState();
   renderHud();
-  audio.syncSettings(gameState.settings.audio);
   audio.drainQueue(gameState);
   renderer.render(world.scene, world.camera);
 }

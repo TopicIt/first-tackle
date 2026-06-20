@@ -153,12 +153,20 @@ button:disabled {
 }
 
 .market-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   grid-column: 3;
   grid-row: 1 / span 3;
   align-self: start;
   max-height: 74vh;
-  overflow: auto;
+  overflow: hidden;
   padding: 14px;
+}
+
+.market-panel .panel-collapsible {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .inventory-panel.is-collapsed {
@@ -481,6 +489,11 @@ button:disabled {
 .market-tabs {
   grid-template-columns: repeat(3, 1fr);
   margin-bottom: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-bottom: 4px;
+  background: linear-gradient(180deg, rgb(21 31 28 / 98%), rgb(21 31 28 / 82%));
 }
 
 .market-tabs button {
@@ -492,6 +505,12 @@ button:disabled {
 
 .market-tabs button.is-selected {
   background: #f3c45f;
+}
+
+.market-body {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 18px;
 }
 
 .market-summary,
@@ -1070,9 +1089,14 @@ button:disabled {
     z-index: 60;
     width: auto;
     max-height: none;
-    overflow: auto;
+    overflow: hidden;
     padding: 12px;
     background: rgb(16 25 24 / 78%);
+  }
+
+  .market-panel .panel-collapsible {
+    overflow-y: auto;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
   }
 
   .inventory-panel:not(.is-collapsed),
