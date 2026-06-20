@@ -245,7 +245,7 @@ export function strikeLine(state, nowMs) {
 
   queueSound(state, 'strike');
 
-  if (!tutorialCatchActive && ['pike', 'canadian_catfish'].includes(minigame.fishCandidateId) && getTackleEffects(state).breakPenalty > 0 && roll < 0.42) {
+  if (!tutorialCatchActive && ['pike', 'sudak', 'som', 'canadian_catfish'].includes(minigame.fishCandidateId) && getTackleEffects(state).breakPenalty > 0 && roll < 0.42) {
     resolveMinigameResult(state, { outcome: 'line_broke', statusKey: 'fishingLineBroke', sound: 'line_break' });
     return;
   }
@@ -886,6 +886,20 @@ function getFishWeight(state, minigame, fishId, profile, spot) {
     score *= 1.35;
   }
 
+  if (fishId === 'sudak') {
+    if (minigame.selectedBait !== 'live_bait' || getTackleEffects(state).reachBonus <= 0) {
+      return 0;
+    }
+    score *= 1.28;
+  }
+
+  if (fishId === 'som') {
+    if (getTackleEffects(state).reachBonus <= 0 || getTackleEffects(state).stabilityBonus <= 0) {
+      return 0;
+    }
+    score *= minigame.selectedBait === 'live_bait' ? 1.18 : 0.82;
+  }
+
   return score;
 }
 
@@ -903,6 +917,10 @@ function buildCyclePattern(fishId, cycle, total) {
     rudd: ['tiny_nibble', 'sideways_pull', 'strike_window'],
     loach: cycle === total ? ['slow_dip', 'submerged', 'strike_window'] : ['idle', 'slow_dip', 'strike_window'],
     pike: ['sideways_pull', 'hard_dip', 'strike_window'],
+    okun: cycle === total ? ['tiny_nibble', 'hard_dip', 'strike_window'] : ['tiny_nibble', 'sideways_pull', 'strike_window'],
+    lynok: cycle === total ? ['lift', 'slow_dip', 'strike_window'] : ['tiny_nibble', 'slow_dip', 'strike_window'],
+    sudak: ['sideways_pull', 'hard_dip', 'strike_window'],
+    som: cycle === total ? ['slow_dip', 'submerged', 'strike_window'] : ['idle', 'slow_dip', 'hard_dip', 'strike_window'],
     canadian_catfish: cycle === total ? ['slow_dip', 'submerged', 'strike_window'] : ['idle', 'slow_dip', 'strike_window'],
   };
   return profiles[fishId] ?? ['tiny_nibble', 'strike_window'];
@@ -960,9 +978,14 @@ function getTimeMultiplier(state, fishId) {
     rudd: ['day', 'evening'],
     loach: ['evening', 'night'],
     pike: ['morning', 'evening'],
+    okun: ['morning', 'day'],
+    lynok: ['morning', 'evening'],
+    sudak: ['evening', 'night'],
+    som: ['evening', 'night'],
     canadian_catfish: ['evening', 'night'],
   }[fishId] ?? ['day'];
   if (preferred.includes(phase)) return 1.25;
+  if ((fishId === 'sudak' || fishId === 'som') && phase === 'day') return 0.35;
   if (fishId === 'canadian_catfish' && phase === 'day') return 0.12;
   return 0.72;
 }
@@ -1032,10 +1055,10 @@ function adjustCatchForWater(state, catchResult) {
   const waterId = normalizeWaterId(state.travel?.selectedWater);
   const multipliers = {
     sluice: { bleak: [1.05, 1.18], roach: [1.08, 1.2] },
-    fire_ponds: { crucian: [1.12, 1.28], rudd: [1.08, 1.22] },
-    greada: { crucian: [1.12, 1.32], canadian_catfish: [1.08, 1.24] },
-    lake_tur: { rudd: [1.12, 1.28], pike: [1.1, 1.22] },
-    mining_lake: { pike: [1.18, 1.34], canadian_catfish: [1.18, 1.38] },
+    fire_ponds: { crucian: [1.12, 1.28], rudd: [1.08, 1.22], lynok: [1.02, 1.12] },
+    greada: { crucian: [1.12, 1.32], lynok: [1.06, 1.18], canadian_catfish: [1.08, 1.24] },
+    lake_tur: { okun: [1.1, 1.24], lynok: [1.12, 1.26], sudak: [1.08, 1.22], rudd: [1.12, 1.28], pike: [1.1, 1.22] },
+    mining_lake: { pike: [1.18, 1.34], okun: [1.12, 1.26], lynok: [1.12, 1.3], sudak: [1.2, 1.38], som: [1.18, 1.42], canadian_catfish: [1.18, 1.38] },
   };
   const range = multipliers[waterId]?.[catchResult.id];
   if (range) {
@@ -1058,9 +1081,13 @@ function getWaterFishMultiplier(state, fishId) {
       canadian_catfish: ['evening', 'night'].includes(phase) ? 1.55 : 0.42,
       pike: 0.35,
     },
-    lake_tur: { roach: 1.28, rudd: 1.22, pike: 1.25, rotan: 0.35, canadian_catfish: 0 },
+    lake_tur: { roach: 1.12, rudd: 1.16, okun: 1.32, lynok: 1.24, sudak: ['evening', 'night'].includes(phase) ? 1.28 : 0.72, pike: 1.12, rotan: 0.2, canadian_catfish: 0, som: 0.18 },
     mining_lake: {
       pike: 1.45,
+      okun: 1.24,
+      lynok: 1.22,
+      sudak: ['evening', 'night'].includes(phase) ? 1.65 : 0.8,
+      som: ['evening', 'night'].includes(phase) ? 1.55 : 0.58,
       canadian_catfish: ['evening', 'night'].includes(phase) ? 1.65 : 0.72,
       loach: 1.18,
       rotan: 0.2,

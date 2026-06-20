@@ -85,6 +85,8 @@ function getProcessedMultiplier(entry) {
   }
 
   if (entry.status === 'smoked') {
+    if (entry.fishId === 'som') return 2.65;
+    if (entry.fishId === 'sudak') return 2.45;
     if (entry.fishId === 'canadian_catfish') return 2.5;
     if (entry.fishId === 'pike') return 2.35;
     if (entry.fishId === 'crucian' && entry.weightGrams >= 150) return 2.1;

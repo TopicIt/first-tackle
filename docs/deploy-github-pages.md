@@ -31,6 +31,19 @@ Place optional location images here:
 
 - `public/assets/locations/grandma-house.webp`
 - `public/assets/locations/fishing-canal.webp`
+- `public/assets/locations/kanava-alt.png`
+- `public/assets/locations/shliuz.png`
+- `public/assets/locations/stavky-pozhara.png`
+- `public/assets/locations/gryada.png`
+- `public/assets/locations/ozero-tur.png`
+- `public/assets/locations/hirnytske-ozero.png`
+
+Place optional fish images here:
+
+- `public/assets/fish/okun.png`
+- `public/assets/fish/lynok.png`
+- `public/assets/fish/som.png`
+- `public/assets/fish/sudak.png`
 
 Place optional transition videos here:
 

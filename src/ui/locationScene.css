@@ -385,16 +385,24 @@
   .location-scene--market,
   .location-scene--fishing_select
 ) .scene-action-grid button {
-  min-height: 42px;
+  min-height: 44px;
   border: 1px solid rgb(255 255 255 / 16%);
   border-radius: 999px;
-  background: rgb(8 17 18 / 30%);
+  background: rgb(8 17 18 / 24%);
   box-shadow: none;
   color: #f7fff8;
   font-size: 0.82rem;
   padding: 8px 12px;
   text-shadow: 0 1px 8px rgb(0 0 0 / 70%);
   backdrop-filter: blur(4px);
+}
+
+.location-scene:is(
+  .location-scene--garden,
+  .location-scene--bus_station,
+  .location-scene--fishing_select
+) .scene-actions {
+  width: min(360px, 100%);
 }
 
 .scene-action-grid button small {

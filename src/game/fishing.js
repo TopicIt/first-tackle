@@ -242,5 +242,5 @@ function getTarankaEligibleCount(state, status) {
 }
 
 function isTarankaEligible(entry) {
-  return !['pike', 'canadian_catfish'].includes(entry.fishId) && entry.weightGrams <= 260;
+  return !['pike', 'sudak', 'som', 'canadian_catfish'].includes(entry.fishId) && entry.weightGrams <= 260;
 }

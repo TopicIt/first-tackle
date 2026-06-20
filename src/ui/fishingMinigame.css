@@ -504,6 +504,36 @@
   animation: rodBreathe 1.4s ease-in-out infinite;
 }
 
+.fishing-figure--waiting .fishing-figure__body,
+.fishing-figure--animating .fishing-figure__body,
+.fishing-figure--strike_window .fishing-figure__body {
+  animation: fisherWaterIdle 4.2s ease-in-out infinite;
+}
+
+.fishing-figure--waiting .fishing-figure__arm,
+.fishing-figure--animating .fishing-figure__arm {
+  animation: armRodMicro 3.2s ease-in-out infinite;
+}
+
+.fishing-figure--strike_window .fishing-figure__arm {
+  animation: armStrikeReady 0.62s ease-in-out infinite alternate;
+}
+
+.fishing-figure--waiting .fishing-figure__line,
+.fishing-figure--animating .fishing-figure__line {
+  animation: lineMicroSway 3.4s ease-in-out infinite;
+}
+
+.fishing-figure--handline.fishing-figure--waiting .fishing-figure__arm,
+.fishing-figure--handline.fishing-figure--animating .fishing-figure__arm {
+  animation: handlineArmMicro 3s ease-in-out infinite;
+}
+
+.fishing-figure--handline.fishing-figure--waiting .fishing-figure__line,
+.fishing-figure--handline.fishing-figure--animating .fishing-figure__line {
+  animation: handlineLineMicroSway 3.2s ease-in-out infinite;
+}
+
 .fishing-figure--result .fishing-figure__rod {
   animation: rodBend 0.7s ease-out;
 }
@@ -1019,6 +1049,36 @@
   50% { transform: translateY(3px) rotateX(8deg) rotateZ(-1deg); }
 }
 
+@keyframes fisherWaterIdle {
+  0%, 100% { transform: translateY(0) rotateX(8deg) rotateZ(-3deg); }
+  50% { transform: translateY(4px) rotateX(8deg) rotateZ(-1deg); }
+}
+
+@keyframes armRodMicro {
+  0%, 100% { transform: rotate(-18deg); }
+  50% { transform: rotate(-14deg) translateY(1px); }
+}
+
+@keyframes armStrikeReady {
+  from { transform: rotate(-16deg) translateY(0); }
+  to { transform: rotate(-10deg) translateY(-3px); }
+}
+
+@keyframes lineMicroSway {
+  0%, 100% { transform: rotate(18deg); opacity: 0.78; }
+  50% { transform: rotate(16deg); opacity: 0.92; }
+}
+
+@keyframes handlineArmMicro {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(-1deg) translateY(1px); }
+}
+
+@keyframes handlineLineMicroSway {
+  0%, 100% { transform: rotate(9deg); opacity: 0.78; }
+  50% { transform: rotate(7deg); opacity: 0.92; }
+}
+
 @keyframes rodCast {
   0% { transform: rotate(-62deg); }
   65% { transform: rotate(-18deg); }
@@ -1140,7 +1200,9 @@
   .fishing-panel__actions .strike,
   .fishing-figure__body,
   .fishing-figure__head,
+  .fishing-figure__arm,
   .fishing-figure__rod,
+  .fishing-figure__line,
   .bird,
   .dragonfly,
   .dragonfly--rare,
@@ -1289,10 +1351,19 @@
   .bait-button,
   .zone-button,
   .fishing-panel__actions button {
-    min-height: 32px;
+    min-height: 44px;
     border-radius: 999px;
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     padding: 5px 8px;
+  }
+
+  .fishing-panel__quick-nav button {
+    min-height: 44px;
+    border-radius: 999px;
+    background: rgb(8 17 18 / 28%);
+    color: #f3f9f2;
+    font-size: 0.68rem;
+    font-weight: 850;
   }
 
   .zone-button small {

@@ -76,7 +76,7 @@ export const castSpots = [
     scale: 0.88,
     allowedMethods: ['stickRod', 'betterLine'],
     waterId: 'sluice',
-    weights: { bleak: 3.5, roach: 2.2, crucian: 1.2, pike: 0.28 },
+    weights: { bleak: 3.5, roach: 2.2, crucian: 1.2, okun: 0.72, pike: 0.28 },
   },
   {
     id: 'sluice_wall',
@@ -87,7 +87,7 @@ export const castSpots = [
     scale: 1.06,
     allowedMethods: ['handline', 'stickRod'],
     waterId: 'sluice',
-    weights: { rotan: 1.3, roach: 1.7, bleak: 2.1, loach: 0.18 },
+    weights: { rotan: 1.3, roach: 1.7, bleak: 2.1, okun: 0.5, loach: 0.18 },
   },
   {
     id: 'fire_pond_reeds',
@@ -98,7 +98,7 @@ export const castSpots = [
     scale: 0.86,
     allowedMethods: ['stickRod', 'betterLine'],
     waterId: 'fire_ponds',
-    weights: { rudd: 3.6, crucian: 2.4, roach: 1.8, pike: 0.32 },
+    weights: { rudd: 3.6, crucian: 2.4, roach: 1.8, lynok: 0.42, pike: 0.32 },
   },
   {
     id: 'fire_pond_middle',
@@ -109,7 +109,7 @@ export const castSpots = [
     scale: 0.92,
     allowedMethods: ['stickRod'],
     waterId: 'fire_ponds',
-    weights: { crucian: 3.8, roach: 2.3, rudd: 1.5, bleak: 0.8 },
+    weights: { crucian: 3.8, roach: 2.3, rudd: 1.5, lynok: 0.34, bleak: 0.8 },
   },
   {
     id: 'greada_mud',
@@ -120,7 +120,7 @@ export const castSpots = [
     scale: 0.88,
     allowedMethods: ['handline', 'stickRod', 'betterLine'],
     waterId: 'greada',
-    weights: { canadian_catfish: 3.2, crucian: 2.2, loach: 0.5, rotan: 0.8 },
+    weights: { canadian_catfish: 3.2, crucian: 2.2, lynok: 0.65, loach: 0.5, rotan: 0.8 },
   },
   {
     id: 'greada_weeds',
@@ -131,7 +131,7 @@ export const castSpots = [
     scale: 1.02,
     allowedMethods: ['handline', 'stickRod'],
     waterId: 'greada',
-    weights: { crucian: 2.4, rotan: 1.1, loach: 0.65, canadian_catfish: 1.1 },
+    weights: { crucian: 2.4, rotan: 1.1, lynok: 0.45, loach: 0.65, canadian_catfish: 1.1 },
   },
   {
     id: 'lake_tur_lilies',
@@ -142,7 +142,7 @@ export const castSpots = [
     scale: 0.84,
     allowedMethods: ['stickRod', 'betterLine'],
     waterId: 'lake_tur',
-    weights: { rudd: 3.2, roach: 2.4, crucian: 2.0, pike: 0.5 },
+    weights: { rudd: 3.2, roach: 2.4, okun: 1.8, lynok: 0.75, crucian: 1.4, pike: 0.5 },
   },
   {
     id: 'lake_tur_dropoff',
@@ -153,7 +153,7 @@ export const castSpots = [
     scale: 0.84,
     allowedMethods: ['stickRod', 'betterLine'],
     waterId: 'lake_tur',
-    weights: { roach: 2.7, crucian: 2.2, pike: 0.62, bleak: 1.2 },
+    weights: { roach: 2.5, okun: 2.0, sudak: 0.72, crucian: 1.3, pike: 0.62, bleak: 0.9 },
   },
   {
     id: 'mining_lake_shelf',
@@ -164,7 +164,7 @@ export const castSpots = [
     scale: 0.82,
     allowedMethods: ['stickRod', 'betterLine'],
     waterId: 'mining_lake',
-    weights: { canadian_catfish: 2.7, loach: 0.9, crucian: 1.8, pike: 0.48 },
+    weights: { som: 1.45, sudak: 1.35, canadian_catfish: 1.9, lynok: 1.1, loach: 0.9, okun: 1.2, crucian: 0.8, pike: 0.48 },
   },
   {
     id: 'mining_lake_shadow',
@@ -175,7 +175,7 @@ export const castSpots = [
     scale: 0.74,
     allowedMethods: ['betterLine'],
     waterId: 'mining_lake',
-    weights: { pike: 1.25, canadian_catfish: 1.8, roach: 0.9, crucian: 1.1 },
+    weights: { pike: 1.25, sudak: 1.6, som: 0.95, canadian_catfish: 1.3, okun: 1.4, roach: 0.6, crucian: 0.6 },
   },
 ];
 
@@ -281,6 +281,62 @@ export const biteProfiles = {
     },
     patterns: [
       ['idle', 'sideways_pull', 'hard_dip', 'strike_window'],
+    ],
+  },
+  okun: {
+    difficulty: 0.5,
+    hookWindowMs: [1500, 2500],
+    biteCycles: [2, 3],
+    preferred: {
+      methods: ['stickRod'],
+      zones: ['mid_water', 'reed_edge'],
+      baits: ['worms', 'larvae'],
+    },
+    patterns: [
+      ['tiny_nibble', 'sideways_pull', 'strike_window'],
+      ['idle', 'hard_dip', 'strike_window'],
+    ],
+  },
+  lynok: {
+    difficulty: 0.58,
+    hookWindowMs: [2200, 3600],
+    biteCycles: [2, 3],
+    preferred: {
+      methods: ['stickRod'],
+      zones: ['reed_edge', 'near_bank'],
+      baits: ['worms'],
+    },
+    patterns: [
+      ['idle', 'slow_dip', 'lift', 'strike_window'],
+      ['tiny_nibble', 'slow_dip', 'strike_window'],
+    ],
+  },
+  sudak: {
+    difficulty: 0.72,
+    hookWindowMs: [1400, 2300],
+    biteCycles: [1, 2],
+    preferred: {
+      methods: ['liveBait'],
+      zones: ['mid_water', 'reed_edge'],
+      baits: ['live_bait'],
+    },
+    patterns: [
+      ['sideways_pull', 'hard_dip', 'strike_window'],
+      ['idle', 'sideways_pull', 'strike_window'],
+    ],
+  },
+  som: {
+    difficulty: 0.78,
+    hookWindowMs: [2300, 3800],
+    biteCycles: [1, 2],
+    preferred: {
+      methods: ['stickRod', 'liveBait'],
+      zones: ['mid_water'],
+      baits: ['worms', 'live_bait'],
+    },
+    patterns: [
+      ['idle', 'slow_dip', 'submerged', 'strike_window'],
+      ['slow_dip', 'hard_dip', 'submerged', 'strike_window'],
     ],
   },
   canadian_catfish: {

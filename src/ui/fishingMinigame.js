@@ -5,6 +5,8 @@ import { getCastSpot } from '../game/bitePatterns.js';
 import { catchJournalMarkup, keepnetMarkup } from './panels.js';
 import { t } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
+import { getFishingLocation } from '../game/locations.js';
+import { getLocationImage, getLocationImageFallback } from '../utils/locationAsset.js';
 
 const castZoneKeys = {
   near_bank: 'castZoneNearBank',
@@ -33,14 +35,15 @@ export function fishingMinigameMarkup(state) {
   const contextAction = getFishingContextAction(state);
   const floatStyle = state.tackle?.equipped?.float ?? 'none';
   const activeFishing = isActiveFishingPhase(minigame.phase);
+  const waterImage = getFishingWaterImage(state);
 
   return `
     <section class="fishing-minigame" aria-label="${t('fishingTitle')}">
       <div class="fishing-minigame__backdrop">
         <img
           class="fishing-minigame__base"
-          src="${assetPath('/assets/locations/fishing-canal.webp')}"
-          onerror="this.onerror=null;this.src='${assetPath('/assets/locations/pond_location_concept.png')}'"
+          src="${waterImage.src}"
+          onerror="this.onerror=null;this.src='${waterImage.fallback}'"
           alt=""
         />
       </div>
@@ -337,7 +340,27 @@ function getCatchImage(fishId) {
     return assetPath('/assets/fish/catch_crucian_card.png');
   }
 
+  const directImages = {
+    okun: '/assets/fish/okun.png',
+    lynok: '/assets/fish/lynok.png',
+    som: '/assets/fish/som.png',
+    sudak: '/assets/fish/sudak.png',
+  };
+
+  if (directImages[fishId]) {
+    return assetPath(directImages[fishId]);
+  }
+
   return assetPath(`/assets/fish/species/${fishId}.png`);
+}
+
+function getFishingWaterImage(state) {
+  const waterId = state.travel?.selectedWater ?? 'canal';
+  const imageId = getFishingLocation(waterId)?.imageId ?? 'canal';
+  return {
+    src: getLocationImage(imageId),
+    fallback: getLocationImageFallback(imageId) ?? assetPath('/assets/locations/pond_location_concept.png'),
+  };
 }
 
 function toPascalCase(value) {

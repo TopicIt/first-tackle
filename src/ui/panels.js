@@ -31,6 +31,10 @@ const inventoryOrder = [
   'rudd',
   'loach',
   'pike',
+  'okun',
+  'lynok',
+  'sudak',
+  'som',
   'canadian_catfish',
 ];
 
@@ -50,12 +54,19 @@ const itemImages = {
 };
 
 const waterImages = {
-  canal: '/assets/locations/pond_location_concept.png',
-  sluice: '/assets/locations/pond_location_concept.png',
-  fire_ponds: '/assets/locations/pond_location_concept.png',
-  greada: '/assets/locations/greada_location_concept.png',
-  lake_tur: '/assets/locations/pond_location_concept.png',
-  mining_lake: '/assets/locations/greada_location_concept.png',
+  canal: '/assets/locations/fishing-canal.webp',
+  sluice: '/assets/locations/shliuz.png',
+  fire_ponds: '/assets/locations/stavky-pozhara.png',
+  greada: '/assets/locations/gryada.png',
+  lake_tur: '/assets/locations/ozero-tur.png',
+  mining_lake: '/assets/locations/hirnytske-ozero.png',
+};
+
+const fishImages = {
+  okun: '/assets/fish/okun.png',
+  lynok: '/assets/fish/lynok.png',
+  som: '/assets/fish/som.png',
+  sudak: '/assets/fish/sudak.png',
 };
 
 export function inventoryMarkup(state) {
@@ -285,6 +296,10 @@ function trophyMarkup(trophy) {
 }
 
 function speciesImage(fishId) {
+  if (fishImages[fishId]) {
+    return assetPath(fishImages[fishId]);
+  }
+
   return assetPath(`/assets/fish/species/${fishId}.png`);
 }
 
