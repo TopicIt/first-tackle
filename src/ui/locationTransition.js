@@ -6,11 +6,9 @@ export function locationTransitionMarkup(transition) {
     return '';
   }
 
-  const sources = [
-    transition.videos?.webm ? `<source src="${transition.videos.webm}" type="video/webm" />` : '',
-    transition.videos?.mp4 ? `<source src="${transition.videos.mp4}" type="video/mp4" />` : '',
-    transition.videos?.legacyMp4 ? `<source src="${transition.videos.legacyMp4}" type="video/mp4" />` : '',
-  ].join('');
+  const sources = (transition.videoSources ?? [])
+    .map((source) => `<source src="${source.src}" type="${source.type}" />`)
+    .join('');
 
   return `
     <section class="location-transition" data-location-transition="${transition.id}" aria-label="${t('transitionLoading')}">

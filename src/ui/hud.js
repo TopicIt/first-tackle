@@ -10,6 +10,7 @@ import { locationSceneMarkup } from './locationScene.js';
 import { locationTransitionMarkup } from './locationTransition.js';
 import { mapOverlayMarkup } from './mapOverlay.js';
 import { getLanguage, t } from '../i18n/i18n.js';
+import { buildInfo } from '../buildInfo.js';
 
 export function createHud(root, handlers) {
   const shownFeedbackIds = new Set();
@@ -250,6 +251,14 @@ export function createHud(root, handlers) {
                 <button type="submit">${t('apply')}</button>
               </form>
               <small>${t('cheatsHint')}</small>
+            </section>
+            <section class="settings-block build-info">
+              <p class="section-label">${t('buildInfo')}</p>
+              <dl>
+                <div><dt>${t('buildBranch')}</dt><dd>${buildInfo.branch}</dd></div>
+                <div><dt>${t('buildCommit')}</dt><dd>${buildInfo.commit}</dd></div>
+                <div><dt>${t('buildTime')}</dt><dd>${buildInfo.time}</dd></div>
+              </dl>
             </section>
             <section class="settings-block">
               <p class="section-label">${t('sound')}</p>

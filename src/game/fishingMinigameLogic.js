@@ -42,6 +42,8 @@ export function createFishingMinigameState(method) {
     rareInsectAt: 0,
     rareInsectActiveUntil: 0,
     falseActivityCount: 0,
+    biteChecks: [],
+    biteCheckIndex: 0,
     biteCycle: 0,
     biteCycleTotal: 0,
     biteCyclePattern: [],
@@ -194,6 +196,8 @@ export function castLine(state, nowMs) {
   minigame.fishCandidateId = chooseFishCandidate(state, minigame);
   minigame.currentPattern = minigame.fishCandidateId ? buildPattern(minigame.fishCandidateId) : [];
   minigame.patternIndex = 0;
+  minigame.biteChecks = [];
+  minigame.biteCheckIndex = 0;
   minigame.biteCycle = 0;
   minigame.biteCycleTotal = minigame.fishCandidateId ? getBiteCycleTotal(minigame.fishCandidateId) : 0;
   minigame.biteCyclePattern = [];
@@ -353,6 +357,8 @@ export function castAgain(state) {
   minigame.patternIndex = 0;
   minigame.biteCycle = 0;
   minigame.biteCycleTotal = 0;
+  minigame.biteChecks = [];
+  minigame.biteCheckIndex = 0;
   minigame.biteCyclePattern = [];
   minigame.biteCyclePatternIndex = 0;
   minigame.nextStepAt = 0;
@@ -386,6 +392,8 @@ export function recastLine(state) {
   minigame.patternIndex = 0;
   minigame.biteCycle = 0;
   minigame.biteCycleTotal = 0;
+  minigame.biteChecks = [];
+  minigame.biteCheckIndex = 0;
   minigame.biteCyclePattern = [];
   minigame.biteCyclePatternIndex = 0;
   minigame.nextStepAt = 0;
@@ -428,7 +436,9 @@ export function tickFishingMinigame(state, nowMs) {
     minigame.phase = 'waiting';
     minigame.bobberState = 'idle';
     minigame.statusKey = 'fishingWaiting';
-    minigame.nextStepAt = nowMs + getNaturalWaitMs();
+    minigame.biteChecks = buildBiteChecks(state, minigame, nowMs);
+    minigame.biteCheckIndex = 0;
+    minigame.nextStepAt = minigame.biteChecks[0]?.at ?? (nowMs + 5200);
     queueSound(state, 'bobber_plop');
     return;
   }
@@ -440,13 +450,21 @@ export function tickFishingMinigame(state, nowMs) {
   tickRareInsect(state, minigame, nowMs);
 
   if (minigame.phase === 'waiting' && nowMs >= minigame.nextStepAt) {
-    if (!minigame.fishCandidateId) {
+    if (runBiteCheck(state, minigame, nowMs)) {
+      startBiteCycle(state, minigame, nowMs);
+      return;
+    }
+
+    if (minigame.biteCheckIndex >= minigame.biteChecks.length) {
       resolveMinigameResult(state, { outcome: 'no_bite', statusKey: 'fishingNoBite', sound: 'water_ripple' });
       minigame.bobberState = 'idle';
       return;
     }
 
-    advancePatternStep(state, minigame, nowMs);
+    minigame.bobberState = minigame.biteCheckIndex % 2 === 0 ? 'tiny_nibble' : 'idle';
+    minigame.statusKey = getWaitingStatusKey(state);
+    minigame.nextStepAt = minigame.biteChecks[minigame.biteCheckIndex].at;
+    queueSound(state, minigame.bobberState === 'tiny_nibble' ? 'tiny_nibble' : 'water_ripple');
     return;
   }
 
@@ -531,9 +549,9 @@ export function getFishingContextAction(state) {
 
   if (minigame.phase === 'strike_window') {
     return {
-      labelKey: hintMode === 'off' ? 'action' : 'strike',
+      labelKey: hintMode === 'off' ? 'strike' : 'strikeNow',
       enabled: true,
-      variant: hintMode === 'beginner' ? 'strike' : 'action',
+      variant: 'strike',
     };
   }
 
@@ -541,7 +559,7 @@ export function getFishingContextAction(state) {
     return {
       labelKey: hintMode === 'off' ? 'action' : 'strike',
       enabled: true,
-      variant: 'action',
+      variant: 'wait',
     };
   }
 
@@ -611,6 +629,36 @@ function startBiteCycle(state, minigame, nowMs) {
   minigame.bobberState = 'idle';
   minigame.statusKey = getCycleStatusKey(state, minigame);
   minigame.nextStepAt = nowMs + randomBetween(550, 1100);
+}
+
+function buildBiteChecks(state, minigame, startMs) {
+  const tutorialBonus = state.progress?.firstCatchDone ? 0 : 0.2;
+  const profile = minigame.fishCandidateId ? getBiteProfile(minigame.fishCandidateId) : null;
+  const fishActivity = profile ? clamp(0.04 + (profile.activity ?? 0.5) * 0.08, 0, 0.12) : 0;
+  const baseChances = [0.14, 0.24, 0.38, 0.54, 0.68];
+  const intervals = [1500, 3150, 5200, 7600, 10200];
+
+  return baseChances.map((chance, index) => ({
+    at: startMs + intervals[index] + randomBetween(-220, 260),
+    chance: clamp(chance + tutorialBonus + fishActivity, 0.04, 0.88),
+  }));
+}
+
+function runBiteCheck(state, minigame, nowMs) {
+  const check = minigame.biteChecks[minigame.biteCheckIndex];
+  minigame.biteCheckIndex += 1;
+
+  if (!check || !minigame.fishCandidateId) {
+    return false;
+  }
+
+  const lateBoost = minigame.biteCheckIndex >= minigame.biteChecks.length ? 0.04 : 0;
+  if (Math.random() <= clamp(check.chance + lateBoost, 0, 0.9)) {
+    return true;
+  }
+
+  minigame.nextStepAt = nowMs + randomBetween(700, 1150);
+  return false;
 }
 
 function advanceMissedBiteCycle(state, minigame, nowMs) {
@@ -902,14 +950,6 @@ function canUseCastSpot(state, method, spot) {
   return { allowed: true, reasonKey: null };
 }
 
-function getNaturalWaitMs() {
-  const roll = Math.random();
-  if (roll > 0.88) {
-    return randomBetween(18000, 30000);
-  }
-  return randomBetween(6000, 18000);
-}
-
 function getTimeMultiplier(state, fishId) {
   const phase = getTimePhase(state);
   const preferred = {
@@ -1039,6 +1079,8 @@ function resetAfterResult(state, minigame) {
   minigame.nextStepAt = 0;
   minigame.strikeWindowStartAt = 0;
   minigame.strikeWindowEndAt = 0;
+  minigame.biteChecks = [];
+  minigame.biteCheckIndex = 0;
   minigame.currentCatchEntryId = null;
   minigame.consumedBait = null;
   state.ui.catchResult = null;

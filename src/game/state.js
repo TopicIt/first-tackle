@@ -191,6 +191,7 @@ export function createInitialState() {
       guideTab: 'fish',
       marketTab: 'sell',
       locationTransition: null,
+      transitionVisits: {},
     },
     feedback: [],
     log: [],

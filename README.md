@@ -30,10 +30,9 @@ Open the local URL printed by Vite.
 
 The project uses prepared static assets when they are present:
 
-- `public/assets/fishing/canal_fishing_base.png`
-- `public/assets/fishing/canal_fishing_waiting_bobber.png`
-- `public/assets/fishing/canal_fishing_bite.png`
-- `public/assets/fishing/canal_fishing_cast_zones.png`
+- `public/assets/locations/fishing-canal.webp`
+- `public/assets/transitions/grandma-house/grandma-house-flyin.mp4`
+- `public/assets/transitions/grandma-house/grandma-house-flyin-2.mp4`
 - `public/assets/fish/catch_rotan_card.png`
 - `public/assets/fish/catch_crucian_card.png`
 - `public/assets/fish/catch_result_frame.png`

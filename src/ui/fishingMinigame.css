@@ -18,15 +18,6 @@
   object-fit: cover;
 }
 
-.fishing-minigame__state-art {
-  mix-blend-mode: screen;
-  opacity: 0.45;
-}
-
-.fishing-minigame__state-art--bite {
-  opacity: 0.62;
-}
-
 .fishing-minigame__shell {
   position: relative;
   z-index: 2;
@@ -42,9 +33,10 @@
 .fishing-result {
   border: 1px solid rgb(255 255 255 / 12%);
   border-radius: 8px;
-  background: rgb(17 26 28 / 56%);
-  box-shadow: 0 12px 34px rgb(0 0 0 / 18%);
-  backdrop-filter: blur(9px);
+  background: rgb(8 17 18 / 28%);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 14%);
+  text-shadow: 0 1px 8px rgb(0 0 0 / 58%);
+  backdrop-filter: blur(5px);
 }
 
 .fishing-minigame__header {
@@ -225,18 +217,21 @@
 .fishing-panel__actions .strike--clear {
   background: #e7634c;
   color: #fff6ea;
-  box-shadow: 0 0 22px rgb(231 99 76 / 50%);
-  animation: strikePulse 0.9s ease-in-out infinite alternate;
+  box-shadow: 0 0 30px rgb(255 104 76 / 66%), 0 0 0 5px rgb(255 255 255 / 12%);
+  animation: strikePulse 0.62s ease-in-out infinite alternate;
 }
 
 .fishing-panel__actions .strike--subtle {
-  background: #f0b860;
-  box-shadow: 0 0 14px rgb(240 184 96 / 28%);
+  background: #e7634c;
+  color: #fff6ea;
+  box-shadow: 0 0 24px rgb(255 104 76 / 48%);
+  animation: strikePulse 0.72s ease-in-out infinite alternate;
 }
 
 .fishing-panel__actions .strike--quiet {
-  background: rgb(232 236 231 / 90%);
-  color: #17211c;
+  background: rgb(8 17 18 / 28%);
+  border: 1px solid rgb(255 255 255 / 16%);
+  color: #eaf8f2;
 }
 
 .fishing-panel__art {
@@ -734,7 +729,8 @@
 }
 
 .fishing-stage__bobber--strike_window {
-  animation: bobberStrikeWindow 0.7s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 20px rgb(255 99 64 / 84%)) drop-shadow(0 12px 18px rgb(0 0 0 / 44%));
+  animation: bobberStrikeWindow 0.42s ease-in-out infinite alternate;
 }
 
 .fishing-stage__bobber--hooked {
@@ -780,6 +776,12 @@
 .fishing-stage__rings--hooked::after,
 .fishing-stage__rings--strike_window::after {
   animation: rippleTwo 1.1s ease-out infinite;
+}
+
+.fishing-stage__rings--strike_window::before,
+.fishing-stage__rings--strike_window::after {
+  border-color: rgb(255 226 126 / 82%);
+  border-width: 3px;
 }
 
 .fishing-stage__hint {
@@ -953,12 +955,21 @@
 .fishing-context-action__button--strike {
   background: #e7634c;
   color: #fff8ef;
-  box-shadow: 0 0 30px rgb(231 99 76 / 42%), 0 18px 42px rgb(0 0 0 / 38%);
+  box-shadow: 0 0 34px rgb(255 104 76 / 72%), 0 0 0 6px rgb(255 255 255 / 13%), 0 18px 42px rgb(0 0 0 / 38%);
+  animation: strikePulse 0.62s ease-in-out infinite alternate;
 }
 
 .fishing-context-action__button--action,
-.fishing-context-action__button--recast {
+.fishing-context-action__button--recast,
+.fishing-context-action__button--wait {
   background: #e8ece7;
+}
+
+.fishing-context-action__button--wait {
+  border-color: rgb(255 255 255 / 18%);
+  background: rgb(8 17 18 / 38%);
+  color: #eaf8f2;
+  box-shadow: 0 12px 26px rgb(0 0 0 / 24%);
 }
 
 .fishing-context-action__side {
@@ -1098,8 +1109,8 @@
 }
 
 @keyframes bobberStrikeWindow {
-  from { transform: translate(-50%, -50%) translateY(4px) scale(var(--bobber-scale, 1)); opacity: 0.9; }
-  to { transform: translate(-50%, -50%) translateY(28px) scale(var(--bobber-scale, 1)); opacity: 0.35; }
+  from { transform: translate(-50%, -50%) translateY(-2px) rotate(-7deg) scale(calc(var(--bobber-scale, 1) * 1.08)); opacity: 1; }
+  to { transform: translate(-50%, -50%) translateY(34px) rotate(9deg) scale(calc(var(--bobber-scale, 1) * 1.2)); opacity: 0.28; }
 }
 
 @keyframes bobberHooked {
@@ -1260,7 +1271,7 @@
 
   .fishing-panel {
     border-radius: 12px;
-    background: rgb(12 22 23 / 50%);
+    background: rgb(8 17 18 / 28%);
     box-shadow: none;
     padding: 8px;
   }

@@ -37,14 +37,12 @@ export function fishingMinigameMarkup(state) {
   return `
     <section class="fishing-minigame" aria-label="${t('fishingTitle')}">
       <div class="fishing-minigame__backdrop">
-        <img class="fishing-minigame__base" src="${assetPath('/assets/fishing/canal_fishing_base.png')}" alt="" />
-        <img class="fishing-minigame__zones" src="${assetPath('/assets/fishing/canal_fishing_cast_zones.png')}" alt="" />
-        ${minigame.phase === 'waiting' || minigame.phase === 'animating'
-          ? `<img class="fishing-minigame__state-art" src="${assetPath('/assets/fishing/canal_fishing_waiting_bobber.png')}" alt="" />`
-          : ''}
-        ${minigame.phase === 'strike_window'
-          ? `<img class="fishing-minigame__state-art fishing-minigame__state-art--bite" src="${assetPath('/assets/fishing/canal_fishing_bite.png')}" alt="" />`
-          : ''}
+        <img
+          class="fishing-minigame__base"
+          src="${assetPath('/assets/locations/fishing-canal.webp')}"
+          onerror="this.onerror=null;this.src='${assetPath('/assets/locations/pond_location_concept.png')}'"
+          alt=""
+        />
       </div>
 
       <div class="fishing-minigame__shell">
@@ -93,7 +91,7 @@ export function fishingMinigameMarkup(state) {
             <section class="fishing-panel fishing-panel__actions">
               <button data-action="minigame:cast" type="button"${canCast(minigame) ? '' : ' disabled'}>${t('cast')}</button>
               ${canStrike(minigame)
-                ? `<button class="${strikeButtonClass(minigame, hintMode)}" data-action="minigame:strike" type="button">${t('strike')}</button>`
+                ? `<button class="${strikeButtonClass(minigame, hintMode)}" data-action="minigame:strike" type="button">${t(minigame.phase === 'strike_window' ? 'strikeNow' : 'strike')}</button>`
                 : ''}
               ${canRecast(minigame) ? `<button data-action="minigame:recast" type="button">${t('recast')}</button>` : ''}
               <button data-action="minigame:observe" type="button">${t('observeWater')}</button>

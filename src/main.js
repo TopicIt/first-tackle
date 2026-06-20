@@ -31,7 +31,7 @@ import { ensureMarketState, freshFishAtRisk } from './game/market.js';
 import { ensureTackleState, equipTackleComponent, getRigMethod, selectActiveRig } from './game/tackle.js';
 import { ensureTimeState, formatGameTime, getTimePhase } from './game/time.js';
 import { canOpenWaterFromMap, getFishingLocation, getLockedReasonKey, isFishingLocation } from './game/locations.js';
-import { getLocationTransition, shouldUseLocationTransitions } from './game/locationTransitions.js';
+import { getLocationTransition, markLocationTransitionVisit, shouldUseLocationTransitions } from './game/locationTransitions.js';
 import { arriveAtWater } from './game/travel.js';
 import { createHud } from './ui/hud.js';
 import { updateMapOverlayMotion } from './ui/mapOverlay.js';
@@ -455,11 +455,13 @@ function normalizeTransitionSettings(state) {
 }
 
 function startLocationTransition(sceneId) {
-  const transition = getLocationTransition(sceneId);
+  gameState.ui.transitionVisits ??= {};
+  const transition = getLocationTransition(sceneId, gameState);
   if (!transition || !shouldUseLocationTransitions(gameState)) {
     return false;
   }
 
+  markLocationTransitionVisit(gameState, transition);
   gameState.ui.locationTransition = transition;
   gameState.ui.selectedHotspot = sceneId;
   gameState.audioQueue.push('open_scene');
