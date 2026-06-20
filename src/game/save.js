@@ -125,6 +125,10 @@ function mergeState(base, saved) {
         ...base.ui.expandedKeepnetSpecies,
         ...(saved.ui?.expandedKeepnetSpecies ?? {}),
       },
+      expandedMarketSpecies: {
+        ...base.ui.expandedMarketSpecies,
+        ...(saved.ui?.expandedMarketSpecies ?? {}),
+      },
     },
     feedback: Array.isArray(saved.feedback) ? saved.feedback.slice(0, 4) : base.feedback,
     log: Array.isArray(saved.log) ? saved.log.slice(0, 6) : base.log,

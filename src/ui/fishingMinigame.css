@@ -53,25 +53,41 @@
   justify-content: space-between;
   gap: 18px;
   background: rgb(9 17 18 / 42%);
-  padding: 10px 54px 10px 14px;
+  padding: 10px 14px;
+}
+
+.fishing-minigame__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fishing-minigame__close,
+.fishing-minigame__map {
+  display: grid;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 16%);
+  background: rgb(6 12 11 / 36%);
+  color: #f7fff8;
+  backdrop-filter: blur(8px);
 }
 
 .fishing-minigame__close {
-  position: absolute;
-  right: 12px;
-  top: 10px;
-  display: grid;
-  place-items: center;
   width: 34px;
   min-height: 34px;
-  padding: 0;
-  border: 1px solid rgb(255 255 255 / 16%);
   border-radius: 999px;
-  background: rgb(6 12 11 / 36%);
-  color: #f7fff8;
+  padding: 0;
   font-size: 1.22rem;
   line-height: 1;
-  backdrop-filter: blur(8px);
+}
+
+.fishing-minigame__map {
+  min-width: 84px;
+  min-height: 34px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 7px 11px;
 }
 
 .fishing-minigame__header h2 {
@@ -246,6 +262,73 @@
   background: linear-gradient(180deg, rgb(101 165 192 / 8%), rgb(22 38 44 / 52%));
   min-height: 0;
   perspective: 820px;
+}
+
+.fishing-stage--panorama {
+  background:
+    radial-gradient(circle at 50% 20%, rgb(255 240 196 / 16%), transparent 28%),
+    linear-gradient(180deg, rgb(95 166 198 / 18%), rgb(16 33 39 / 58%));
+}
+
+.fishing-stage__panorama {
+  position: absolute;
+  inset: 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.fishing-stage__panorama.is-dragging {
+  cursor: grabbing;
+}
+
+.fishing-stage__panorama-world {
+  position: absolute;
+  inset: 0;
+  width: 140%;
+  left: -20%;
+  background:
+    radial-gradient(circle at 50% 18%, rgb(255 233 160 / 18%), transparent 16%),
+    linear-gradient(180deg, #80c2e4 0 26%, #bfdde3 27% 34%, #6e9773 35% 47%, #4d7883 48% 58%, #27414a 59% 100%);
+  transform: translateX(calc(var(--panorama-pan, 0) * 1%));
+}
+
+.fishing-stage__panorama-world::before,
+.fishing-stage__panorama-world::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  pointer-events: none;
+}
+
+.fishing-stage__panorama-world::before {
+  top: 22%;
+  background:
+    radial-gradient(circle at 20% 46%, rgb(56 95 75 / 48%) 0 8%, transparent 9%),
+    radial-gradient(circle at 48% 44%, rgb(69 112 81 / 44%) 0 9%, transparent 10%),
+    radial-gradient(circle at 76% 42%, rgb(54 92 73 / 46%) 0 10%, transparent 11%);
+  opacity: 0.7;
+}
+
+.fishing-stage__panorama-world::after {
+  height: 24%;
+  background:
+    linear-gradient(180deg, transparent, rgb(33 74 61 / 78%)),
+    repeating-linear-gradient(90deg, rgb(45 89 60 / 72%) 0 2px, transparent 2px 14px);
+  opacity: 0.72;
+}
+
+.fishing-stage__panorama-hint {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  z-index: 9;
+  border-radius: 999px;
+  background: rgb(8 17 18 / 64%);
+  color: #edf6ef;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 5px 9px;
+  backdrop-filter: blur(8px);
 }
 
 .cast-spot-layer,
@@ -810,6 +893,51 @@
   padding: 12px;
 }
 
+.fishing-result-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+}
+
+.fishing-result-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgb(5 10 12 / 42%);
+  padding: 0;
+}
+
+.fishing-result-modal .fishing-result {
+  position: relative;
+  z-index: 1;
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  overflow: auto;
+  border-radius: 18px;
+  background: rgb(15 25 24 / 90%);
+}
+
+.fishing-result__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fishing-result__close {
+  width: 34px;
+  min-height: 34px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 999px;
+  background: rgb(6 12 11 / 38%);
+  color: #f7fff8;
+  font-size: 1.18rem;
+  line-height: 1;
+  padding: 0;
+}
+
 .fishing-result__frame {
   aspect-ratio: 4 / 5;
   overflow: hidden;
@@ -852,6 +980,7 @@
 
 .fishing-result__actions {
   display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 
@@ -1117,7 +1246,7 @@
     border-radius: 999px;
     background: rgb(8 16 17 / 40%);
     box-shadow: none;
-    padding: 6px 44px 6px 12px;
+    padding: 6px 10px 6px 12px;
   }
 
   .fishing-minigame__header .section-label,
@@ -1134,12 +1263,21 @@
     white-space: nowrap;
   }
 
+  .fishing-minigame__header-actions {
+    gap: 6px;
+  }
+
   .fishing-minigame__close {
-    right: 8px;
-    top: 6px;
     width: 30px;
     min-height: 30px;
     font-size: 1.05rem;
+  }
+
+  .fishing-minigame__map {
+    min-width: 68px;
+    min-height: 30px;
+    font-size: 0.7rem;
+    padding: 5px 9px;
   }
 
   .fishing-minigame__layout,
@@ -1164,6 +1302,12 @@
     border: 0;
     border-radius: 0;
     background: transparent;
+  }
+
+  .fishing-stage__panorama-hint {
+    top: 90px;
+    font-size: 0.64rem;
+    padding: 4px 7px;
   }
 
   .fishing-minigame__controls {
@@ -1311,18 +1455,13 @@
     display: none;
   }
 
-  .fishing-result:not(.fishing-result--compact) {
-    position: fixed;
-    left: 50%;
-    top: 50%;
+  .fishing-result-modal {
     z-index: 90;
+  }
+
+  .fishing-result-modal .fishing-result {
     width: min(92vw, 340px);
     max-height: 82dvh;
-    overflow: auto;
-    border-radius: 18px;
-    background: rgb(15 25 24 / 88%);
-    padding: 12px;
-    transform: translate(-50%, -50%);
   }
 
   .fishing-result__frame {

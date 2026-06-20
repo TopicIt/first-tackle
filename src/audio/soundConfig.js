@@ -1,11 +1,40 @@
 import { assetPath } from '../utils/assetPath.js';
 
-export const availableAudioAssets = {
-  music: {
-    ambient_day: assetPath('/assets/audio/music/ambient_day.mp3'),
-    ambient_evening: assetPath('/assets/audio/music/ambient_evening.mp3.mp3'),
-    theme: assetPath('/assets/audio/music/theme.mp3.mp3'),
+export const defaultMusicTrackId = 'ambient_day';
+
+export const musicTracks = [
+  {
+    id: 'ambient_day',
+    labelKey: 'musicTrackAmbientDay',
+    sources: [
+      assetPath('/assets/audio/music/ambient_day.mp3'),
+      assetPath('/assets/audio/music/ambient_day.mp3.mp3'),
+    ],
   },
+  {
+    id: 'ambient_evening',
+    labelKey: 'musicTrackAmbientEvening',
+    sources: [
+      assetPath('/assets/audio/music/ambient_evening.mp3'),
+      assetPath('/assets/audio/music/ambient_evening.mp3.mp3'),
+    ],
+  },
+  {
+    id: 'theme',
+    labelKey: 'musicTrackTheme',
+    sources: [
+      assetPath('/assets/audio/music/theme.mp3'),
+      assetPath('/assets/audio/music/theme.mp3.mp3'),
+    ],
+  },
+];
+
+export function getMusicTrack(trackId) {
+  return musicTracks.find((track) => track.id === trackId) ?? musicTracks[0];
+}
+
+export const availableAudioAssets = {
+  music: Object.fromEntries(musicTracks.map((track) => [track.id, track.sources[0]])),
   sfx: {
     catch_success: assetPath('/assets/audio/music/sfx/catch%20success.mp3'),
   },

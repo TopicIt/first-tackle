@@ -1,6 +1,6 @@
 # First Tackle
 
-First playable browser prototype for a small fishing game set around a roadside pond and village map.
+Stable 2D browser prototype for a small fishing game set around a roadside pond and village map, with an optional experimental 3D fishing view for future iteration.
 
 ## Run
 
@@ -18,10 +18,12 @@ Open the local URL printed by Vite.
 - Animated location scenes and an animated road car on the world map.
 - House crafting and fish processing flow for primitive tackle, cleaning, salting, drying, and taranka.
 - Garden bait gathering and basic progression shop loop.
-- Dedicated float fishing minigame with bait selection, cast zones, bite patterns, strike timing, and catch result cards.
+- Dedicated float fishing minigame with bait selection, cast zones, bite patterns, strike timing, centered catch result cards, and a quick return-to-map button.
+- Selective market selling from the keepnet by species or by individual fish, plus bulk sell actions for fresh fish, taranka, and smoked fish.
 - Collapsible HUD, inventory, fishing controls, and result panels for a cleaner scene view.
 - Individual fish inventory entries with saved weight, value, day caught, and processing status.
-- Audio settings with browser-safe activation and Web Audio fallback sounds.
+- Audio settings with browser-safe activation, saved track selection, fixed/random music mode, and Web Audio fallback sounds.
+- Optional experimental 3D skybox fishing mode that reuses the same core fishing logic while the stable 2D mode remains the default.
 - Save, load, and reset through `localStorage`.
 
 ## Asset Usage
@@ -73,8 +75,11 @@ Expected SFX filenames:
 Expected music or ambient filenames:
 
 - `ambient_day.mp3`
+- `ambient_day.mp3.mp3`
 - `ambient_evening.mp3`
+- `ambient_evening.mp3.mp3`
 - `theme.mp3`
+- `theme.mp3.mp3`
 
 If these files are not present, the game uses built-in Web Audio fallback sounds for click, open/close, cast, plop, nibble, strong bite, strike, catch success, escape, line break, coins, crafting, bait gathering, selling, and drying actions. This keeps the UI responsive without requiring external services or video files.
 

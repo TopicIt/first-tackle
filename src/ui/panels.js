@@ -301,7 +301,7 @@ function itemImage(itemId) {
   return itemImages[itemId] ? assetPath(itemImages[itemId]) : assetPath('/assets/items/tackle_components.png');
 }
 
-function marketSellMarkup(state) {
+function legacyMarketSellMarkup(state) {
   const freshEntries = getFishEntries(state, 'fresh');
   const freshValue = freshEntries.reduce((total, entry) => total + getFishSaleValue(state, entry), 0);
   const tarankaEntries = getFishEntries(state, 'taranka');
@@ -341,6 +341,70 @@ function marketSellMarkup(state) {
           <h3>${t('sellSmokedFish')}</h3>
           <p>${t('marketSmokedNote')}</p>
           <strong>${smokedEntries.length} В· ${smokedValue} ${t('coins').toLowerCase()}</strong>
+        </div>
+        <button data-action="sell:smoked" type="button"${smokedEntries.length === 0 ? ' disabled' : ''}>${t('sell')}</button>
+        ${marketReasonMarkup(smokedEntries.length === 0 ? t('reasonNoSmokedFish') : '')}
+      </article>
+    </div>
+  `;
+}
+
+function marketSellMarkup(state) {
+  const freshEntries = getFishEntries(state, 'fresh');
+  const freshGroups = getFreshFishSaleGroups(state);
+  const expanded = state.ui?.expandedMarketSpecies ?? {};
+  const freshValue = freshEntries.reduce((total, entry) => total + getFishSaleValue(state, entry), 0);
+  const tarankaEntries = getFishEntries(state, 'taranka');
+  const tarankaValue = tarankaEntries.reduce((total, entry) => total + getFishSaleValue(state, entry), 0);
+  const smokedEntries = getFishEntries(state, 'smoked');
+  const smokedValue = smokedEntries.reduce((total, entry) => total + getFishSaleValue(state, entry), 0);
+
+  return `
+    <div class="market-summary">
+      <p>${t('marketSellHint')}</p>
+      <strong>${t('freshFish')}: ${freshEntries.length} · ${freshValue} ${t('coins').toLowerCase()}</strong>
+    </div>
+    <section class="market-keepnet-sell">
+      <div class="market-keepnet-sell__head">
+        <div>
+          <p class="section-label">${t('sellFreshFish')}</p>
+          <p>${t('marketFreshKeepnetNote')}</p>
+        </div>
+      </div>
+      <div class="market-keepnet-sell__list">
+        ${freshGroups.length
+          ? freshGroups.map((group) => marketSpeciesSellMarkup(state, group, expanded[group.fishId])).join('')
+          : `<p class="empty-panel">${t('reasonNoFreshFish')}</p>`}
+      </div>
+    </section>
+    <p class="section-label">${t('marketBulkActions')}</p>
+    <div class="market-card-grid">
+      <article class="market-card">
+        <img src="${assetPath('/assets/fish/catch_result_frame.png')}" alt="" />
+        <div>
+          <h3>${t('sellFreshFish')}</h3>
+          <p>${t('marketFreshnessNote')}</p>
+          <strong>${freshValue} ${t('coins').toLowerCase()}</strong>
+        </div>
+        <button data-action="sell:fish" type="button"${freshEntries.length === 0 ? ' disabled' : ''}>${t('sell')}</button>
+        ${marketReasonMarkup(freshEntries.length === 0 ? t('reasonNoFreshFish') : '')}
+      </article>
+      <article class="market-card">
+        <img src="${assetPath('/assets/items/taranka_drying.png')}" alt="" />
+        <div>
+          <h3>${t('sellTaranka')}</h3>
+          <p>${t('marketTarankaNote')}</p>
+          <strong>${countFishByStatus(state, 'taranka')} · ${tarankaValue} ${t('coins').toLowerCase()}</strong>
+        </div>
+        <button data-action="sell:taranka" type="button"${tarankaEntries.length === 0 ? ' disabled' : ''}>${t('sell')}</button>
+        ${marketReasonMarkup(tarankaEntries.length === 0 ? t('reasonNoTaranka') : '')}
+      </article>
+      <article class="market-card">
+        <img src="${itemImage('smoker')}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
+        <div>
+          <h3>${t('sellSmokedFish')}</h3>
+          <p>${t('marketSmokedNote')}</p>
+          <strong>${smokedEntries.length} · ${smokedValue} ${t('coins').toLowerCase()}</strong>
         </div>
         <button data-action="sell:smoked" type="button"${smokedEntries.length === 0 ? ' disabled' : ''}>${t('sell')}</button>
         ${marketReasonMarkup(smokedEntries.length === 0 ? t('reasonNoSmokedFish') : '')}
@@ -414,6 +478,70 @@ function shopDescriptionKey(itemId) {
 
 function marketReasonMarkup(reason) {
   return reason ? `<small class="market-card__reason">${reason}</small>` : '';
+}
+
+function marketSpeciesSellMarkup(state, group, isExpanded) {
+  const fish = fishData.find((entry) => entry.id === group.fishId);
+  return `
+    <article class="market-fish-group">
+      <button class="market-fish-group__head" data-action="panel:toggle:marketSpecies:${group.fishId}" type="button">
+        <img src="${speciesImage(group.fishId)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
+        <span>${t(fish?.nameKey ?? group.fishId)}</span>
+        <strong>${t('marketGroupSummary', {
+          count: group.count,
+          total: group.totalWeight,
+          coins: group.totalValue,
+        })}</strong>
+      </button>
+      <div class="market-fish-group__actions">
+        <button data-action="sell:species:${group.fishId}" type="button">${t('sellSpecies')}</button>
+      </div>
+      ${isExpanded ? `
+        <div class="market-fish-entry-list">
+          ${group.entries.map((entry) => marketFishEntryMarkup(state, entry)).join('')}
+        </div>
+      ` : ''}
+    </article>
+  `;
+}
+
+function marketFishEntryMarkup(state, entry) {
+  const freshness = getFreshnessInfo(state, entry);
+  return `
+    <div class="market-fish-entry">
+      <div>
+        <span>${entry.weightGrams}g · ${t('freshness')}: ${t(freshness.key)}</span>
+        <small>${entry.catchSpotId ? t(getCastSpot(entry.catchSpotId).labelKey) : t('unknownSpot')}</small>
+      </div>
+      <strong>${getFishSaleValue(state, entry)} ${t('coins').toLowerCase()}</strong>
+      <button data-action="sell:entry:${entry.id}" type="button">${t('sell')}</button>
+    </div>
+  `;
+}
+
+function getFreshFishSaleGroups(state) {
+  const species = new Map();
+  for (const entry of getFishEntries(state, 'fresh')) {
+    const group = species.get(entry.fishId) ?? {
+      fishId: entry.fishId,
+      count: 0,
+      totalWeight: 0,
+      totalValue: 0,
+      entries: [],
+    };
+    group.count += 1;
+    group.totalWeight += entry.weightGrams;
+    group.totalValue += getFishSaleValue(state, entry);
+    group.entries.push(entry);
+    species.set(entry.fishId, group);
+  }
+
+  return [...species.values()]
+    .map((group) => ({
+      ...group,
+      entries: [...group.entries].sort((a, b) => b.weightGrams - a.weightGrams),
+    }))
+    .sort((a, b) => b.totalValue - a.totalValue);
 }
 
 function fishGuideMarkup(state) {

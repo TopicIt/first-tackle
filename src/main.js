@@ -84,6 +84,17 @@ const hud = createHud(hudRoot, {
         return;
       }
 
+      if (panelId.startsWith('marketSpecies:')) {
+        const fishId = panelId.replace('marketSpecies:', '');
+        gameState.ui.expandedMarketSpecies = {
+          ...(gameState.ui.expandedMarketSpecies ?? {}),
+          [fishId]: !gameState.ui.expandedMarketSpecies?.[fishId],
+        };
+        gameState.audioQueue.push('ui_click');
+        renderHud();
+        return;
+      }
+
       gameState.ui.collapsedPanels = {
         ...(gameState.ui.collapsedPanels ?? {}),
         [panelId]: !gameState.ui.collapsedPanels?.[panelId],
@@ -92,6 +103,13 @@ const hud = createHud(hudRoot, {
         closeSiblingPanels(gameState, panelId);
       }
       gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'scene:map') {
+      gameState.ui.activeScene = null;
+      closeFishingMinigame(gameState);
       renderHud();
       return;
     }
@@ -223,6 +241,52 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'minigame:back') {
       closeFishingMinigame(gameState);
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'minigame:menu') {
+      gameState.ui.activeScene = null;
+      closeFishingMinigame(gameState);
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'settings:debugCoins') {
+      gameState.money += 1000;
+      pushLog(gameState, 'logDebugCoins', { coins: 1000 });
+      gameState.audioQueue.push('coins');
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'settings:toggle3dFishing') {
+      gameState.settings.fishing.experimental3D = !gameState.settings.fishing.experimental3D;
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('music:mode:')) {
+      gameState.settings.audio.musicMode = actionId.replace('music:mode:', '');
+      gameState.audioQueue.push('ui_click');
+      audio.syncSettings(gameState.settings.audio);
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'music:next') {
+      gameState.settings.audio.musicTrackId = audio.playNextTrack();
+      gameState.audioQueue.push('ui_click');
+      audio.syncSettings(gameState.settings.audio);
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'music:random') {
+      gameState.settings.audio.musicTrackId = audio.playRandomTrack();
+      gameState.audioQueue.push('ui_click');
+      audio.syncSettings(gameState.settings.audio);
       renderHud();
       return;
     }

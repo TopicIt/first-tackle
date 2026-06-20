@@ -193,7 +193,7 @@
   border-color: rgb(255 255 255 / 8%);
   background: rgb(18 27 24 / 26%);
   box-shadow: none;
-  padding: 16px 58px 16px 16px;
+  padding: 16px;
 }
 
 .scene-header h2 {
@@ -209,28 +209,43 @@
   color: rgb(217 234 223 / 88%);
 }
 
+.scene-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .location-scene .scene-close,
+.location-scene .scene-map,
 .scene-action-grid button {
   min-height: 40px;
   padding: 10px 12px;
 }
 
-.location-scene .scene-close {
-  position: absolute;
-  right: 12px;
-  top: 12px;
+.location-scene .scene-close,
+.location-scene .scene-map {
   display: grid;
   place-items: center;
-  width: 34px;
-  min-height: 34px;
-  padding: 0;
   border: 1px solid rgb(255 255 255 / 16%);
-  border-radius: 999px;
   background: rgb(6 12 11 / 38%);
   color: #f7fff8;
+  backdrop-filter: blur(8px);
+}
+
+.location-scene .scene-close {
+  width: 34px;
+  min-height: 34px;
+  border-radius: 999px;
   font-size: 1.25rem;
   line-height: 1;
-  backdrop-filter: blur(8px);
+  padding: 0;
+}
+
+.location-scene .scene-map {
+  min-width: 82px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
 }
 
 .scene-body {
@@ -578,15 +593,20 @@
   }
 
   .scene-header {
-    padding: 13px 52px 13px 13px;
+    padding: 13px;
   }
 
   .location-scene .scene-close {
-    right: 10px;
-    top: 10px;
     width: 30px;
     min-height: 30px;
     font-size: 1.08rem;
+  }
+
+  .location-scene .scene-map {
+    min-width: 72px;
+    min-height: 32px;
+    font-size: 0.72rem;
+    padding: 6px 10px;
   }
 
   .scene-body {

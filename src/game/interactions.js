@@ -1,4 +1,4 @@
-import { buyShopItem, sellAllFish, sellSmokedFish, sellTaranka } from './economy.js';
+import { buyShopItem, sellAllFish, sellFishSpecies, sellSingleFish, sellSmokedFish, sellTaranka } from './economy.js';
 import {
   countFishByStatus,
   getFishEntries,
@@ -225,6 +225,20 @@ export function runAction(actionId, state, context = idleContext) {
       return;
     }
     sellAllFish(state);
+  }
+
+  if (actionId.startsWith('sell:entry:')) {
+    if (context.zoneId !== 'market') {
+      return;
+    }
+    sellSingleFish(state, actionId.replace('sell:entry:', ''));
+  }
+
+  if (actionId.startsWith('sell:species:')) {
+    if (context.zoneId !== 'market') {
+      return;
+    }
+    sellFishSpecies(state, actionId.replace('sell:species:', ''));
   }
 
   if (actionId === 'sell:taranka') {

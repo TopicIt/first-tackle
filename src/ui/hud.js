@@ -13,6 +13,7 @@ import { getLanguage, t } from '../i18n/i18n.js';
 
 export function createHud(root, handlers) {
   const shownFeedbackIds = new Set();
+  let panoramaDrag = null;
 
   root.addEventListener('input', (event) => {
     const input = event.target.closest('[data-audio-setting]');
@@ -59,6 +60,36 @@ export function createHud(root, handlers) {
     else if (action === 'reset') handlers.onReset();
     else handlers.onAction(action);
   });
+
+  root.addEventListener('pointerdown', (event) => {
+    const panorama = event.target.closest('[data-panorama-drag]');
+    if (!panorama || event.target.closest('button, input, label, summary')) {
+      return;
+    }
+
+    panoramaDrag = {
+      element: panorama,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startPan: Number(panorama.dataset.panoramaPan ?? 0),
+    };
+    panorama.classList.add('is-dragging');
+    panorama.setPointerCapture?.(event.pointerId);
+  });
+
+  root.addEventListener('pointermove', (event) => {
+    if (!panoramaDrag || panoramaDrag.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const nextPan = clamp(panoramaDrag.startPan + (event.clientX - panoramaDrag.startX) * 0.12, -24, 24);
+    panoramaDrag.element.dataset.panoramaPan = String(nextPan);
+    panoramaDrag.element.style.setProperty('--panorama-pan', `${nextPan}`);
+  });
+
+  root.addEventListener('pointerup', (event) => stopPanoramaDrag(event.pointerId));
+  root.addEventListener('pointercancel', (event) => stopPanoramaDrag(event.pointerId));
+  root.addEventListener('lostpointercapture', (event) => stopPanoramaDrag(event.pointerId));
 
   return {
     render(state, context) {
@@ -240,24 +271,72 @@ export function createHud(root, handlers) {
                 `).join('')}
               </div>
             </section>
-            <div class="audio-settings">
-              <label class="audio-toggle">
-                <input data-audio-setting="soundEnabled" type="checkbox"${state.settings.audio.soundEnabled ? ' checked' : ''} />
-                <span>${t('sound')}</span>
-              </label>
-              <label class="audio-toggle">
-                <input data-audio-setting="musicEnabled" type="checkbox"${state.settings.audio.musicEnabled ? ' checked' : ''} />
-                <span>${t('music')}</span>
-              </label>
-              <label class="audio-range">
-                <span>${t('sfxVolume')}</span>
-                <input data-audio-setting="sfxVolume" type="range" min="0" max="1" step="0.05" value="${state.settings.audio.sfxVolume}" />
-              </label>
-              <label class="audio-range">
-                <span>${t('musicVolume')}</span>
-                <input data-audio-setting="musicVolume" type="range" min="0" max="1" step="0.05" value="${state.settings.audio.musicVolume}" />
-              </label>
-            </div>
+            <section class="settings-block">
+              <p class="section-label">${t('sound')}</p>
+              <div class="audio-settings">
+                <label class="audio-toggle">
+                  <input data-audio-setting="soundEnabled" type="checkbox"${state.settings.audio.soundEnabled ? ' checked' : ''} />
+                  <span>${t('sound')}</span>
+                </label>
+                <label class="audio-toggle">
+                  <input data-audio-setting="musicEnabled" type="checkbox"${state.settings.audio.musicEnabled ? ' checked' : ''} />
+                  <span>${t('music')}</span>
+                </label>
+                <label class="audio-range">
+                  <span>${t('sfxVolume')}</span>
+                  <input data-audio-setting="sfxVolume" type="range" min="0" max="1" step="0.05" value="${state.settings.audio.sfxVolume}" />
+                </label>
+                <label class="audio-range">
+                  <span>${t('musicVolume')}</span>
+                  <input data-audio-setting="musicVolume" type="range" min="0" max="1" step="0.05" value="${state.settings.audio.musicVolume}" />
+                </label>
+              </div>
+            </section>
+            <section class="settings-block">
+              <p class="section-label">${t('music')}</p>
+              <div class="settings-info-card">
+                <span>${t('musicCurrentTrack')}</span>
+                <strong>${t(musicTrackLabelKey(state.settings.audio.musicTrackId))}</strong>
+                <small>${t('musicMode')}: ${t(`musicMode${toPascalCase(state.settings.audio.musicMode ?? 'fixed')}`)}</small>
+              </div>
+              <div class="hint-mode-grid">
+                ${['fixed', 'random'].map((mode) => `
+                  <button class="hint-mode${state.settings.audio.musicMode === mode ? ' is-selected' : ''}" data-action="music:mode:${mode}" type="button">
+                    ${t(`musicMode${toPascalCase(mode)}`)}
+                  </button>
+                `).join('')}
+              </div>
+              <div class="settings-action-row">
+                <button data-action="music:next" type="button">${t('musicNextTrack')}</button>
+                <button data-action="music:random" type="button">${t('musicRandomTrack')}</button>
+              </div>
+            </section>
+            <section class="settings-block">
+              <p class="section-label">${t('experimentalFeatures')}</p>
+              <div class="settings-flag-card">
+                <div>
+                  <strong>${t('experimental3DFishing')}</strong>
+                  <small>${t('experimental3DFishingNote')}</small>
+                </div>
+                <button
+                  class="hint-mode${state.settings?.fishing?.experimental3D ? ' is-selected' : ''}"
+                  data-action="settings:toggle3dFishing"
+                  type="button"
+                >
+                  ${state.settings?.fishing?.experimental3D ? t('enabled') : t('disabled')}
+                </button>
+              </div>
+            </section>
+            <section class="settings-block">
+              <p class="section-label">${t('debugTools')}</p>
+              <div class="settings-flag-card">
+                <div>
+                  <strong>${t('debugAddCoins')}</strong>
+                  <small>${t('debugCoinsHint')}</small>
+                </div>
+                <button data-action="settings:debugCoins" type="button">${t('debugAddCoins')}</button>
+              </div>
+            </section>
           </div>
         </section>
 
@@ -280,6 +359,15 @@ export function createHud(root, handlers) {
       }
     },
   };
+
+  function stopPanoramaDrag(pointerId) {
+    if (!panoramaDrag || panoramaDrag.pointerId !== pointerId) {
+      return;
+    }
+
+    panoramaDrag.element.classList.remove('is-dragging');
+    panoramaDrag = null;
+  }
 }
 
 function actionButtonMarkup(action) {
@@ -307,4 +395,16 @@ function panelToggleLabel(isCollapsed) {
 
 function toPascalCase(value) {
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function musicTrackLabelKey(trackId) {
+  return {
+    ambient_day: 'musicTrackAmbientDay',
+    ambient_evening: 'musicTrackAmbientEvening',
+    theme: 'musicTrackTheme',
+  }[trackId] ?? 'musicTrackAmbientDay';
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }

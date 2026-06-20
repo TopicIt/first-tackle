@@ -1,5 +1,5 @@
 import { getFishData } from './fishData.js';
-import { sellFishByStatus } from './fishInventory.js';
+import { sellFishByStatus, takeFishEntries, takeFishEntry } from './fishInventory.js';
 import { ensureMarketState, getFishSaleValue } from './market.js';
 import { ownTackleComponent } from './tackle.js';
 import { pushFeedback, pushLog, queueSound, shopItems } from './state.js';
@@ -7,55 +7,29 @@ import { addItem } from './inventory.js';
 
 export function sellAllFish(state) {
   ensureMarketState(state);
-  const soldEntries = sellFishByStatus(state, 'fresh');
-  const sold = soldEntries.length;
-  const earned = soldEntries.reduce((total, entry) => total + getFishSaleValue(state, entry), 0);
+  completeSale(state, sellFishByStatus(state, 'fresh'), 'logNoFishToSell', 'logSoldFish');
+}
 
-  if (sold === 0) {
-    pushLog(state, 'logNoFishToSell');
-    return;
-  }
+export function sellSingleFish(state, fishEntryId) {
+  ensureMarketState(state);
+  const entry = takeFishEntry(state, fishEntryId, (fish) => fish.status === 'fresh');
+  completeSale(state, entry ? [entry] : [], 'logNoFishToSell', 'logSoldFish');
+}
 
-  state.money += earned;
-  pushFeedback(state, 'feedbackCoins', { coins: earned }, 'coins');
-  pushLog(state, 'logSoldFish', { count: sold, coins: earned });
-  state.ui.catchResult = null;
-  queueSound(state, 'coins');
-  queueSound(state, 'sell_item');
+export function sellFishSpecies(state, fishId) {
+  ensureMarketState(state);
+  const soldEntries = takeFishEntries(state, (entry) => entry.status === 'fresh' && entry.fishId === fishId);
+  completeSale(state, soldEntries, 'logNoFishToSell', 'logSoldFish');
 }
 
 export function sellTaranka(state) {
   ensureMarketState(state);
-  const soldEntries = sellFishByStatus(state, 'taranka');
-  const amount = soldEntries.length;
-  if (amount === 0) {
-    pushLog(state, 'logNoTaranka');
-    return;
-  }
-
-  const earned = soldEntries.reduce((total, entry) => total + getFishSaleValue(state, entry), 0);
-  state.money += earned;
-  pushFeedback(state, 'feedbackCoins', { coins: earned }, 'coins');
-  pushLog(state, 'logSoldTaranka', { count: amount, coins: earned });
-  queueSound(state, 'coins');
-  queueSound(state, 'sell_item');
+  completeSale(state, sellFishByStatus(state, 'taranka'), 'logNoTaranka', 'logSoldTaranka');
 }
 
 export function sellSmokedFish(state) {
   ensureMarketState(state);
-  const soldEntries = sellFishByStatus(state, 'smoked');
-  const amount = soldEntries.length;
-  if (amount === 0) {
-    pushLog(state, 'logNoSmokedFish');
-    return;
-  }
-
-  const earned = soldEntries.reduce((total, entry) => total + getFishSaleValue(state, entry), 0);
-  state.money += earned;
-  pushFeedback(state, 'feedbackCoins', { coins: earned }, 'coins');
-  pushLog(state, 'logSoldSmokedFish', { count: amount, coins: earned });
-  queueSound(state, 'coins');
-  queueSound(state, 'sell_item');
+  completeSale(state, sellFishByStatus(state, 'smoked'), 'logNoSmokedFish', 'logSoldSmokedFish');
 }
 
 export function buyShopItem(state, itemId) {
@@ -124,4 +98,20 @@ function getShopItemKey(itemId) {
     hooksPack: 'itemHooksPack',
   };
   return labels[itemId] ?? itemId;
+}
+
+function completeSale(state, soldEntries, emptyLogKey, successLogKey) {
+  const sold = soldEntries.length;
+  if (sold === 0) {
+    pushLog(state, emptyLogKey);
+    return;
+  }
+
+  const earned = soldEntries.reduce((total, entry) => total + getFishSaleValue(state, entry), 0);
+  state.money += earned;
+  pushFeedback(state, 'feedbackCoins', { coins: earned }, 'coins');
+  pushLog(state, successLogKey, { count: sold, coins: earned });
+  state.ui.catchResult = null;
+  queueSound(state, 'coins');
+  queueSound(state, 'sell_item');
 }

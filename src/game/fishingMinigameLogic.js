@@ -298,6 +298,7 @@ export function keepCatch(state) {
     return;
   }
 
+  hideBobber(minigame);
   minigame.statusKey = 'fishingMovedToKeepnet';
   minigame.result = null;
   minigame.currentCatchEntryId = null;
@@ -311,6 +312,7 @@ export function releaseCurrentCatch(state) {
   }
 
   releaseFish(state, minigame.currentCatchEntryId);
+  hideBobber(minigame);
   minigame.statusKey = 'fishingReleased';
   minigame.result = null;
   minigame.currentCatchEntryId = null;
@@ -341,6 +343,7 @@ export function useCatchAsLiveBait(state) {
   }
 
   minigame.statusKey = 'fishingLiveBaitReady';
+  hideBobber(minigame);
   minigame.result = null;
   minigame.currentCatchEntryId = null;
   state.ui.catchResult = null;
@@ -680,6 +683,7 @@ function resolveMinigameResult(state, result) {
   }
 
   minigame.phase = 'result';
+  hideBobber(minigame);
   minigame.result = result;
   minigame.statusKey = result.statusKey;
   queueSound(state, result.sound);
@@ -961,6 +965,10 @@ function getWaitingStatusKey(state) {
 
 function randomBetween(min, max) {
   return min + Math.random() * (max - min);
+}
+
+function hideBobber(minigame) {
+  minigame.bobberState = 'hidden';
 }
 
 function rollCastTarget(state, minigame, spot) {

@@ -60,7 +60,10 @@ export function locationSceneMarkup(state, context) {
             <h2>${t(config.titleKey)}</h2>
             <p>${t(config.descriptionKey)}</p>
           </div>
-          <button class="scene-close" data-scene-close="true" type="button" aria-label="${t('close')}">&times;</button>
+          <div class="scene-header__actions">
+            <button class="scene-map" data-action="scene:map" type="button">${t('backToMap')}</button>
+            <button class="scene-close" data-scene-close="true" type="button" aria-label="${t('close')}">&times;</button>
+          </div>
         </header>
 
         <div class="scene-body">

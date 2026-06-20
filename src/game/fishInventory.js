@@ -104,11 +104,44 @@ export function advanceFishStatus(state, fromStatus, toStatus, amount = 1, predi
 }
 
 export function sellFishByStatus(state, status) {
+  return takeFishEntries(state, (entry) => entry.status === status);
+}
+
+export function takeFishEntry(state, fishEntryId, predicate = null) {
   ensureFishState(state);
-  const soldEntries = state.fishBasket.filter((entry) => entry.status === status);
-  state.fishBasket = state.fishBasket.filter((entry) => entry.status !== status);
+  const index = state.fishBasket.findIndex((entry) => (
+    entry.id === fishEntryId &&
+    (!predicate || predicate(entry))
+  ));
+  if (index < 0) {
+    return null;
+  }
+
+  const [entry] = state.fishBasket.splice(index, 1);
   syncInventoryFromFishBasket(state);
-  return soldEntries;
+  return entry;
+}
+
+export function takeFishEntries(state, predicate) {
+  ensureFishState(state);
+  const keptEntries = [];
+  const takenEntries = [];
+
+  for (const entry of state.fishBasket) {
+    if (predicate(entry)) {
+      takenEntries.push(entry);
+      continue;
+    }
+    keptEntries.push(entry);
+  }
+
+  if (takenEntries.length === 0) {
+    return [];
+  }
+
+  state.fishBasket = keptEntries;
+  syncInventoryFromFishBasket(state);
+  return takenEntries;
 }
 
 export function markFishAsLiveBait(state, fishEntryId) {
