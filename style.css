@@ -285,6 +285,10 @@ button:disabled {
   margin-top: 10px;
 }
 
+.mobile-menu {
+  display: none;
+}
+
 .main-menu button {
   flex: 1 1 82px;
   min-height: 32px;
@@ -307,6 +311,15 @@ button:disabled {
   border-radius: 6px;
   background: rgb(255 255 255 / 7%);
   padding: 8px 9px;
+}
+
+.settings-block {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 7%);
+  padding: 9px;
 }
 
 .audio-toggle,
@@ -831,26 +844,89 @@ button:disabled {
   }
 
   .main-menu {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
+    display: none;
   }
 
-  .main-menu button {
+  .mobile-menu {
+    position: relative;
+    display: block;
+    margin-top: 8px;
+  }
+
+  .mobile-menu summary {
+    display: grid;
+    place-items: center;
     min-height: 38px;
-    font-size: 0.68rem;
-    padding: 5px;
+    border-radius: 999px;
+    background: #f3c45f;
+    color: #14221d;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 900;
+    list-style: none;
+  }
+
+  .mobile-menu summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .mobile-menu[open] {
+    z-index: 90;
+  }
+
+  .mobile-menu[open]::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: rgb(6 12 11 / 42%);
+  }
+
+  .mobile-menu__list,
+  .mobile-menu__service {
+    display: grid;
+    gap: 6px;
+    margin-top: 7px;
+    border-radius: 14px;
+    background: rgb(12 21 20 / 96%);
+    padding: 8px;
+    box-shadow: 0 18px 42px rgb(0 0 0 / 30%);
+  }
+
+  .mobile-menu[open] .mobile-menu__list {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    top: 72px;
+    z-index: 95;
+    margin: 0;
+  }
+
+  .mobile-menu[open] .mobile-menu__service {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    top: 404px;
+    z-index: 95;
+    margin: 0;
+  }
+
+  .mobile-menu__list button,
+  .mobile-menu__service button {
+    min-height: 36px;
+    border: 1px solid rgb(255 255 255 / 12%);
+    background: rgb(238 241 232 / 90%);
+    color: #14221d;
+    font-size: 0.78rem;
+    padding: 7px 9px;
+  }
+
+  .mobile-menu__list button.is-active {
+    background: #f3c45f;
   }
 
   .save-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  .save-row button {
-    min-width: 0;
-    font-size: 0.72rem;
-    padding: 7px 5px;
+    display: none;
   }
 
   .inventory-panel,
@@ -905,11 +981,25 @@ button:disabled {
 
   .market-card {
     grid-template-columns: 46px 1fr;
+    gap: 8px;
+    padding: 7px;
   }
 
   .market-card button {
     grid-column: 1 / -1;
     width: 100%;
+    min-height: 34px;
+    font-size: 0.78rem;
+  }
+
+  .market-card p {
+    display: none;
+  }
+
+  .market-tabs button {
+    min-height: 34px;
+    font-size: 0.78rem;
+    padding: 6px;
   }
 
   .market-price-grid {

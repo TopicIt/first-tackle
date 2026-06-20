@@ -71,17 +71,6 @@ export function fishingMinigameMarkup(state) {
             </section>
 
             <section class="fishing-panel">
-              <p class="section-label">${t('biteHints')}</p>
-              <div class="hint-mode-grid">
-                ${['beginner', 'subtle', 'off'].map((mode) => `
-                  <button class="hint-mode${hintMode === mode ? ' is-selected' : ''}" data-action="biteHints:${mode}" type="button">
-                    ${t(`biteHints${toPascalCase(mode)}`)}
-                  </button>
-                `).join('')}
-              </div>
-            </section>
-
-            <section class="fishing-panel">
               <p class="section-label">${t('chooseBait')}</p>
               <div class="bait-grid">
                 ${getAvailableBaits(state).map((bait) => baitButtonMarkup(bait, minigame.selectedBait)).join('')}
@@ -133,6 +122,7 @@ export function fishingMinigameMarkup(state) {
                 ${getAvailableCastSpots(state, minigame.method).map((spot) => castSpotMarkup(spot, minigame.selectedSpot)).join('')}
                 ${selectedScatterMarkup(state, minigame)}
               </div>
+              ${selectedSpotChip(minigame)}
               <div class="fishing-stage__waterline" aria-hidden="true"></div>
               <div class="fishing-stage__distance-line" aria-hidden="true"></div>
               <div class="fishing-stage__rings fishing-stage__rings--${minigame.bobberState}"></div>
@@ -222,6 +212,11 @@ function selectedScatterMarkup(state, minigame) {
   `;
 }
 
+function selectedSpotChip(minigame) {
+  const spot = minigame.selectedSpot ? getCastSpot(minigame.selectedSpot) : null;
+  return spot ? `<span class="fishing-spot-chip">${t(spot.labelKey)}</span>` : '';
+}
+
 function catchResultCardMarkup(state, fish, result, minigame, collapsedPanels) {
   const image = getCatchImage(result.id);
   const entry = state.fishBasket?.find((item) => item.id === minigame.currentCatchEntryId);
@@ -253,6 +248,7 @@ function catchResultCardMarkup(state, fish, result, minigame, collapsedPanels) {
         <button data-action="minigame:keep" type="button">${t('moveToKeepnet')}</button>
         <button data-action="minigame:liveBait" type="button"${liveBaitDisabled}>${t('useAsLiveBait')}</button>
         <button data-action="minigame:release" type="button">${t('release')}</button>
+        <button data-action="minigame:keep" type="button">${t('close')}</button>
         <button data-action="minigame:castAgain" type="button">${t('castAgain')}</button>
         <button data-action="minigame:back" type="button">${t('backToPond')}</button>
       </div>

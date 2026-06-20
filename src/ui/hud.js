@@ -89,6 +89,25 @@ export function createHud(root, handlers) {
             </div>
             <p class="hint"><strong>${context.zoneLabel}</strong><br>${context.hint}</p>
             <p class="clock-line">${t('dayLabel', { day: state.day })} · ${t(`timePhase${toPascalCase(context.timePhase ?? 'morning')}`)} · ${context.clock ?? ''}</p>
+            <details class="mobile-menu">
+              <summary>${t('menu')}</summary>
+              <nav class="mobile-menu__list">
+                ${menuButton('inventory', 'inventory', collapsedPanels)}
+                ${menuButton('keepnet', 'keepnet', collapsedPanels)}
+                ${menuButton('tackle', 'tackle', collapsedPanels)}
+                ${menuButton('market', 'market', collapsedPanels)}
+                ${menuButton('guide', 'fishermanGuide', collapsedPanels)}
+                ${menuButton('journal', 'catchJournal', collapsedPanels)}
+                ${menuButton('profile', 'profile', collapsedPanels)}
+                ${menuButton('settings', 'settings', collapsedPanels)}
+              </nav>
+              <div class="mobile-menu__service">
+                <button data-action="save" type="button">${t('save')}</button>
+                <button data-action="load" type="button">${t('load')}</button>
+                <button data-action="reset" type="button">${t('reset')}</button>
+                <button data-language-toggle="true" type="button" aria-label="Switch language">${getLanguage().toUpperCase()} / ${t('languageToggle')}</button>
+              </div>
+            </details>
             <nav class="main-menu">
               ${menuButton('inventory', 'inventory', collapsedPanels)}
               ${menuButton('keepnet', 'keepnet', collapsedPanels)}
@@ -208,6 +227,16 @@ export function createHud(root, handlers) {
             </button>
           </div>
           <div class="panel-collapsible">
+            <section class="settings-block">
+              <p class="section-label">${t('biteHints')}</p>
+              <div class="hint-mode-grid">
+                ${['beginner', 'subtle', 'off'].map((mode) => `
+                  <button class="hint-mode${state.settings?.fishing?.biteHints === mode ? ' is-selected' : ''}" data-action="biteHints:${mode}" type="button">
+                    ${t(`biteHints${toPascalCase(mode)}`)}
+                  </button>
+                `).join('')}
+              </div>
+            </section>
             <div class="audio-settings">
               <label class="audio-toggle">
                 <input data-audio-setting="soundEnabled" type="checkbox"${state.settings.audio.soundEnabled ? ' checked' : ''} />
