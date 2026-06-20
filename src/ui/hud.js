@@ -7,6 +7,7 @@ import {
   tackleMarkup,
 } from './panels.js';
 import { locationSceneMarkup } from './locationScene.js';
+import { locationTransitionMarkup } from './locationTransition.js';
 import { mapOverlayMarkup } from './mapOverlay.js';
 import { getLanguage, t } from '../i18n/i18n.js';
 
@@ -70,6 +71,7 @@ export function createHud(root, handlers) {
     if (action === 'save') handlers.onSave();
     else if (action === 'load') handlers.onLoad();
     else if (action === 'reset') handlers.onReset();
+    else if (action === 'transition:skip') handlers.onTransitionDone();
     else handlers.onAction(action);
   });
 
@@ -230,6 +232,18 @@ export function createHud(root, handlers) {
               </div>
             </section>
             <section class="settings-block">
+              <p class="section-label">${t('transitionAnimations')}</p>
+              <div class="settings-flag-card">
+                <div>
+                  <strong>${state.settings?.transitions?.enabled === false ? t('disabled') : t('enabled')}</strong>
+                  <small>${t('transitionAnimationsHint')}</small>
+                </div>
+                <button data-action="transitions:toggle" type="button">
+                  ${state.settings?.transitions?.enabled === false ? t('enableTransitions') : t('disableTransitions')}
+                </button>
+              </div>
+            </section>
+            <section class="settings-block">
               <p class="section-label">${t('cheats')}</p>
               <form class="cheat-form" data-cheat-form>
                 <input data-cheat-input type="text" inputmode="text" placeholder="+1000" autocomplete="off" />
@@ -273,15 +287,54 @@ export function createHud(root, handlers) {
         </section>
 
         ${locationSceneMarkup(renderState, context)}
+        ${locationTransitionMarkup(state.ui?.locationTransition)}
       `;
 
       for (const feedback of visibleFeedback) {
         shownFeedbackIds.add(feedback.id);
       }
 
+      setupLocationTransition(root, state, handlers);
     },
   };
 
+}
+
+function setupLocationTransition(root, state, handlers) {
+  if (!state.ui?.locationTransition) {
+    return;
+  }
+
+  const video = root.querySelector('[data-transition-video]');
+  if (!video) {
+    window.setTimeout(handlers.onTransitionDone, 650);
+    return;
+  }
+
+  let finished = false;
+  const finish = () => {
+    if (finished) {
+      return;
+    }
+    finished = true;
+    handlers.onTransitionDone();
+  };
+  const fallback = () => window.setTimeout(finish, 450);
+
+  video.addEventListener('ended', finish, { once: true });
+  video.addEventListener('error', fallback, { once: true });
+  video.addEventListener('stalled', fallback, { once: true });
+
+  const playResult = video.play();
+  if (playResult?.catch) {
+    playResult.catch(fallback);
+  }
+
+  window.setTimeout(() => {
+    if (!finished && video.readyState === 0) {
+      fallback();
+    }
+  }, 450);
 }
 
 function actionButtonMarkup(action) {

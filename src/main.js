@@ -31,6 +31,7 @@ import { ensureMarketState, freshFishAtRisk } from './game/market.js';
 import { ensureTackleState, equipTackleComponent, getRigMethod, selectActiveRig } from './game/tackle.js';
 import { ensureTimeState, formatGameTime, getTimePhase } from './game/time.js';
 import { canOpenWaterFromMap, getFishingLocation, getLockedReasonKey, isFishingLocation } from './game/locations.js';
+import { getLocationTransition, shouldUseLocationTransitions } from './game/locationTransitions.js';
 import { arriveAtWater } from './game/travel.js';
 import { createHud } from './ui/hud.js';
 import { updateMapOverlayMotion } from './ui/mapOverlay.js';
@@ -44,6 +45,7 @@ ensureFishState(gameState);
 ensureMarketState(gameState);
 ensureTackleState(gameState);
 ensureTimeState(gameState);
+normalizeTransitionSettings(gameState);
 normalizePanelStateForViewport(gameState);
 pushLog(gameState, 'logMorning');
 
@@ -74,6 +76,9 @@ const hud = createHud(hudRoot, {
         }
         arriveAtWater(gameState, sceneId);
         renderHud();
+        return;
+      }
+      if (startLocationTransition(sceneId)) {
         return;
       }
       gameState.ui.activeScene = sceneId;
@@ -190,6 +195,17 @@ const hud = createHud(hudRoot, {
 
     if (actionId.startsWith('biteHints:')) {
       setBiteHintMode(gameState, actionId.replace('biteHints:', ''));
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'transitions:toggle') {
+      gameState.settings.transitions = {
+        ...(gameState.settings.transitions ?? {}),
+        enabled: !gameState.settings.transitions?.enabled,
+        explicit: true,
+      };
+      gameState.audioQueue.push('ui_click');
       renderHud();
       return;
     }
@@ -326,6 +342,9 @@ const hud = createHud(hudRoot, {
     audio.syncSettings(gameState.settings.audio);
     renderHud();
   },
+  onTransitionDone() {
+    finishLocationTransition();
+  },
   onCheat(value) {
     const match = String(value).trim().match(/^\+(\d{1,7})$/);
     const coins = match ? Number(match[1]) : 0;
@@ -357,6 +376,7 @@ const hud = createHud(hudRoot, {
       ensureMarketState(gameState);
       ensureTackleState(gameState);
       ensureTimeState(gameState);
+      normalizeTransitionSettings(gameState);
       normalizePanelStateForViewport(gameState);
       player.restore(gameState.player);
       audio.syncSettings(gameState.settings.audio);
@@ -374,6 +394,7 @@ const hud = createHud(hudRoot, {
     ensureMarketState(gameState);
     ensureTackleState(gameState);
     ensureTimeState(gameState);
+    normalizeTransitionSettings(gameState);
     normalizePanelStateForViewport(gameState);
     player.restore(gameState.player);
     audio.syncSettings(gameState.settings.audio);
@@ -416,6 +437,49 @@ function normalizePanelStateForViewport(state) {
   }
 }
 
+function normalizeTransitionSettings(state) {
+  state.settings ??= {};
+  state.settings.transitions = {
+    enabled: true,
+    explicit: false,
+    ...(state.settings.transitions ?? {}),
+  };
+
+  if (
+    typeof window !== 'undefined'
+    && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    && !state.settings.transitions.explicit
+  ) {
+    state.settings.transitions.enabled = false;
+  }
+}
+
+function startLocationTransition(sceneId) {
+  const transition = getLocationTransition(sceneId);
+  if (!transition || !shouldUseLocationTransitions(gameState)) {
+    return false;
+  }
+
+  gameState.ui.locationTransition = transition;
+  gameState.ui.selectedHotspot = sceneId;
+  gameState.audioQueue.push('open_scene');
+  renderHud();
+  return true;
+}
+
+function finishLocationTransition() {
+  const transition = gameState.ui.locationTransition;
+  if (!transition) {
+    return;
+  }
+
+  gameState.ui.locationTransition = null;
+  gameState.ui.activeScene = transition.targetScene;
+  gameState.ui.selectedHotspot = transition.targetScene;
+  gameState.audioQueue.push('open_scene');
+  renderHud();
+}
+
 function renderHud() {
   const context = gameState.ui.activeScene
     ? getLocationSceneContext(gameState, gameState.ui.activeScene)
@@ -429,6 +493,7 @@ function renderHud() {
     purchased: gameState.purchased,
     audio: gameState.settings.audio,
     fishingSettings: gameState.settings.fishing,
+    transitionSettings: gameState.settings.transitions,
     fishBasket: gameState.fishBasket,
     catchJournal: gameState.catchJournal,
     trophies: gameState.trophies,

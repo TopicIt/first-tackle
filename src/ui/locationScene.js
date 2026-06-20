@@ -5,13 +5,14 @@ import { getFishData } from '../game/fishData.js';
 import { getFishingLocation, isFishingLocation } from '../game/locations.js';
 import { t, translateEntry } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
-import { getLocationImage } from '../utils/locationAsset.js';
+import { getLocationImage, getLocationImageFallback } from '../utils/locationAsset.js';
 
 const sceneConfigs = {
   house: {
     titleKey: 'sceneHouseTitle',
     descriptionKey: 'sceneHouseDescription',
-    image: assetPath('/assets/locations/house_location_concept.png'),
+    image: getLocationImage('house'),
+    fallbackImage: getLocationImageFallback('house'),
     bgClass: 'scene-bg--slow-zoom',
     effects: ['scene-light-sweep', 'scene-floating-dust', 'scene-cloud-shadow', 'scene-warm-haze'],
   },
@@ -40,6 +41,7 @@ const sceneConfigs = {
     titleKey: 'sceneFishingSelectTitle',
     descriptionKey: 'sceneFishingSelectDescription',
     image: getLocationImage('canal'),
+    fallbackImage: getLocationImageFallback('canal'),
     bgClass: 'scene-bg--slow-zoom',
     effects: ['scene-water-ripples', 'scene-cloud-shadow'],
   },
@@ -53,10 +55,10 @@ export function locationSceneMarkup(state, context) {
   }
 
   return `
-    <section class="location-scene" aria-label="${t(config.titleKey)} ${t('location')}">
+    <section class="location-scene location-scene--${sceneId}" aria-label="${t(config.titleKey)} ${t('location')}">
       <div
         class="scene-bg ${config.bgClass}"
-        style="background-image: url('${config.image}')"
+        style="${sceneBackgroundStyle(config)}"
         aria-hidden="true"
       ></div>
       <div class="scene-vignette" aria-hidden="true"></div>
@@ -188,7 +190,17 @@ function fishingSceneConfig(sceneId) {
     titleKey: location.titleKey,
     descriptionKey: location.descriptionKey,
     image: getLocationImage(location.imageId),
+    fallbackImage: getLocationImageFallback(location.imageId),
     bgClass: 'scene-bg--slow-zoom',
     effects: ['scene-water-ripples', 'scene-bobber', 'scene-cloud-shadow'],
   };
+}
+
+function sceneBackgroundStyle(config) {
+  const images = [
+    config.image ? `url('${config.image}')` : '',
+    config.fallbackImage ? `url('${config.fallbackImage}')` : '',
+  ].filter(Boolean);
+
+  return `background-image: ${images.join(', ')}`;
 }

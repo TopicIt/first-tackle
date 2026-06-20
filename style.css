@@ -1125,7 +1125,7 @@ button:disabled {
     position: fixed;
     inset: 0;
     z-index: -1;
-    background: rgb(6 12 11 / 42%);
+    background: rgb(6 12 11 / 12%);
   }
 
   .mobile-menu__sheet {
@@ -1135,36 +1135,38 @@ button:disabled {
   .mobile-menu[open] .mobile-menu__sheet {
     position: fixed;
     left: 8px;
-    right: 8px;
+    right: auto;
     top: calc(max(8px, env(safe-area-inset-top)) + 52px);
-    bottom: max(8px, env(safe-area-inset-bottom));
+    max-height: calc(100dvh - 68px - env(safe-area-inset-bottom));
+    width: min(220px, calc(100vw - 16px));
     z-index: 95;
     display: grid;
     align-content: start;
     gap: 10px;
     overflow-y: auto;
-    border: 1px solid rgb(255 255 255 / 10%);
-    border-radius: 18px;
-    background: rgb(12 21 20 / 97%);
-    padding: 14px 14px calc(22px + env(safe-area-inset-bottom));
-    box-shadow: 0 22px 48px rgb(0 0 0 / 34%);
+    border: 1px solid rgb(255 255 255 / 14%);
+    border-radius: 14px;
+    background: rgb(8 16 15 / 22%);
+    padding: 10px 10px calc(16px + env(safe-area-inset-bottom));
+    box-shadow: 0 18px 36px rgb(0 0 0 / 20%);
+    backdrop-filter: blur(6px);
   }
 
   .mobile-menu__list,
   .mobile-menu__service {
     display: grid;
     gap: 6px;
-    border-radius: 14px;
-    background: rgb(255 255 255 / 4%);
-    padding: 8px;
+    border-radius: 12px;
+    background: rgb(0 0 0 / 8%);
+    padding: 6px;
   }
 
   .mobile-menu__list button,
   .mobile-menu__service button {
     min-height: 44px;
-    border: 1px solid rgb(255 255 255 / 12%);
-    background: rgb(238 241 232 / 90%);
-    color: #14221d;
+    border: 1px solid rgb(255 255 255 / 16%);
+    background: rgb(245 244 232 / 58%);
+    color: #12201c;
     font-size: 0.78rem;
     padding: 7px 9px;
   }

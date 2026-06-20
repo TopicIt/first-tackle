@@ -64,6 +64,10 @@ function mergeState(base, saved) {
         ...base.settings.fishing,
         ...(saved.settings?.fishing ?? {}),
       },
+      transitions: {
+        ...base.settings.transitions,
+        ...(saved.settings?.transitions ?? {}),
+      },
     },
     purchased: {
       ...base.purchased,
@@ -139,6 +143,7 @@ function mergeState(base, saved) {
         ...base.ui.expandedMarketSpecies,
         ...(saved.ui?.expandedMarketSpecies ?? {}),
       },
+      locationTransition: null,
     },
     feedback: Array.isArray(saved.feedback) ? saved.feedback.slice(0, 4) : base.feedback,
     log: Array.isArray(saved.log) ? saved.log.slice(0, 6) : base.log,

@@ -1,3 +1,5 @@
+export const MAP_HOTSPOT_DEBUG = false;
+
 export const MAP_HOTSPOTS = [
   {
     id: 'house',
@@ -7,6 +9,7 @@ export const MAP_HOTSPOTS = [
     width: 19,
     height: 16,
     scene: 'house',
+    action: 'open:house',
     labelKey: 'zoneHouse',
     actionKey: 'openHouse',
   },
@@ -18,6 +21,7 @@ export const MAP_HOTSPOTS = [
     width: 20,
     height: 17,
     scene: 'garden',
+    action: 'open:garden',
     labelKey: 'zoneGarden',
     actionKey: 'openGarden',
   },
@@ -29,6 +33,7 @@ export const MAP_HOTSPOTS = [
     width: 28,
     height: 20,
     scene: 'fishing_select',
+    action: 'open:fishing_select',
     labelKey: 'mapFishing',
     actionKey: 'openFishingSelect',
   },
@@ -40,6 +45,7 @@ export const MAP_HOTSPOTS = [
     width: 28,
     height: 19,
     scene: 'market',
+    action: 'open:market',
     labelKey: 'zoneMarket',
     actionKey: 'openMarket',
   },
@@ -51,6 +57,7 @@ export const MAP_HOTSPOTS = [
     width: 25,
     height: 17,
     scene: 'bus_station',
+    action: 'open:bus_station',
     labelKey: 'zoneBusStation',
     actionKey: 'openBusStation',
   },

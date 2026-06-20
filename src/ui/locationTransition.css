@@ -1,0 +1,83 @@
+.location-transition {
+  pointer-events: auto;
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  overflow: hidden;
+  background: #101613;
+  animation: transitionFadeIn 180ms ease-out both;
+}
+
+.location-transition__media,
+.location-transition__fallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.location-transition__media {
+  background: #101613;
+}
+
+.location-transition__fallback {
+  opacity: 0.92;
+  transform: scale(1.04);
+  animation: transitionFallbackZoom 860ms ease-out both;
+}
+
+.location-transition__shade {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 42%, transparent 0 38%, rgb(0 0 0 / 26%) 100%),
+    linear-gradient(180deg, rgb(0 0 0 / 18%), transparent 36%, rgb(0 0 0 / 24%));
+}
+
+.location-transition__skip {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: 12px;
+  min-height: 38px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 999px;
+  background: rgb(5 12 11 / 28%);
+  color: #fff8df;
+  font-size: 0.78rem;
+  font-weight: 850;
+  padding: 8px 12px;
+  text-shadow: 0 1px 4px rgb(0 0 0 / 70%);
+  backdrop-filter: blur(6px);
+}
+
+.location-transition__fallback-note {
+  position: absolute;
+  left: 50%;
+  bottom: max(26px, calc(26px + env(safe-area-inset-bottom)));
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgb(5 12 11 / 28%);
+  color: #fff8df;
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 7px 10px;
+  text-shadow: 0 1px 4px rgb(0 0 0 / 70%);
+}
+
+@keyframes transitionFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes transitionFallbackZoom {
+  from { transform: scale(1.08); }
+  to { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .location-transition,
+  .location-transition__fallback {
+    animation-duration: 1ms;
+  }
+}

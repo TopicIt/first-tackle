@@ -16,6 +16,13 @@
   will-change: transform;
 }
 
+.location-scene--house .scene-vignette,
+.location-scene--fishing_select .scene-vignette {
+  background:
+    radial-gradient(circle at 50% 42%, rgb(255 255 255 / 0%) 0 48%, rgb(0 0 0 / 24%) 100%),
+    linear-gradient(90deg, rgb(5 12 10 / 34%), transparent 44%, rgb(5 12 10 / 34%));
+}
+
 .scene-bg--slow-pan {
   animation: sceneSlowPan 34s ease-in-out infinite alternate;
 }
@@ -185,6 +192,23 @@
   backdrop-filter: blur(9px);
 }
 
+.location-scene--house .scene-header,
+.location-scene--house .scene-actions,
+.location-scene--house .scene-log,
+.location-scene--fishing_select .scene-header,
+.location-scene--fishing_select .scene-actions {
+  border-color: rgb(255 255 255 / 14%);
+  background: rgb(6 12 11 / 18%);
+  box-shadow: none;
+  text-shadow: 0 1px 8px rgb(0 0 0 / 70%);
+  backdrop-filter: blur(3px);
+}
+
+.location-scene--house .scene-header,
+.location-scene--fishing_select .scene-header {
+  max-width: min(740px, 100%);
+}
+
 .scene-header {
   position: relative;
   display: flex;
@@ -258,6 +282,16 @@
   min-height: 0;
 }
 
+.location-scene--house .scene-body {
+  grid-template-columns: minmax(220px, 360px) minmax(180px, 260px);
+  align-content: end;
+  justify-content: start;
+}
+
+.location-scene--house .scene-log {
+  max-height: 160px;
+}
+
 .scene-actions,
 .fish-card,
 .scene-log {
@@ -303,6 +337,23 @@
   gap: 4px;
   align-content: center;
   background: #f3c45f;
+}
+
+.location-scene--house .scene-action-grid,
+.location-scene--fishing_select .scene-action-grid {
+  grid-template-columns: 1fr;
+}
+
+.location-scene--house .scene-action-grid button,
+.location-scene--fishing_select .scene-action-grid button {
+  min-height: 38px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 999px;
+  background: rgb(255 250 230 / 72%);
+  box-shadow: none;
+  color: #13211d;
+  font-size: 0.82rem;
+  padding: 8px 12px;
 }
 
 .scene-action-grid button small {
@@ -587,6 +638,26 @@
     padding: 13px;
   }
 
+  .location-scene--house .scene-shell,
+  .location-scene--fishing_select .scene-shell {
+    align-content: end;
+  }
+
+  .location-scene--house .scene-header,
+  .location-scene--fishing_select .scene-header {
+    padding: 12px;
+  }
+
+  .location-scene--house .scene-header h2,
+  .location-scene--fishing_select .scene-header h2 {
+    font-size: 1.55rem;
+  }
+
+  .location-scene--house .scene-header p,
+  .location-scene--fishing_select .scene-header p {
+    font-size: 0.9rem;
+  }
+
   .location-scene .scene-close {
     width: 30px;
     min-height: 30px;
@@ -604,6 +675,17 @@
     grid-template-columns: 1fr;
     overflow-y: auto;
     padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .location-scene--house .scene-body,
+  .location-scene--fishing_select .scene-body {
+    align-content: end;
+    gap: 10px;
+  }
+
+  .location-scene--house .scene-actions,
+  .location-scene--fishing_select .scene-actions {
+    padding: 10px;
   }
 
   .scene-log {

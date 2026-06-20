@@ -164,6 +164,10 @@ export function createInitialState() {
       fishing: {
         biteHints: 'subtle',
       },
+      transitions: {
+        enabled: true,
+        explicit: false,
+      },
     },
     audioQueue: [],
     ui: {
@@ -186,6 +190,7 @@ export function createInitialState() {
       expandedMarketSpecies: {},
       guideTab: 'fish',
       marketTab: 'sell',
+      locationTransition: null,
     },
     feedback: [],
     log: [],
