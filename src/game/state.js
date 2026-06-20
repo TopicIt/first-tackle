@@ -17,9 +17,30 @@ export const shopItems = [
   },
   {
     id: 'simpleFloat',
-    label: 'Simple float',
+    label: 'Cheap float',
     price: 18,
-    description: 'Future upgrade',
+    description: 'Basic shop float',
+    type: 'tool',
+  },
+  {
+    id: 'properFloat',
+    label: 'Proper float',
+    price: 28,
+    description: 'Clearer bite reading',
+    type: 'tool',
+  },
+  {
+    id: 'properSinker',
+    label: 'Proper sinker',
+    price: 12,
+    description: 'More stable presentation',
+    type: 'tool',
+  },
+  {
+    id: 'sharperHook',
+    label: 'Sharper hook',
+    price: 22,
+    description: 'Better hook-up rate',
     type: 'tool',
   },
   {
@@ -72,17 +93,22 @@ export function createInitialState() {
       rudd: 0,
       loach: 0,
       pike: 0,
+      canadian_catfish: 0,
     },
     purchased: {},
     travel: {
       farWatersUnlocked: false,
       selectedWater: 'canal',
+      greadaUnlocked: false,
     },
     market: createInitialMarketState(),
     timers: {
       wormSearchReadyAt: 0,
     },
     day: 1,
+    time: {
+      minutes: 7 * 60,
+    },
     player: {
       x: -6,
       z: 1.5,
@@ -90,6 +116,21 @@ export function createInitialState() {
     fishBasket: [],
     catchJournal: {},
     trophies: [],
+    tackle: {
+      owned: {
+        grandma_thread: true,
+        old_dull_hook: true,
+        small_stone: true,
+        none: true,
+      },
+      equipped: {
+        line: 'grandma_thread',
+        hook: 'old_dull_hook',
+        sinker: 'small_stone',
+        float: 'none',
+        rod: 'none',
+      },
+    },
     settings: {
       audio: {
         soundEnabled: true,
@@ -113,11 +154,14 @@ export function createInitialState() {
         shop: false,
         fishPrices: false,
         keepnet: false,
-        journal: false,
+        journal: true,
+        tackle: false,
+        guide: true,
         fishingControls: true,
         fishingResult: true,
       },
       expandedKeepnetSpecies: {},
+      guideTab: 'fish',
     },
     feedback: [],
     log: [],
@@ -135,6 +179,7 @@ export function createInitialMarketState() {
       rudd: { multiplier: 1, trend: 'rising' },
       loach: { multiplier: 1.08, trend: 'stable' },
       pike: { multiplier: 1.12, trend: 'rising' },
+      canadian_catfish: { multiplier: 1.18, trend: 'rising' },
     },
   };
 }

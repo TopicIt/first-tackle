@@ -16,7 +16,7 @@ export const interactionZones = {
   },
   garden: {
     label: 'Garden',
-    position: new THREE.Vector3(-7.1, 0, -1.6),
+    position: new THREE.Vector3(-7.4, 0, -3.8),
     radius: 2.2,
   },
   pond: {
@@ -152,7 +152,7 @@ function addGarden(scene) {
     new THREE.BoxGeometry(4.2, 0.06, 2.4),
     new THREE.MeshStandardMaterial({ color: 0x4f6b37, roughness: 1 }),
   );
-  patch.position.set(-7.1, 0.02, -1.8);
+  patch.position.set(-7.4, 0.02, -3.8);
   scene.add(patch);
 
   for (let i = 0; i < 4; i += 1) {
@@ -160,7 +160,7 @@ function addGarden(scene) {
       new THREE.BoxGeometry(3.6, 0.08, 0.16),
       new THREE.MeshStandardMaterial({ color: 0x314c28 }),
     );
-    row.position.set(-7.1, 0.08, -2.65 + i * 0.55);
+    row.position.set(-7.4, 0.08, -4.65 + i * 0.55);
     scene.add(row);
   }
 }

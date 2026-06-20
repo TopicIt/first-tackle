@@ -1,6 +1,7 @@
 import { getFishData } from './fishData.js';
 import { sellFishByStatus } from './fishInventory.js';
 import { ensureMarketState, getFishSaleValue } from './market.js';
+import { ownTackleComponent } from './tackle.js';
 import { pushFeedback, pushLog, queueSound, shopItems } from './state.js';
 import { addItem } from './inventory.js';
 
@@ -69,6 +70,17 @@ export function buyShopItem(state, itemId) {
   if (itemId === 'bicycle') {
     state.travel ??= {};
     state.travel.farWatersUnlocked = true;
+    state.travel.greadaUnlocked = true;
+  }
+  const componentByItem = {
+    betterLine: 'better_line',
+    simpleFloat: 'cheap_float',
+    properFloat: 'proper_float',
+    properSinker: 'proper_sinker',
+    sharperHook: 'sharper_hook',
+  };
+  if (componentByItem[itemId]) {
+    ownTackleComponent(state, componentByItem[itemId]);
   }
   pushFeedback(state, getShopItemKey(itemId), {}, 'item');
   pushLog(state, 'logBought', { itemKey: getShopItemKey(itemId) });
@@ -80,6 +92,9 @@ function getShopItemKey(itemId) {
     shovel: 'itemShovel',
     betterLine: 'itemBetterLine',
     simpleFloat: 'itemSimpleFloat',
+    properFloat: 'componentProperFloat',
+    properSinker: 'componentProperSinker',
+    sharperHook: 'componentSharperHook',
     bicycle: 'itemBicycle',
     salt: 'itemSalt',
     hooksPack: 'itemHooksPack',

@@ -28,6 +28,8 @@ import { getInteractionContext, getLocationSceneContext, runAction } from './gam
 import { loadGame, resetGame, saveGame } from './game/save.js';
 import { createAudioManager } from './audio/audioManager.js';
 import { ensureMarketState, freshFishAtRisk } from './game/market.js';
+import { ensureTackleState, equipTackleComponent } from './game/tackle.js';
+import { ensureTimeState, formatGameTime, getTimePhase } from './game/time.js';
 import { createHud } from './ui/hud.js';
 import { updateMapOverlayMotion } from './ui/mapOverlay.js';
 import { getLanguage, toggleLanguage } from './i18n/i18n.js';
@@ -38,6 +40,8 @@ const hudRoot = document.querySelector('#hud');
 let gameState = loadGame() ?? createInitialState();
 ensureFishState(gameState);
 ensureMarketState(gameState);
+ensureTackleState(gameState);
+ensureTimeState(gameState);
 pushLog(gameState, 'logMorning');
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -81,6 +85,21 @@ const hud = createHud(hudRoot, {
         ...(gameState.ui.collapsedPanels ?? {}),
         [panelId]: !gameState.ui.collapsedPanels?.[panelId],
       };
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('guide:tab:')) {
+      gameState.ui.guideTab = actionId.replace('guide:tab:', '');
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('tackle:equip:')) {
+      const [, , slot, componentId] = actionId.split(':');
+      equipTackleComponent(gameState, slot, componentId);
       gameState.audioQueue.push('ui_click');
       renderHud();
       return;
@@ -238,6 +257,8 @@ const hud = createHud(hudRoot, {
       gameState = loaded;
       ensureFishState(gameState);
       ensureMarketState(gameState);
+      ensureTackleState(gameState);
+      ensureTimeState(gameState);
       player.restore(gameState.player);
       audio.syncSettings(gameState.settings.audio);
       pushLog(gameState, 'logLoaded');
@@ -252,6 +273,8 @@ const hud = createHud(hudRoot, {
     gameState = createInitialState();
     ensureFishState(gameState);
     ensureMarketState(gameState);
+    ensureTackleState(gameState);
+    ensureTimeState(gameState);
     player.restore(gameState.player);
     audio.syncSettings(gameState.settings.audio);
     pushLog(gameState, 'logFreshMorning');
@@ -267,6 +290,8 @@ function renderHud() {
   const context = gameState.ui.activeScene
     ? getLocationSceneContext(gameState, gameState.ui.activeScene)
     : getInteractionContext(gameState, player.position);
+  context.clock = formatGameTime(gameState);
+  context.timePhase = getTimePhase(gameState);
   const hudSnapshot = JSON.stringify({
     money: gameState.money,
     language: getLanguage(),

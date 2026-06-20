@@ -10,6 +10,8 @@ import {
 } from './fishInventory.js';
 import { countItem, hasItem, removeItem } from './inventory.js';
 import { pushFeedback, pushLog, queueSound } from './state.js';
+import { getTackleEffects } from './tackle.js';
+import { advanceTime, getTimePhase } from './time.js';
 
 const ambientLogKeys = ['logAmbientBird', 'logAmbientRings', 'logAmbientDrift'];
 
@@ -46,7 +48,7 @@ export function createFishingMinigameState(method) {
 
 export function openFishingMinigame(state, method) {
   if (!hasItem(state, 'primitiveTackle')) {
-    pushLog(state, 'logNeedPrimitiveTackle');
+    pushLog(state, 'logCraftFirstTackleAtHome');
     return;
   }
 
@@ -172,6 +174,7 @@ export function castLine(state, nowMs) {
   }
 
   minigame.consumedBait = minigame.selectedBait;
+  advanceTime(state, 35);
   minigame.phase = 'cast';
   minigame.bobberState = 'cast';
   minigame.statusKey = 'fishingCasting';
@@ -225,7 +228,7 @@ export function strikeLine(state, nowMs) {
 
   queueSound(state, 'strike');
 
-  if (minigame.fishCandidateId === 'pike' && !state.purchased.betterLine && roll < 0.72) {
+  if (['pike', 'canadian_catfish'].includes(minigame.fishCandidateId) && getTackleEffects(state).breakPenalty > 0 && roll < 0.42) {
     resolveMinigameResult(state, { outcome: 'line_broke', statusKey: 'fishingLineBroke', sound: 'line_break' });
     return;
   }
@@ -677,7 +680,7 @@ function tickWaitingAmbience(state, minigame, nowMs) {
   }
 
   if (nowMs >= minigame.ambientEventAt) {
-    pushLog(state, ambientLogKeys[Math.floor(Math.random() * ambientLogKeys.length)]);
+    pushLog(state, ambientLogKeys.filter((key) => key !== 'logAmbientBird')[Math.floor(Math.random() * 2)]);
     minigame.ambientEventAt = nowMs + randomBetween(12000, 22000);
     queueSound(state, 'bird_chirp');
   }
@@ -745,6 +748,8 @@ function getFishWeight(state, minigame, fishId, profile, spot) {
     score *= 1.22;
   }
 
+  score *= getTimeMultiplier(state, fishId);
+
   if (fishId === 'rotan' && minigame.selectedZone === 'near_bank' && minigame.method === 'handline') {
     score *= 1.25;
   }
@@ -754,7 +759,7 @@ function getFishWeight(state, minigame, fishId, profile, spot) {
   }
 
   if (fishId === 'pike') {
-    if (minigame.selectedBait !== 'live_bait' || !state.purchased.betterLine) {
+    if (minigame.selectedBait !== 'live_bait' || getTackleEffects(state).reachBonus <= 0) {
       return 0;
     }
     score *= 1.35;
@@ -793,26 +798,27 @@ function getBaitSuitability(fishId, baitId) {
 }
 
 function getTackleBonus(state, method) {
+  const effects = getTackleEffects(state);
   let bonus = method === 'stickRod' ? 0.18 : 0.08;
-  if (state.purchased.betterLine) {
-    bonus += 0.12;
-  }
-  if (state.purchased.simpleFloat && method !== 'handline') {
-    bonus += 0.06;
-  }
+  bonus += effects.hookBonus + effects.floatBonus + effects.stabilityBonus;
   return bonus;
 }
 
 function canUseCastSpot(state, method, spot) {
-  if (spot.id === 'far_shadow' && !state.purchased.betterLine) {
+  const effects = getTackleEffects(state);
+  if (spot.id === 'far_shadow' && effects.reachBonus <= 0) {
     return { allowed: false, reasonKey: 'requiresBetterRodOrLine' };
+  }
+
+  if (spot.id === 'greada_mud' && !state.travel?.greadaUnlocked) {
+    return { allowed: false, reasonKey: 'logNeedBicycleForTravel' };
   }
 
   if (method === 'handline' && !spot.allowedMethods.includes('handline')) {
     return { allowed: false, reasonKey: 'tooFarForHandline' };
   }
 
-  if ((method === 'stickRod' || method === 'liveBait') && !spot.allowedMethods.includes('stickRod') && spot.id !== 'far_shadow') {
+  if ((method === 'stickRod' || method === 'liveBait') && !spot.allowedMethods.includes('stickRod') && !['far_shadow', 'greada_mud'].includes(spot.id)) {
     return { allowed: false, reasonKey: 'requiresStickRod' };
   }
 
@@ -825,6 +831,23 @@ function getNaturalWaitMs() {
     return randomBetween(18000, 30000);
   }
   return randomBetween(6000, 18000);
+}
+
+function getTimeMultiplier(state, fishId) {
+  const phase = getTimePhase(state);
+  const preferred = {
+    rotan: ['day', 'evening'],
+    crucian: ['morning', 'evening'],
+    bleak: ['day'],
+    roach: ['morning', 'evening'],
+    rudd: ['day', 'evening'],
+    loach: ['evening', 'night'],
+    pike: ['morning', 'evening'],
+    canadian_catfish: ['evening', 'night'],
+  }[fishId] ?? ['day'];
+  if (preferred.includes(phase)) return 1.25;
+  if (fishId === 'canadian_catfish' && phase === 'day') return 0.12;
+  return 0.72;
 }
 
 function getStrikeWindowStatusKey(state) {

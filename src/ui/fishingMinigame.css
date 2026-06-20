@@ -423,6 +423,7 @@
 }
 
 .bird {
+  display: none;
   width: 28px;
   height: 10px;
   border-top: 3px solid rgb(238 245 231 / 78%);
@@ -583,6 +584,28 @@
 
 .fishing-stage__bobber--hidden {
   opacity: 0;
+}
+
+.fishing-stage__bobber--float-none {
+  opacity: 0.72;
+  filter: drop-shadow(0 10px 12px rgb(0 0 0 / 28%)) grayscale(0.25);
+}
+
+.fishing-stage__bobber--float-goose_feather_float .fishing-stage__bobber-top {
+  width: 7px;
+  height: 42px;
+  border-radius: 999px 999px 4px 4px;
+  background: linear-gradient(180deg, #fff9df, #c8d4c8 54%, #d94b3d 55%);
+}
+
+.fishing-stage__bobber--float-cheap_float .fishing-stage__bobber-top {
+  background: linear-gradient(180deg, #ffd65c, #e84434);
+}
+
+.fishing-stage__bobber--float-proper_float .fishing-stage__bobber-top {
+  width: 13px;
+  background: linear-gradient(180deg, #f7fff9 0 36%, #ff4232 37% 70%, #1f2c2c 71%);
+  box-shadow: 0 0 12px rgb(255 248 170 / 44%);
 }
 
 .fishing-stage__bobber--cast {

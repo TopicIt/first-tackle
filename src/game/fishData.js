@@ -69,6 +69,16 @@ export const fishData = [
     weight: 1,
     descriptionKey: 'descPike',
   },
+  {
+    id: 'canadian_catfish',
+    nameKey: 'fishCanadianCatfish',
+    rarityKey: 'rarityRare',
+    minWeight: 180,
+    maxWeight: 720,
+    basePrice: 18,
+    weight: 4,
+    descriptionKey: 'descCanadianCatfish',
+  },
 ];
 
 export function getFishData(fishId) {

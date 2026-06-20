@@ -30,7 +30,7 @@ const sceneConfigs = {
   market: {
     titleKey: 'sceneMarketTitle',
     descriptionKey: 'sceneMarketDescription',
-    image: assetPath('/assets/locations/world_map_concept.png'),
+    image: assetPath('/assets/locations/market_location_concept.png'),
     bgClass: 'scene-bg--slow-pan',
     effects: ['scene-road-dust', 'scene-light-sweep'],
   },

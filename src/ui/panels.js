@@ -1,8 +1,10 @@
 import { fishData } from '../game/fishData.js';
 import { getCatchJournal, getKeepnetSummary } from '../game/fishInventory.js';
+import { getFishGuideEntries, waterGuide } from '../game/guideData.js';
 import { getFreshnessInfo, getMarketPriceInfo } from '../game/market.js';
 import { getCastSpot } from '../game/bitePatterns.js';
 import { shopItems } from '../game/state.js';
+import { componentLabels, tackleComponents } from '../game/tackle.js';
 import { countItem, itemLabels } from '../game/inventory.js';
 import { t, translateEntry } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
@@ -28,6 +30,7 @@ const inventoryOrder = [
   'rudd',
   'loach',
   'pike',
+  'canadian_catfish',
 ];
 
 export function inventoryMarkup(state) {
@@ -109,6 +112,42 @@ export function catchJournalMarkup(state) {
   `;
 }
 
+export function tackleMarkup(state) {
+  const equipped = state.tackle?.equipped ?? {};
+  const owned = state.tackle?.owned ?? {};
+  return `
+    <div class="tackle-grid">
+      ${Object.entries(tackleComponents).map(([slot, options]) => `
+        <section class="tackle-slot">
+          <p class="section-label">${t(`tackleSlot${toPascalCase(slot)}`)}</p>
+          <strong>${t(componentLabels[equipped[slot]] ?? equipped[slot] ?? 'componentNone')}</strong>
+          <div class="tackle-options">
+            ${options.filter((id) => owned[id]).map((id) => `
+              <button class="${equipped[slot] === id ? 'is-selected' : ''}" data-action="tackle:equip:${slot}:${id}" type="button">
+                ${t(componentLabels[id] ?? id)}
+              </button>
+            `).join('')}
+          </div>
+        </section>
+      `).join('')}
+    </div>
+  `;
+}
+
+export function guideMarkup(state) {
+  const tab = state.ui?.guideTab ?? 'fish';
+  return `
+    <div class="guide-tabs">
+      ${['fish', 'waters', 'baits', 'tackle', 'processing'].map((id) => `
+        <button class="${tab === id ? 'is-selected' : ''}" data-action="guide:tab:${id}" type="button">${t(`guideTab${toPascalCase(id)}`)}</button>
+      `).join('')}
+    </div>
+    <div class="guide-body">
+      ${tab === 'waters' ? watersGuideMarkup(state) : tab === 'fish' ? fishGuideMarkup(state) : guideSimpleMarkup(tab)}
+    </div>
+  `;
+}
+
 export function logMarkup(state) {
   return (state.log ?? []).map((entry) => {
     const text = translateEntry(entry);
@@ -131,6 +170,9 @@ export function getShopItemLabel(itemId) {
     shovel: 'itemShovel',
     betterLine: 'itemBetterLine',
     simpleFloat: 'itemSimpleFloat',
+    properFloat: 'componentProperFloat',
+    properSinker: 'componentProperSinker',
+    sharperHook: 'componentSharperHook',
     bicycle: 'itemBicycle',
     salt: 'itemSalt',
     hooksPack: 'itemHooksPack',
@@ -144,7 +186,7 @@ function keepnetSpeciesMarkup(state, group, isExpanded) {
   return `
     <article class="keepnet-group">
       <button class="keepnet-group__head" data-action="panel:toggle:keepnetSpecies:${group.fishId}" type="button">
-        <img src="${speciesImage(group.fishId)}" alt="" />
+        <img src="${speciesImage(group.fishId)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
         <span>${t(fish?.nameKey ?? group.fishId)}</span>
         <strong>${t('keepnetGroupSummary', {
           count: group.count,
@@ -181,7 +223,7 @@ function journalSpeciesMarkup(entry) {
   const discovered = entry.discovered;
   return `
     <article class="journal-species${discovered ? '' : ' is-undiscovered'}">
-      <img src="${speciesImage(entry.fishId)}" alt="" />
+      <img src="${speciesImage(entry.fishId)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
       <div>
         <h3>${discovered ? t(fish?.nameKey ?? entry.fishId) : t('undiscoveredFish')}</h3>
         <p>${discovered
@@ -209,6 +251,56 @@ function trophyMarkup(trophy) {
 
 function speciesImage(fishId) {
   return assetPath(`/assets/fish/species/${fishId}.png`);
+}
+
+function fishGuideMarkup(state) {
+  const journal = state.catchJournal ?? {};
+  return getFishGuideEntries().map((entry) => `
+    <article class="guide-card">
+      <img src="${speciesImage(entry.fishId)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
+      <div>
+        <h3>${t(entry.nameKey)} ${journal[entry.fishId]?.discovered ? '' : `· ${t('undiscoveredFish')}`}</h3>
+        <p>${t(entry.descriptionKey)}</p>
+        <dl>
+          <div><dt>${t('whereItLives')}</dt><dd>${t(entry.livesKey)}</dd></div>
+          <div><dt>${t('bestTime')}</dt><dd>${t(entry.timeKey)}</dd></div>
+          <div><dt>${t('preferredBait')}</dt><dd>${t(entry.baitKey)}</dd></div>
+          <div><dt>${t('fishingTips')}</dt><dd>${t(entry.tipsKey)}</dd></div>
+          <div><dt>${t('economicNote')}</dt><dd>${t(entry.economyKey)}</dd></div>
+        </dl>
+      </div>
+    </article>
+  `).join('');
+}
+
+function watersGuideMarkup(state) {
+  return waterGuide.map((water) => {
+    const unlocked = water.unlocked || state.purchased?.bicycle || state.travel?.farWatersUnlocked;
+    return `
+      <article class="guide-card guide-card--wide">
+        <div>
+          <h3>${t(water.nameKey)} ${unlocked ? '' : `· ${t('locked')}`}</h3>
+          <p>${t(water.descriptionKey)}</p>
+          <dl>
+            <div><dt>${t('fishSpecies')}</dt><dd>${water.fishIds.map((fishId) => t(fishData.find((fish) => fish.id === fishId)?.nameKey ?? fishId)).join(', ')}</dd></div>
+            <div><dt>${t('bestTime')}</dt><dd>${t(water.bestTimeKey)}</dd></div>
+            <div><dt>${t('tackle')}</dt><dd>${t(water.tackleKey)}</dd></div>
+            <div><dt>${t('preferredBait')}</dt><dd>${t(water.baitKey)}</dd></div>
+            ${unlocked ? '' : `<div><dt>${t('unlock')}</dt><dd>${t(water.unlockKey)}</dd></div>`}
+          </dl>
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
+function guideSimpleMarkup(tab) {
+  const keys = {
+    baits: 'guideBaitsText',
+    tackle: 'guideTackleText',
+    processing: 'guideProcessingText',
+  };
+  return `<article class="guide-card guide-card--wide"><p>${t(keys[tab])}</p></article>`;
 }
 
 function statusKey(status) {

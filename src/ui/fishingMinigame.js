@@ -31,6 +31,7 @@ export function fishingMinigameMarkup(state) {
   const resultCollapsed = collapsedPanels.fishingResult ? ' is-result-collapsed' : '';
   const hintMode = state.settings?.fishing?.biteHints ?? 'beginner';
   const contextAction = getFishingContextAction(state);
+  const floatStyle = state.tackle?.equipped?.float ?? 'none';
 
   return `
     <section class="fishing-minigame" aria-label="${t('fishingTitle')}">
@@ -64,6 +65,11 @@ export function fishingMinigameMarkup(state) {
               </button>
             </div>
             <div class="fishing-minigame__controls-body">
+            <section class="fishing-panel fishing-panel__quick-nav">
+              <button data-action="panel:toggle:tackle" type="button">${t('tackle')}</button>
+              <button data-action="panel:toggle:guide" type="button">${t('fishermanGuide')}</button>
+            </section>
+
             <section class="fishing-panel">
               <p class="section-label">${t('biteHints')}</p>
               <div class="hint-mode-grid">
@@ -129,7 +135,7 @@ export function fishingMinigameMarkup(state) {
               <div class="fishing-stage__distance-line" aria-hidden="true"></div>
               <div class="fishing-stage__rings fishing-stage__rings--${minigame.bobberState}"></div>
               <div
-                class="fishing-stage__bobber fishing-stage__bobber--${minigame.bobberState}"
+                class="fishing-stage__bobber fishing-stage__bobber--${minigame.bobberState} fishing-stage__bobber--float-${floatStyle}"
                 style="${bobberStyle(minigame)}"
               >
                 <span class="fishing-stage__bobber-top"></span>

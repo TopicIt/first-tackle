@@ -9,6 +9,9 @@ import {
   cleanFish,
   craftPrimitiveTackle,
   craftStickRod,
+  gatherGooseFeather,
+  gatherRodStick,
+  gatherSmallStones,
   getWormSearchCooldown,
   hangFishToDry,
   saltFish,
@@ -28,14 +31,6 @@ const idleContext = {
 export function getInteractionContext(state, playerPosition) {
   const zone = getCurrentZone(playerPosition);
   const actions = [];
-
-  if (zone?.id === 'house' && canCraftPrimitiveTackle(state)) {
-    actions.push({
-      id: 'craft:tackle',
-      label: t('craftTackle'),
-      variant: 'secondary',
-    });
-  }
 
   if (!zone) {
     return {
@@ -158,6 +153,21 @@ export function runAction(actionId, state, context = idleContext) {
     searchForWorms(state, 'compost');
   }
 
+  if (actionId === 'search:feather') {
+    if (!['garden', 'house'].includes(context.zoneId)) return;
+    gatherGooseFeather(state);
+  }
+
+  if (actionId === 'gather:rodStick') {
+    if (!['garden', 'house'].includes(context.zoneId)) return;
+    gatherRodStick(state);
+  }
+
+  if (actionId === 'gather:stones') {
+    if (!['garden', 'house'].includes(context.zoneId)) return;
+    gatherSmallStones(state);
+  }
+
   if (actionId === 'craft:stickRod') {
     if (context.zoneId !== 'house') {
       return;
@@ -221,6 +231,7 @@ export function runAction(actionId, state, context = idleContext) {
     }
     state.travel ??= {};
     state.travel.farWatersUnlocked = true;
+    state.travel.greadaUnlocked = true;
     pushTravelLog(state, 'logTravelWatersUnlocked');
   }
 }
@@ -270,6 +281,14 @@ function getSceneActions(state, zoneId) {
         disabled: !canCraftStickRod(state),
       },
       {
+        id: 'gather:rodStick',
+        label: t('gatherRodStick'),
+      },
+      {
+        id: 'gather:stones',
+        label: t('gatherSmallStones'),
+      },
+      {
         id: 'clean:fish',
         label: t('cleanFish'),
         disabled: countFishByStatus(state, 'fresh') === 0,
@@ -313,6 +332,14 @@ function getSceneActions(state, zoneId) {
         label: cooldown > 0 ? t('compostIn', { seconds: Math.ceil(cooldown) }) : t('searchCompost'),
         disabled: cooldown > 0,
       },
+      {
+        id: 'search:feather',
+        label: t('searchGooseFeather'),
+      },
+      {
+        id: 'gather:rodStick',
+        label: t('gatherRodStick'),
+      },
     ];
   }
 
@@ -353,7 +380,7 @@ function getSceneActions(state, zoneId) {
         label: t('sellTaranka'),
         disabled: countItem(state, 'taranka') === 0,
       },
-      ...['shovel', 'betterLine', 'simpleFloat', 'bicycle', 'salt', 'hooksPack'].map((itemId) => {
+      ...['shovel', 'betterLine', 'simpleFloat', 'properFloat', 'properSinker', 'sharperHook', 'bicycle', 'salt', 'hooksPack'].map((itemId) => {
         const item = state.purchased[itemId];
         return {
           id: `buy:${itemId}`,
@@ -373,6 +400,9 @@ function getBuyLabel(itemId) {
     shovel: 'buyShovel',
     betterLine: 'buyBetterLine',
     simpleFloat: 'buySimpleFloat',
+    properFloat: 'buyProperFloat',
+    properSinker: 'buyProperSinker',
+    sharperHook: 'buySharperHook',
     bicycle: 'buyBicycle',
     salt: 'buySalt',
     hooksPack: 'buyHooksPack',

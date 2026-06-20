@@ -173,6 +173,27 @@ button:disabled {
   padding: 14px;
 }
 
+.tackle-panel {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: start;
+  max-height: 38vh;
+  overflow: auto;
+  padding: 14px;
+  z-index: 30;
+}
+
+.guide-panel {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  justify-self: center;
+  width: min(620px, 100%);
+  max-height: 70vh;
+  overflow: auto;
+  padding: 14px;
+  z-index: 30;
+}
+
 .log-panel {
   grid-column: 1;
   grid-row: 3;
@@ -222,6 +243,38 @@ button:disabled {
 
 .debug-line strong {
   color: #ffffff;
+}
+
+.clock-line {
+  margin: 10px 0 0;
+  border-radius: 999px;
+  background: rgb(11 20 18 / 36%);
+  padding: 7px 10px;
+  color: #ffe28a;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.main-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.main-menu button {
+  flex: 1 1 82px;
+  min-height: 32px;
+  border: 1px solid rgb(255 255 255 / 14%);
+  background: rgb(238 241 232 / 88%);
+  color: #1a2b25;
+  font-size: 0.76rem;
+  padding: 6px 8px;
+}
+
+.main-menu button.is-active {
+  background: #f3c45f;
+  color: #16201c;
 }
 
 .audio-settings {
@@ -488,6 +541,77 @@ button:disabled {
   font-size: 0.82rem;
 }
 
+.tackle-grid,
+.guide-body,
+.guide-list,
+.guide-entry {
+  display: grid;
+  gap: 8px;
+}
+
+.tackle-slot,
+.guide-entry,
+.guide-card {
+  border-radius: 7px;
+  background: rgb(255 255 255 / 7%);
+  padding: 9px;
+}
+
+.tackle-slot strong,
+.guide-entry strong,
+.guide-card strong {
+  color: #fff8df;
+}
+
+.tackle-options,
+.guide-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.tackle-options button,
+.guide-tabs button,
+.fishing-panel__quick-nav button {
+  min-height: 30px;
+  border: 1px solid rgb(255 255 255 / 14%);
+  background: #dfe8df;
+  color: #14221d;
+  font-size: 0.76rem;
+  padding: 6px 8px;
+}
+
+.tackle-options button.is-selected,
+.guide-tabs button.is-selected {
+  background: #f3c45f;
+}
+
+.guide-entry {
+  grid-template-columns: 48px 1fr;
+}
+
+.guide-entry img {
+  width: 48px;
+  height: 48px;
+  border-radius: 7px;
+  object-fit: cover;
+}
+
+.guide-entry p,
+.guide-entry small,
+.guide-card p {
+  margin: 3px 0 0;
+  color: #cfe1dc;
+  font-size: 0.78rem;
+}
+
+.fishing-panel__quick-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
 .section-label {
   margin: 0 0 8px;
   color: #9fd2c1;
@@ -521,6 +645,8 @@ button:disabled {
   .fish-prices-panel,
   .keepnet-panel,
   .journal-panel,
+  .tackle-panel,
+  .guide-panel,
   .actions-panel,
   .log-panel {
     grid-column: 1;

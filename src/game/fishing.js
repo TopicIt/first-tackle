@@ -1,6 +1,8 @@
 import { addItem, countItem, hasItem, removeItem } from './inventory.js';
 import { advanceFishStatus, ensureFishState, takeFreshFish } from './fishInventory.js';
 import { advanceMarketDay, freshFishAtRisk } from './market.js';
+import { ownTackleComponent } from './tackle.js';
+import { advanceTime, resetToMorning } from './time.js';
 import { nowSeconds, pushFeedback, pushLog, queueSound } from './state.js';
 
 const WORM_SEARCH_COOLDOWN = 8;
@@ -22,13 +24,19 @@ export function craftPrimitiveTackle(state) {
   removeItem(state, 'thread');
   removeItem(state, 'simpleHook');
   addItem(state, 'primitiveTackle');
+  ownTackleComponent(state, 'grandma_thread');
+  ownTackleComponent(state, 'old_dull_hook');
+  ownTackleComponent(state, 'small_stone');
   pushFeedback(state, 'feedbackTackle', {}, 'item');
   pushLog(state, 'logCraftedTackle');
   queueSound(state, 'craft_item');
 }
 
 export function canCraftStickRod(state) {
-  return hasItem(state, 'primitiveTackle') && !hasItem(state, 'stickRod');
+  const owned = state.tackle?.owned ?? {};
+  return hasItem(state, 'primitiveTackle') && !hasItem(state, 'stickRod')
+    && owned.simple_stick_rod
+    && (owned.goose_feather_float || owned.cheap_float || owned.proper_float);
 }
 
 export function craftStickRod(state) {
@@ -38,6 +46,10 @@ export function craftStickRod(state) {
   }
 
   addItem(state, 'stickRod');
+  state.tackle.equipped.rod = 'simple_stick_rod';
+  if (state.tackle.equipped.float === 'none') {
+    state.tackle.equipped.float = state.tackle.owned.goose_feather_float ? 'goose_feather_float' : 'cheap_float';
+  }
   pushFeedback(state, 'feedbackRod', {}, 'item');
   pushLog(state, 'logCraftedRod');
   queueSound(state, 'craft_item');
@@ -74,6 +86,39 @@ export function searchForWorms(state, method = 'stones') {
     larvaeText: larvae ? ` and ${larvae} larvae` : '',
   });
   queueSound(state, 'gather_bait');
+  advanceTime(state, 25);
+}
+
+export function gatherGooseFeather(state) {
+  advanceTime(state, 20);
+  if (state.tackle?.owned?.goose_feather_float) {
+    pushLog(state, 'logAlreadyFoundFeather');
+    return;
+  }
+  if (Math.random() < 0.16) {
+    ownTackleComponent(state, 'goose_feather_float');
+    pushFeedback(state, 'componentGooseFeatherFloat', {}, 'item');
+    pushLog(state, 'logFoundGooseFeather');
+    return;
+  }
+  pushLog(state, 'logNoGooseFeather');
+}
+
+export function gatherRodStick(state) {
+  advanceTime(state, 20);
+  if (state.tackle?.owned?.simple_stick_rod || hasItem(state, 'stickRod')) {
+    pushLog(state, 'logAlreadyFoundRodStick');
+    return;
+  }
+  ownTackleComponent(state, 'simple_stick_rod');
+  pushFeedback(state, 'componentSimpleStickRod', {}, 'item');
+  pushLog(state, 'logFoundRodStick');
+}
+
+export function gatherSmallStones(state) {
+  advanceTime(state, 10);
+  ownTackleComponent(state, 'small_stone');
+  pushLog(state, 'logFoundSmallStone');
 }
 
 export function canFish(state) {
@@ -148,6 +193,7 @@ export function waitUntilTomorrow(state) {
   const hasFreshRisk = freshFishAtRisk(state);
   state.timers.wormSearchReadyAt = 0;
   state.day += 1;
+  resetToMorning(state);
   advanceMarketDay(state);
 
   if (hasFreshRisk) {

@@ -1,10 +1,12 @@
 import {
   catchJournalMarkup,
   fishPricesMarkup,
+  guideMarkup,
   inventoryMarkup,
   keepnetMarkup,
   logMarkup,
   shopMarkup,
+  tackleMarkup,
 } from './panels.js';
 import { locationSceneMarkup } from './locationScene.js';
 import { mapOverlayMarkup } from './mapOverlay.js';
@@ -67,6 +69,8 @@ export function createHud(root, handlers) {
       const fishPricesCollapsed = collapsedPanels.fishPrices ? ' is-collapsed' : '';
       const keepnetCollapsed = collapsedPanels.keepnet ? ' is-collapsed' : '';
       const journalCollapsed = collapsedPanels.journal ? ' is-collapsed' : '';
+      const tackleCollapsed = collapsedPanels.tackle ? ' is-collapsed' : '';
+      const guideCollapsed = collapsedPanels.guide ? ' is-collapsed' : '';
 
       root.innerHTML = `
         ${mapOverlayMarkup(renderState)}
@@ -84,6 +88,16 @@ export function createHud(root, handlers) {
               <strong>${state.money}</strong>
             </div>
             <p class="hint"><strong>${context.zoneLabel}</strong><br>${context.hint}</p>
+            <p class="clock-line">${t('dayLabel', { day: state.day })} · ${t(`timePhase${toPascalCase(context.timePhase ?? 'morning')}`)} · ${context.clock ?? ''}</p>
+            <nav class="main-menu">
+              ${menuButton('inventory', 'inventory', collapsedPanels)}
+              ${menuButton('keepnet', 'keepnet', collapsedPanels)}
+              ${menuButton('tackle', 'tackle', collapsedPanels)}
+              ${menuButton('shop', 'shop', collapsedPanels)}
+              ${menuButton('fishPrices', 'market', collapsedPanels)}
+              ${menuButton('guide', 'fishermanGuide', collapsedPanels)}
+              ${menuButton('journal', 'catchJournal', collapsedPanels)}
+            </nav>
             <div class="debug-line">
               <span>${t('currentZone')}: <strong>${context.zoneLabel}</strong></span>
               <span>${t('availableActions')}: <strong>${context.availableActionLabels.join(', ')}</strong></span>
@@ -176,6 +190,30 @@ export function createHud(root, handlers) {
           </div>
         </section>
 
+        <section class="panel tackle-panel${tackleCollapsed}">
+          <div class="panel-toggle-row">
+            <p class="section-label">${t('tackle')}</p>
+            <button class="panel-toggle" data-action="panel:toggle:tackle" type="button">
+              ${collapsedPanels.tackle ? t('show') : t('hide')}
+            </button>
+          </div>
+          <div class="panel-collapsible">
+            ${tackleMarkup(state)}
+          </div>
+        </section>
+
+        <section class="panel guide-panel${guideCollapsed}">
+          <div class="panel-toggle-row">
+            <p class="section-label">${t('fishermanGuide')}</p>
+            <button class="panel-toggle" data-action="panel:toggle:guide" type="button">
+              ${collapsedPanels.guide ? t('show') : t('hide')}
+            </button>
+          </div>
+          <div class="panel-collapsible">
+            ${guideMarkup(state)}
+          </div>
+        </section>
+
         <section class="panel actions-panel">
           <div class="action-grid">
             ${context.actions.map(actionButtonMarkup).join('')}
@@ -205,4 +243,13 @@ function actionButtonMarkup(action) {
       ${action.label}
     </button>
   `;
+}
+
+function menuButton(panelId, labelKey, collapsedPanels) {
+  const open = !collapsedPanels[panelId];
+  return `<button class="${open ? 'is-active' : ''}" data-action="panel:toggle:${panelId}" type="button">${t(labelKey)}</button>`;
+}
+
+function toPascalCase(value) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

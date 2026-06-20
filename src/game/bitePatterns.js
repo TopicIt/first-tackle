@@ -61,6 +61,17 @@ export const castSpots = [
     allowedMethods: ['betterLine'],
     weights: { pike: 0.42, crucian: 2.4, roach: 1.8, rudd: 1.8 },
   },
+  {
+    id: 'greada_mud',
+    labelKey: 'castSpotGreadaMud',
+    zone: 'mid_water',
+    target: { x: 46, y: 64 },
+    radius: { x: 14, y: 8 },
+    scale: 0.88,
+    allowedMethods: ['stickRod', 'betterLine'],
+    waterId: 'greada',
+    weights: { canadian_catfish: 3.2, crucian: 2.2, loach: 0.5, rotan: 0.8 },
+  },
 ];
 
 export function getCastSpot(spotId) {
@@ -165,6 +176,20 @@ export const biteProfiles = {
     },
     patterns: [
       ['idle', 'sideways_pull', 'hard_dip', 'strike_window'],
+    ],
+  },
+  canadian_catfish: {
+    difficulty: 0.62,
+    hookWindowMs: [2200, 3600],
+    biteCycles: [2, 3],
+    preferred: {
+      methods: ['stickRod'],
+      zones: ['mid_water'],
+      baits: ['worms', 'larvae'],
+    },
+    patterns: [
+      ['idle', 'slow_dip', 'submerged', 'strike_window'],
+      ['tiny_nibble', 'slow_dip', 'strike_window'],
     ],
   },
 };

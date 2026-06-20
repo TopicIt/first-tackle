@@ -13,8 +13,8 @@ export const MAP_HOTSPOTS = [
   {
     id: 'garden',
     type: 'rect',
-    x: 69,
-    y: 66,
+    x: 62,
+    y: 73,
     width: 18,
     height: 13,
     scene: 'garden',
