@@ -1,11 +1,10 @@
 import {
   catchJournalMarkup,
-  fishPricesMarkup,
   guideMarkup,
   inventoryMarkup,
   keepnetMarkup,
   logMarkup,
-  shopMarkup,
+  marketMarkup,
   tackleMarkup,
 } from './panels.js';
 import { locationSceneMarkup } from './locationScene.js';
@@ -65,12 +64,13 @@ export function createHud(root, handlers) {
       const collapsedPanels = state.ui?.collapsedPanels ?? {};
       const statusCollapsed = collapsedPanels.status ? ' is-collapsed' : '';
       const inventoryCollapsed = collapsedPanels.inventory ? ' is-collapsed' : '';
-      const shopCollapsed = collapsedPanels.shop ? ' is-collapsed' : '';
-      const fishPricesCollapsed = collapsedPanels.fishPrices ? ' is-collapsed' : '';
       const keepnetCollapsed = collapsedPanels.keepnet ? ' is-collapsed' : '';
       const journalCollapsed = collapsedPanels.journal ? ' is-collapsed' : '';
       const tackleCollapsed = collapsedPanels.tackle ? ' is-collapsed' : '';
       const guideCollapsed = collapsedPanels.guide ? ' is-collapsed' : '';
+      const marketCollapsed = collapsedPanels.market ? ' is-collapsed' : '';
+      const profileCollapsed = collapsedPanels.profile ? ' is-collapsed' : '';
+      const settingsCollapsed = collapsedPanels.settings ? ' is-collapsed' : '';
 
       root.innerHTML = `
         ${mapOverlayMarkup(renderState)}
@@ -93,10 +93,11 @@ export function createHud(root, handlers) {
               ${menuButton('inventory', 'inventory', collapsedPanels)}
               ${menuButton('keepnet', 'keepnet', collapsedPanels)}
               ${menuButton('tackle', 'tackle', collapsedPanels)}
-              ${menuButton('shop', 'shop', collapsedPanels)}
-              ${menuButton('fishPrices', 'market', collapsedPanels)}
+              ${menuButton('market', 'market', collapsedPanels)}
               ${menuButton('guide', 'fishermanGuide', collapsedPanels)}
               ${menuButton('journal', 'catchJournal', collapsedPanels)}
+              ${menuButton('profile', 'profile', collapsedPanels)}
+              ${menuButton('settings', 'settings', collapsedPanels)}
             </nav>
             <div class="debug-line">
               <span>${t('currentZone')}: <strong>${context.zoneLabel}</strong></span>
@@ -107,24 +108,6 @@ export function createHud(root, handlers) {
               <button data-action="load" type="button">${t('load')}</button>
               <button data-action="reset" type="button">${t('reset')}</button>
               <button data-language-toggle="true" type="button" aria-label="Switch language">${getLanguage().toUpperCase()} / ${t('languageToggle')}</button>
-            </div>
-            <div class="audio-settings">
-              <label class="audio-toggle">
-                <input data-audio-setting="soundEnabled" type="checkbox"${state.settings.audio.soundEnabled ? ' checked' : ''} />
-                <span>${t('sound')}</span>
-              </label>
-              <label class="audio-toggle">
-                <input data-audio-setting="musicEnabled" type="checkbox"${state.settings.audio.musicEnabled ? ' checked' : ''} />
-                <span>${t('music')}</span>
-              </label>
-              <label class="audio-range">
-                <span>${t('sfxVolume')}</span>
-                <input data-audio-setting="sfxVolume" type="range" min="0" max="1" step="0.05" value="${state.settings.audio.sfxVolume}" />
-              </label>
-              <label class="audio-range">
-                <span>${t('musicVolume')}</span>
-                <input data-audio-setting="musicVolume" type="range" min="0" max="1" step="0.05" value="${state.settings.audio.musicVolume}" />
-              </label>
             </div>
           </div>
         </section>
@@ -141,28 +124,15 @@ export function createHud(root, handlers) {
           </div>
         </section>
 
-        <section class="panel shop-panel${shopCollapsed}">
+        <section class="panel market-panel${marketCollapsed}">
           <div class="panel-toggle-row">
-            <p class="section-label">${t('shop')}</p>
-            <button class="panel-toggle" data-action="panel:toggle:shop" type="button" aria-label="${panelToggleLabel(collapsedPanels.shop)}">
-              ${panelToggleIcon(collapsedPanels.shop)}
+            <p class="section-label">${t('market')}</p>
+            <button class="panel-toggle" data-action="panel:toggle:market" type="button" aria-label="${panelToggleLabel(collapsedPanels.market)}">
+              ${panelToggleIcon(collapsedPanels.market)}
             </button>
           </div>
           <div class="panel-collapsible">
-            <ul class="shop-list">${shopMarkup(state)}</ul>
-          </div>
-        </section>
-
-        <section class="panel fish-prices-panel${fishPricesCollapsed}">
-          <div class="panel-toggle-row">
-            <p class="section-label">${t('fishPrices')}</p>
-            <button class="panel-toggle" data-action="panel:toggle:fishPrices" type="button" aria-label="${panelToggleLabel(collapsedPanels.fishPrices)}">
-              ${panelToggleIcon(collapsedPanels.fishPrices)}
-            </button>
-          </div>
-          <div class="panel-collapsible">
-            <p class="market-forecast">${t('tomorrowForecast')}</p>
-            <ul class="shop-list">${fishPricesMarkup(state)}</ul>
+            ${marketMarkup(state)}
           </div>
         </section>
 
@@ -214,11 +184,56 @@ export function createHud(root, handlers) {
           </div>
         </section>
 
-        <section class="panel actions-panel">
+        <section class="panel profile-panel${profileCollapsed}">
+          <div class="panel-toggle-row">
+            <p class="section-label">${t('profile')}</p>
+            <button class="panel-toggle" data-action="panel:toggle:profile" type="button" aria-label="${panelToggleLabel(collapsedPanels.profile)}">
+              ${panelToggleIcon(collapsedPanels.profile)}
+            </button>
+          </div>
+          <div class="panel-collapsible">
+            <div class="profile-grid">
+              <span>${t('coins')} <strong>${state.money}</strong></span>
+              <span>${t('dayLabel', { day: state.day })} <strong>${context.clock ?? ''}</strong></span>
+              <span>${t('totalFish')} <strong>${state.fishBasket?.length ?? 0}</strong></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel settings-panel${settingsCollapsed}">
+          <div class="panel-toggle-row">
+            <p class="section-label">${t('settings')}</p>
+            <button class="panel-toggle" data-action="panel:toggle:settings" type="button" aria-label="${panelToggleLabel(collapsedPanels.settings)}">
+              ${panelToggleIcon(collapsedPanels.settings)}
+            </button>
+          </div>
+          <div class="panel-collapsible">
+            <div class="audio-settings">
+              <label class="audio-toggle">
+                <input data-audio-setting="soundEnabled" type="checkbox"${state.settings.audio.soundEnabled ? ' checked' : ''} />
+                <span>${t('sound')}</span>
+              </label>
+              <label class="audio-toggle">
+                <input data-audio-setting="musicEnabled" type="checkbox"${state.settings.audio.musicEnabled ? ' checked' : ''} />
+                <span>${t('music')}</span>
+              </label>
+              <label class="audio-range">
+                <span>${t('sfxVolume')}</span>
+                <input data-audio-setting="sfxVolume" type="range" min="0" max="1" step="0.05" value="${state.settings.audio.sfxVolume}" />
+              </label>
+              <label class="audio-range">
+                <span>${t('musicVolume')}</span>
+                <input data-audio-setting="musicVolume" type="range" min="0" max="1" step="0.05" value="${state.settings.audio.musicVolume}" />
+              </label>
+            </div>
+          </div>
+        </section>
+
+        ${state.ui?.fishingMinigame?.open ? '' : `<section class="panel actions-panel">
           <div class="action-grid">
             ${context.actions.map(actionButtonMarkup).join('')}
           </div>
-        </section>
+        </section>`}
 
         <section class="panel log-panel">
           <p class="section-label">${t('log')}</p>

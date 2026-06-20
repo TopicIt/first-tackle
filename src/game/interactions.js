@@ -18,7 +18,7 @@ import {
   searchForWorms,
   waitUntilTomorrow,
 } from './fishing.js';
-import { countItem, hasItem } from './inventory.js';
+import { hasItem } from './inventory.js';
 import { interactionZones } from './world.js';
 import { getTimePhase } from './time.js';
 import { getTackleEffects } from './tackle.js';
@@ -375,44 +375,25 @@ function getSceneActions(state, zoneId) {
   if (zoneId === 'market') {
     return [
       {
-        id: 'sell:fish',
-        label: t('sellFreshFish'),
-        disabled: countFishByStatus(state, 'fresh') === 0,
+        id: 'panel:toggle:market',
+        label: t('openMarket'),
       },
       {
-        id: 'sell:taranka',
-        label: t('sellTaranka'),
-        disabled: countItem(state, 'taranka') === 0,
+        id: 'market:tab:sell',
+        label: t('marketTabSell'),
       },
-      ...['shovel', 'betterLine', 'simpleFloat', 'properFloat', 'properSinker', 'sharperHook', 'properRod', 'bicycle', 'salt', 'hooksPack'].map((itemId) => {
-        const item = state.purchased[itemId];
-        return {
-          id: `buy:${itemId}`,
-          label: getBuyLabel(itemId),
-          disabled: Boolean(item) && !['salt', 'hooksPack'].includes(itemId),
-          variant: ['betterLine', 'simpleFloat'].includes(itemId) ? 'future' : undefined,
-        };
-      }),
+      {
+        id: 'market:tab:buy',
+        label: t('marketTabBuy'),
+      },
+      {
+        id: 'market:tab:prices',
+        label: t('marketTabPrices'),
+      },
     ];
   }
 
   return [];
-}
-
-function getBuyLabel(itemId) {
-  const labels = {
-    shovel: 'buyShovel',
-    betterLine: 'buyBetterLine',
-    simpleFloat: 'buySimpleFloat',
-    properFloat: 'buyProperFloat',
-    properSinker: 'buyProperSinker',
-    sharperHook: 'buySharperHook',
-    properRod: 'buyProperRod',
-    bicycle: 'buyBicycle',
-    salt: 'buySalt',
-    hooksPack: 'buyHooksPack',
-  };
-  return t(labels[itemId] ?? itemId);
 }
 
 function pushTravelLog(state, key) {

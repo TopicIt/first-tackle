@@ -237,7 +237,7 @@ function catchResultCardMarkup(state, fish, result, minigame, collapsedPanels) {
       </div>
       <div class="fishing-result__body">
       <div class="fishing-result__frame">
-        <img src="${image}" alt="" />
+        <img src="${image}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
       </div>
       <div class="fishing-result__copy">
         <p class="section-label">${t('caught')}</p>
@@ -375,7 +375,7 @@ function getCatchImage(fishId) {
     return assetPath('/assets/fish/catch_crucian_card.png');
   }
 
-  return assetPath('/assets/fish/catch_result_frame.png');
+  return assetPath(`/assets/fish/species/${fishId}.png`);
 }
 
 function toPascalCase(value) {

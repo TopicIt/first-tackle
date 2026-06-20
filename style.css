@@ -105,6 +105,10 @@ button:disabled {
   display: none;
 }
 
+.panel.is-collapsed:not(.status-panel):not(.actions-panel):not(.log-panel) {
+  display: none;
+}
+
 .status-panel {
   grid-column: 1;
   grid-row: 1;
@@ -144,6 +148,15 @@ button:disabled {
   grid-row: 3;
   align-self: end;
   max-height: 34vh;
+  overflow: auto;
+  padding: 14px;
+}
+
+.market-panel {
+  grid-column: 3;
+  grid-row: 1 / span 3;
+  align-self: start;
+  max-height: 74vh;
   overflow: auto;
   padding: 14px;
 }
@@ -192,6 +205,16 @@ button:disabled {
   overflow: auto;
   padding: 14px;
   z-index: 30;
+}
+
+.profile-panel,
+.settings-panel {
+  grid-column: 3;
+  grid-row: 2;
+  align-self: start;
+  max-height: 44vh;
+  overflow: auto;
+  padding: 14px;
 }
 
 .log-panel {
@@ -401,6 +424,107 @@ button:disabled {
   margin: 0 0 8px;
   color: #dcebe3;
   font-size: 0.82rem;
+}
+
+.market-tabs,
+.market-card-grid,
+.market-price-grid,
+.profile-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.market-tabs {
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 10px;
+}
+
+.market-tabs button {
+  min-height: 36px;
+  background: rgb(238 241 232 / 88%);
+  color: #14221d;
+  padding: 8px;
+}
+
+.market-tabs button.is-selected {
+  background: #f3c45f;
+}
+
+.market-summary,
+.market-card,
+.market-price-card,
+.profile-grid span {
+  border-radius: 8px;
+  background: rgb(255 255 255 / 7%);
+  padding: 9px;
+}
+
+.market-summary p {
+  margin: 0 0 6px;
+  color: #cfe1dc;
+  font-size: 0.82rem;
+}
+
+.market-card {
+  display: grid;
+  grid-template-columns: 54px 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.market-card img,
+.market-price-card img {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: rgb(7 14 14 / 24%);
+}
+
+.market-card h3,
+.market-card p {
+  margin: 0;
+}
+
+.market-card p {
+  color: #cfe1dc;
+  font-size: 0.78rem;
+}
+
+.market-card button {
+  min-height: 34px;
+  background: #f3c45f;
+  padding: 7px 10px;
+}
+
+.market-price-grid {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.market-price-card {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 4px 8px;
+  align-items: center;
+}
+
+.market-price-card img {
+  grid-row: span 3;
+  width: 42px;
+  height: 42px;
+}
+
+.market-price-card span,
+.market-price-card strong,
+.market-price-card small {
+  min-width: 0;
+}
+
+.profile-grid span {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #dbe8e1;
 }
 
 .mini-panel,
@@ -625,6 +749,16 @@ button:disabled {
 }
 
 .guide-card--wide {
+  grid-template-columns: 74px 1fr;
+}
+
+.guide-card--wide img {
+  width: 74px;
+  height: 54px;
+  max-width: 74px;
+}
+
+.guide-card--text {
   grid-template-columns: 1fr;
 }
 
@@ -661,47 +795,143 @@ button:disabled {
   padding-left: 8px;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 768px) {
   .hud {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto 1fr auto;
-    gap: 10px;
+    display: block;
+    padding: 8px;
+  }
+
+  .panel {
+    border-radius: 14px;
+  }
+
+  .status-panel {
+    width: min(100%, 430px);
+    max-height: 48vh;
+    overflow: auto;
     padding: 10px;
   }
 
-  .status-panel,
+  .title {
+    font-size: 1.05rem;
+  }
+
+  .money {
+    margin-bottom: 6px;
+  }
+
+  .hint,
+  .debug-line {
+    display: none;
+  }
+
+  .clock-line {
+    margin-top: 6px;
+    font-size: 0.78rem;
+  }
+
+  .main-menu {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .main-menu button {
+    min-height: 38px;
+    font-size: 0.68rem;
+    padding: 5px;
+  }
+
+  .save-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .save-row button {
+    min-width: 0;
+    font-size: 0.72rem;
+    padding: 7px 5px;
+  }
+
   .inventory-panel,
-  .shop-panel,
-  .fish-prices-panel,
+  .market-panel,
   .keepnet-panel,
   .journal-panel,
   .tackle-panel,
   .guide-panel,
-  .actions-panel,
-  .log-panel {
-    grid-column: 1;
-    width: 100%;
+  .profile-panel,
+  .settings-panel {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    top: 72px;
+    bottom: 76px;
+    z-index: 60;
+    width: auto;
+    max-height: none;
+    overflow: auto;
+    padding: 12px;
+    background: rgb(16 25 24 / 94%);
   }
 
-  .inventory-panel {
-    grid-row: 2;
-  }
-
-  .shop-panel,
-  .fish-prices-panel {
-    display: none;
-  }
-
-  .keepnet-panel,
-  .journal-panel {
-    display: none;
+  .guide-panel,
+  .market-panel {
+    top: 48px;
+    bottom: 52px;
   }
 
   .actions-panel {
-    grid-row: 4;
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    z-index: 35;
+    width: auto;
+    margin: 0;
+    padding: 8px;
+  }
+
+  .action-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .action-grid button {
+    min-height: 40px;
+    font-size: 0.82rem;
+    padding: 8px;
+  }
+
+  .market-card {
+    grid-template-columns: 46px 1fr;
+  }
+
+  .market-card button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .market-price-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-card {
+    grid-template-columns: 44px 1fr;
+  }
+
+  .guide-card img {
+    width: 44px;
+    height: 44px;
   }
 
   .log-panel {
     display: none;
   }
+
+  .location-scene .guide-panel,
+  .location-scene .market-panel {
+    z-index: 70;
+  }
+
 }

@@ -70,7 +70,13 @@ export function openFishingMinigame(state, method) {
     inventory: true,
     shop: true,
     fishPrices: true,
+    keepnet: true,
+    tackle: true,
+    guide: true,
     journal: true,
+    market: true,
+    profile: true,
+    settings: true,
     fishingControls: true,
     fishingResult: true,
   };

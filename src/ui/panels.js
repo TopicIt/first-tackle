@@ -1,7 +1,7 @@
 import { fishData } from '../game/fishData.js';
-import { getCatchJournal, getKeepnetSummary } from '../game/fishInventory.js';
+import { countFishByStatus, getCatchJournal, getFishEntries, getKeepnetSummary } from '../game/fishInventory.js';
 import { getFishGuideEntries, waterGuide } from '../game/guideData.js';
-import { getFreshnessInfo, getMarketPriceInfo } from '../game/market.js';
+import { getFishSaleValue, getFreshnessInfo, getMarketPriceInfo } from '../game/market.js';
 import { getCastSpot } from '../game/bitePatterns.js';
 import { shopItems } from '../game/state.js';
 import { componentLabels, tackleComponents } from '../game/tackle.js';
@@ -32,6 +32,26 @@ const inventoryOrder = [
   'pike',
   'canadian_catfish',
 ];
+
+const itemImages = {
+  betterLine: '/assets/items/better_line.png',
+  simpleFloat: '/assets/items/fishing_float.png',
+  properFloat: '/assets/items/fishing_float.png',
+  properSinker: '/assets/items/proper_sinker.png',
+  sharperHook: '/assets/items/hooks_box.png',
+  hooksPack: '/assets/items/hooks_box.png',
+  salt: '/assets/items/salt_bag.png',
+  bicycle: '/assets/items/bicycle.png',
+  primitiveTackle: '/assets/items/primitive_tackle.png',
+  stickRod: '/assets/items/tackle_components.png',
+  taranka: '/assets/items/taranka_drying.png',
+};
+
+const waterImages = {
+  greada: '/assets/locations/greada_location_concept.png',
+  home_canal: '/assets/locations/pond_location_concept.png',
+  old_pond: '/assets/locations/pond_location_concept.png',
+};
 
 export function inventoryMarkup(state) {
   const rows = inventoryOrder
@@ -76,6 +96,20 @@ export function fishPricesMarkup(state) {
       `;
     })
     .join('');
+}
+
+export function marketMarkup(state) {
+  const tab = state.ui?.marketTab ?? 'sell';
+  return `
+    <div class="market-tabs">
+      ${['sell', 'buy', 'prices'].map((id) => `
+        <button class="${tab === id ? 'is-selected' : ''}" data-action="market:tab:${id}" type="button">${t(`marketTab${toPascalCase(id)}`)}</button>
+      `).join('')}
+    </div>
+    <div class="market-body">
+      ${tab === 'buy' ? marketBuyMarkup(state) : tab === 'prices' ? marketPricesMarkup(state) : marketSellMarkup(state)}
+    </div>
+  `;
 }
 
 export function keepnetMarkup(state) {
@@ -259,6 +293,100 @@ function speciesImage(fishId) {
   return assetPath(`/assets/fish/species/${fishId}.png`);
 }
 
+function itemImage(itemId) {
+  return itemImages[itemId] ? assetPath(itemImages[itemId]) : assetPath('/assets/items/tackle_components.png');
+}
+
+function marketSellMarkup(state) {
+  const freshEntries = getFishEntries(state, 'fresh');
+  const freshValue = freshEntries.reduce((total, entry) => total + getFishSaleValue(state, entry), 0);
+  const tarankaEntries = getFishEntries(state, 'taranka');
+  const tarankaValue = tarankaEntries.reduce((total, entry) => total + Math.max(14, Math.round((entry.value + 5) * 1.08)), 0);
+
+  return `
+    <div class="market-summary">
+      <p>${t('marketSellHint')}</p>
+      <strong>${t('freshFish')}: ${freshEntries.length} · ${freshValue} ${t('coins').toLowerCase()}</strong>
+    </div>
+    <div class="market-card-grid">
+      <article class="market-card">
+        <img src="${assetPath('/assets/fish/catch_result_frame.png')}" alt="" />
+        <div>
+          <h3>${t('sellFreshFish')}</h3>
+          <p>${t('marketFreshnessNote')}</p>
+          <strong>${freshValue} ${t('coins').toLowerCase()}</strong>
+        </div>
+        <button data-action="sell:fish" type="button"${freshEntries.length === 0 ? ' disabled' : ''}>${t('sell')}</button>
+      </article>
+      <article class="market-card">
+        <img src="${assetPath('/assets/items/taranka_drying.png')}" alt="" />
+        <div>
+          <h3>${t('sellTaranka')}</h3>
+          <p>${t('marketTarankaNote')}</p>
+          <strong>${countFishByStatus(state, 'taranka')} · ${tarankaValue} ${t('coins').toLowerCase()}</strong>
+        </div>
+        <button data-action="sell:taranka" type="button"${tarankaEntries.length === 0 ? ' disabled' : ''}>${t('sell')}</button>
+      </article>
+    </div>
+  `;
+}
+
+function marketBuyMarkup(state) {
+  return `
+    <div class="market-card-grid">
+      ${shopItems.map((item) => {
+        const owned = item.type !== 'consumable' && state.purchased[item.id];
+        return `
+          <article class="market-card">
+            <img src="${itemImage(item.id)}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
+            <div>
+              <h3>${getShopItemLabel(item.id)}</h3>
+              <p>${t(shopDescriptionKey(item.id))}</p>
+              <strong>${owned ? t('owned') : `${item.price} ${t('coins').toLowerCase()}`}</strong>
+            </div>
+            <button data-action="buy:${item.id}" type="button"${owned ? ' disabled' : ''}>${owned ? t('owned') : t('buy')}</button>
+          </article>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function marketPricesMarkup(state) {
+  return `
+    <p class="market-forecast">${t('tomorrowForecast')}</p>
+    <div class="market-price-grid">
+      ${fishData.map((fish) => {
+        const price = getMarketPriceInfo(state, fish.id);
+        return `
+          <article class="market-price-card trend-${price.trend}">
+            <img src="${speciesImage(fish.id)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
+            <span>${t(fish.nameKey)}</span>
+            <strong>${trendArrow(price.trend)} ${price.currentPrice}</strong>
+            <small>${price.multiplier.toFixed(2)}x · ${t(trendKey(price.trend))}</small>
+          </article>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function shopDescriptionKey(itemId) {
+  const keys = {
+    shovel: 'shopDescShovel',
+    betterLine: 'shopDescBetterLine',
+    simpleFloat: 'shopDescFloat',
+    properFloat: 'shopDescProperFloat',
+    properSinker: 'shopDescProperSinker',
+    sharperHook: 'shopDescSharperHook',
+    properRod: 'shopDescProperRod',
+    bicycle: 'shopDescBicycle',
+    salt: 'shopDescSalt',
+    hooksPack: 'shopDescHooks',
+  };
+  return keys[itemId] ?? 'shopDescFallback';
+}
+
 function fishGuideMarkup(state) {
   const journal = state.catchJournal ?? {};
   return getFishGuideEntries().map((entry) => `
@@ -284,6 +412,7 @@ function watersGuideMarkup(state) {
     const unlocked = water.unlocked || state.purchased?.bicycle || state.travel?.farWatersUnlocked;
     return `
       <article class="guide-card guide-card--wide">
+        <img src="${assetPath(waterImages[water.id] ?? '/assets/locations/pond_location_concept.png')}" onerror="this.src='${assetPath('/assets/locations/pond_location_concept.png')}'" alt="" />
         <div>
           <h3>${t(water.nameKey)} ${unlocked ? '' : `· ${t('locked')}`}</h3>
           <p>${t(water.descriptionKey)}</p>
@@ -306,7 +435,7 @@ function guideSimpleMarkup(tab) {
     tackle: 'guideTackleText',
     processing: 'guideProcessingText',
   };
-  return `<article class="guide-card guide-card--wide"><p>${t(keys[tab])}</p></article>`;
+  return `<article class="guide-card guide-card--text"><p>${t(keys[tab])}</p></article>`;
 }
 
 function statusKey(status) {

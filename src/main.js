@@ -42,6 +42,7 @@ ensureFishState(gameState);
 ensureMarketState(gameState);
 ensureTackleState(gameState);
 ensureTimeState(gameState);
+normalizePanelStateForViewport(gameState);
 pushLog(gameState, 'logMorning');
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -87,6 +88,21 @@ const hud = createHud(hudRoot, {
         ...(gameState.ui.collapsedPanels ?? {}),
         [panelId]: !gameState.ui.collapsedPanels?.[panelId],
       };
+      if (!gameState.ui.collapsedPanels[panelId]) {
+        closeSiblingPanels(gameState, panelId);
+      }
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('market:tab:')) {
+      gameState.ui.marketTab = actionId.replace('market:tab:', '');
+      gameState.ui.collapsedPanels = {
+        ...(gameState.ui.collapsedPanels ?? {}),
+        market: false,
+      };
+      closeSiblingPanels(gameState, 'market');
       gameState.audioQueue.push('ui_click');
       renderHud();
       return;
@@ -211,7 +227,9 @@ const hud = createHud(hudRoot, {
       return;
     }
 
-    const context = gameState.ui.activeScene
+    const context = actionId.startsWith('buy:') || actionId.startsWith('sell:')
+      ? getLocationSceneContext(gameState, 'market')
+      : gameState.ui.activeScene
       ? getLocationSceneContext(gameState, gameState.ui.activeScene)
       : getInteractionContext(gameState, player.position);
     if (actionId === 'wait:tomorrow' && freshFishAtRisk(gameState) && !window.confirm(t('freshFishMayLoseValueConfirm'))) {
@@ -261,6 +279,7 @@ const hud = createHud(hudRoot, {
       ensureMarketState(gameState);
       ensureTackleState(gameState);
       ensureTimeState(gameState);
+      normalizePanelStateForViewport(gameState);
       player.restore(gameState.player);
       audio.syncSettings(gameState.settings.audio);
       pushLog(gameState, 'logLoaded');
@@ -277,6 +296,7 @@ const hud = createHud(hudRoot, {
     ensureMarketState(gameState);
     ensureTackleState(gameState);
     ensureTimeState(gameState);
+    normalizePanelStateForViewport(gameState);
     player.restore(gameState.player);
     audio.syncSettings(gameState.settings.audio);
     pushLog(gameState, 'logFreshMorning');
@@ -286,6 +306,36 @@ const hud = createHud(hudRoot, {
 
 function syncPlayerToState() {
   gameState.player = player.snapshot();
+}
+
+function closeSiblingPanels(state, openedPanelId) {
+  const exclusivePanels = ['inventory', 'keepnet', 'tackle', 'market', 'guide', 'journal', 'profile', 'settings', 'shop', 'fishPrices'];
+  if (!exclusivePanels.includes(openedPanelId)) {
+    return;
+  }
+
+  state.ui.collapsedPanels ??= {};
+  for (const panelId of exclusivePanels) {
+    if (panelId !== openedPanelId) {
+      state.ui.collapsedPanels[panelId] = true;
+    }
+  }
+}
+
+function normalizePanelStateForViewport(state) {
+  state.ui.collapsedPanels = {
+    ...(state.ui.collapsedPanels ?? {}),
+    shop: true,
+    fishPrices: true,
+  };
+
+  if (!window.matchMedia('(max-width: 768px)').matches) {
+    return;
+  }
+
+  for (const panelId of ['inventory', 'keepnet', 'tackle', 'market', 'guide', 'journal', 'profile', 'settings', 'shop', 'fishPrices']) {
+    state.ui.collapsedPanels[panelId] = true;
+  }
 }
 
 function renderHud() {
