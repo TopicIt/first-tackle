@@ -23,7 +23,7 @@ export function createAudioManager(initialSettings) {
       }
 
       activated = true;
-      startMusic(currentMusicId);
+      startMusic(getStartupTrackId(), { forceRestart: true });
     },
     syncSettings(nextSettings) {
       settings = {
@@ -195,6 +195,14 @@ export function createAudioManager(initialSettings) {
 
   function normalizeTrackId(trackId) {
     return musicTracks.find((track) => track.id === trackId)?.id ?? defaultMusicTrackId;
+  }
+
+  function getStartupTrackId() {
+    if (settings.musicMode === 'random') {
+      return getRandomTrackId(currentMusicId);
+    }
+
+    return currentMusicId;
   }
 }
 

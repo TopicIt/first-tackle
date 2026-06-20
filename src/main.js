@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import '../style.css';
-import { createInitialState, pushLog } from './game/state.js';
+import { createInitialState, pushFeedback, pushLog } from './game/state.js';
 import { createWorld } from './game/world.js';
 import { createPlayerController } from './game/player.js';
 import { ensureFishState } from './game/fishInventory.js';
@@ -254,6 +254,7 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'settings:debugCoins') {
       gameState.money += 1000;
+      pushFeedback(gameState, 'feedbackDebugCoins', {}, 'coins');
       pushLog(gameState, 'logDebugCoins', { coins: 1000 });
       gameState.audioQueue.push('coins');
       renderHud();
@@ -277,6 +278,7 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'music:next') {
       gameState.settings.audio.musicTrackId = audio.playNextTrack();
+      pushFeedback(gameState, 'feedbackNowPlaying', { trackKey: musicTrackLabelKey(gameState.settings.audio.musicTrackId) }, 'item');
       gameState.audioQueue.push('ui_click');
       audio.syncSettings(gameState.settings.audio);
       renderHud();
@@ -285,6 +287,7 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'music:random') {
       gameState.settings.audio.musicTrackId = audio.playRandomTrack();
+      pushFeedback(gameState, 'feedbackNowPlaying', { trackKey: musicTrackLabelKey(gameState.settings.audio.musicTrackId) }, 'item');
       gameState.audioQueue.push('ui_click');
       audio.syncSettings(gameState.settings.audio);
       renderHud();
@@ -500,6 +503,7 @@ function animate() {
   world.animate(delta);
   tickFishingMinigame(gameState, performance.now());
   updateMapOverlayMotion(performance.now());
+  gameState.settings.audio.musicTrackId = audio.getCurrentTrackId();
   syncPlayerToState();
   renderHud();
   audio.syncSettings(gameState.settings.audio);
@@ -508,3 +512,11 @@ function animate() {
 }
 
 animate();
+
+function musicTrackLabelKey(trackId) {
+  return {
+    ambient_day: 'musicTrackAmbientDay',
+    ambient_evening: 'musicTrackAmbientEvening',
+    theme: 'musicTrackTheme',
+  }[trackId] ?? 'musicTrackAmbientDay';
+}
