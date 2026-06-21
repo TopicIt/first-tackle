@@ -68,6 +68,29 @@ button:disabled {
   backdrop-filter: blur(9px);
 }
 
+.glass-menu {
+  border-color: rgb(255 255 255 / 14%);
+  background: rgb(8 17 18 / 34%);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 14%);
+  text-shadow: 0 1px 8px rgb(0 0 0 / 58%);
+  backdrop-filter: blur(7px);
+}
+
+.glass-menu-button {
+  border: 1px solid rgb(255 255 255 / 16%);
+  background: rgb(8 17 18 / 30%);
+  color: #f7fff8;
+  box-shadow: none;
+  text-shadow: 0 1px 8px rgb(0 0 0 / 62%);
+  backdrop-filter: blur(5px);
+}
+
+.glass-menu-button.is-active {
+  border-color: rgb(243 196 95 / 46%);
+  background: rgb(243 196 95 / 24%);
+  color: #fff8df;
+}
+
 .panel-toggle-row {
   display: flex;
   align-items: center;
@@ -569,14 +592,18 @@ button:disabled {
 :root[data-view-mode="desktop"] .mobile-menu__service button {
   min-height: 42px;
   border: 1px solid rgb(255 255 255 / 16%);
-  background: rgb(245 244 232 / 58%);
-  color: #12201c;
+  background: rgb(8 17 18 / 30%);
+  color: #f7fff8;
   font-size: 0.78rem;
   padding: 7px 9px;
+  text-shadow: 0 1px 8px rgb(0 0 0 / 62%);
+  backdrop-filter: blur(5px);
 }
 
 :root[data-view-mode="desktop"] .mobile-menu__list button.is-active {
-  background: #f3c45f;
+  border-color: rgb(243 196 95 / 46%);
+  background: rgb(243 196 95 / 24%);
+  color: #fff8df;
 }
 
 :root[data-view-mode="desktop"] .status-panel {
@@ -1453,14 +1480,18 @@ button:disabled {
   .mobile-menu__service button {
     min-height: 44px;
     border: 1px solid rgb(255 255 255 / 16%);
-    background: rgb(245 244 232 / 58%);
-    color: #12201c;
+    background: rgb(8 17 18 / 30%);
+    color: #f7fff8;
     font-size: 0.78rem;
     padding: 7px 9px;
+    text-shadow: 0 1px 8px rgb(0 0 0 / 62%);
+    backdrop-filter: blur(5px);
   }
 
   .mobile-menu__list button.is-active {
-    background: #f3c45f;
+    border-color: rgb(243 196 95 / 46%);
+    background: rgb(243 196 95 / 24%);
+    color: #fff8df;
   }
 
   .save-row {
@@ -1485,7 +1516,8 @@ button:disabled {
     max-height: min(92vh, calc(100vh - 84px));
     overflow: hidden;
     padding: 12px;
-    background: rgb(16 25 24 / 78%);
+    background: rgb(8 17 18 / 34%);
+    backdrop-filter: blur(7px);
   }
 
   .inventory-panel .panel-collapsible,
@@ -1736,18 +1768,22 @@ button:disabled {
 :root[data-view-mode="mobile"] .mobile-menu__service button {
   min-height: 44px;
   border: 1px solid rgb(255 255 255 / 16%);
-  background: rgb(245 244 232 / 58%);
-  color: #12201c;
+  background: rgb(8 17 18 / 30%);
+  color: #f7fff8;
   font-size: 0.78rem;
   padding: 7px 9px;
+  text-shadow: 0 1px 8px rgb(0 0 0 / 62%);
+  backdrop-filter: blur(5px);
 }
 
 :root[data-view-mode="mobile"] .mobile-menu__list button.is-active {
-  background: #f3c45f;
+  border-color: rgb(243 196 95 / 46%);
+  background: rgb(243 196 95 / 24%);
+  color: #fff8df;
 }
 
 body:has(.mobile-menu[open]) .panel:not(.status-panel) {
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 body:has(.mobile-menu[open]) .mobile-menu,
@@ -1774,7 +1810,8 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet * {
   max-height: min(92vh, calc(100vh - 84px));
   overflow: hidden;
   padding: 12px;
-  background: rgb(16 25 24 / 78%);
+  background: rgb(8 17 18 / 34%);
+  backdrop-filter: blur(7px);
 }
 
 :root[data-view-mode="mobile"] .inventory-panel .panel-collapsible,
@@ -1830,6 +1867,32 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet * {
 
 :root[data-view-mode="mobile"] .view-mode-grid {
   grid-template-columns: 1fr;
+}
+
+@media (min-width: 560px) {
+  :root[data-view-mode="mobile"] body:has(.mobile-menu[open]) .side-detail-panel:not(.is-collapsed) {
+    left: 236px;
+    right: 8px;
+    top: calc(max(8px, env(safe-area-inset-top)) + 52px);
+    bottom: 12px;
+    z-index: 305;
+    width: auto;
+    max-height: calc(100dvh - 72px - env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 559px) {
+  :root[data-view-mode="mobile"] .mobile-menu[open] .mobile-menu__sheet {
+    width: min(220px, calc(100vw - 16px));
+    max-height: 214px;
+  }
+
+  :root[data-view-mode="mobile"] body:has(.mobile-menu[open]) .side-detail-panel:not(.is-collapsed) {
+    top: calc(max(8px, env(safe-area-inset-top)) + 282px);
+    bottom: 12px;
+    z-index: 250;
+    max-height: calc(100dvh - 296px - env(safe-area-inset-bottom));
+  }
 }
 
 @media (max-width: 768px) {

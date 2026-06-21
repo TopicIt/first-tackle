@@ -261,7 +261,8 @@
 
 .cast-spot-layer,
 .fishing-ambience,
-.fishing-figure {
+.fishing-figure,
+.fishing-line-overlay {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -368,6 +369,48 @@
 .fishing-figure {
   z-index: 3;
   transform-style: preserve-3d;
+}
+
+.fishing-line-overlay {
+  z-index: 5;
+  overflow: visible;
+}
+
+.fishing-line-overlay__line,
+.fishing-line-overlay__shadow {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.fishing-line-overlay__shadow {
+  stroke: rgb(0 0 0 / 18%);
+  stroke-width: 2.4px;
+  transform: translate(0.3px, 0.6px);
+}
+
+.fishing-line-overlay__line {
+  stroke: rgb(241 249 238 / 52%);
+  stroke-width: 1.05px;
+  stroke-dasharray: calc(1.4px + var(--line-tension, 0.4) * 1px) 1.6px;
+  filter: drop-shadow(0 0 2px rgb(255 255 255 / 20%));
+}
+
+.fishing-line-overlay--tiny_nibble .fishing-line-overlay__line,
+.fishing-line-overlay--sideways_pull .fishing-line-overlay__line {
+  animation: fishingLineTwitch 0.72s ease-in-out infinite;
+}
+
+.fishing-line-overlay--hard_dip .fishing-line-overlay__line,
+.fishing-line-overlay--strike_window .fishing-line-overlay__line,
+.fishing-line-overlay--hooked .fishing-line-overlay__line {
+  stroke: rgb(255 253 230 / 66%);
+  animation: fishingLineTension 0.44s ease-in-out infinite alternate;
+}
+
+.fishing-line-overlay--line_break {
+  opacity: 0.22;
 }
 
 .fishing-figure__shadow,
@@ -1079,6 +1122,16 @@
   50% { transform: rotate(7deg); opacity: 0.92; }
 }
 
+@keyframes fishingLineTwitch {
+  0%, 100% { stroke-width: 1.05px; opacity: 0.7; }
+  50% { stroke-width: 1.35px; opacity: 0.9; }
+}
+
+@keyframes fishingLineTension {
+  from { stroke-width: 1.12px; opacity: 0.78; }
+  to { stroke-width: 1.58px; opacity: 0.96; }
+}
+
 @keyframes rodCast {
   0% { transform: rotate(-62deg); }
   65% { transform: rotate(-18deg); }
@@ -1197,6 +1250,7 @@
   .fishing-stage__bobber,
   .fishing-stage__rings::before,
   .fishing-stage__rings::after,
+  .fishing-line-overlay__line,
   .fishing-panel__actions .strike,
   .fishing-figure__body,
   .fishing-figure__head,

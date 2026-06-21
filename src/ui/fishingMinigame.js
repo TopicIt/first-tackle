@@ -20,6 +20,24 @@ const methodKeys = {
   liveBait: 'fishingMethodLiveBait',
 };
 
+const fishingLineAnchors = {
+  handline: {
+    rodTipAnchor: { x: 18, y: 58 },
+    sag: 5.2,
+    tension: 0.3,
+  },
+  stickRod: {
+    rodTipAnchor: { x: 34, y: 38 },
+    sag: 6.8,
+    tension: 0.44,
+  },
+  liveBait: {
+    rodTipAnchor: { x: 34, y: 38 },
+    sag: 7.4,
+    tension: 0.42,
+  },
+};
+
 export function fishingMinigameMarkup(state) {
   const minigame = state.ui?.fishingMinigame;
   if (!minigame?.open) {
@@ -400,8 +418,8 @@ function fishingStageMarkup(state, minigame, options) {
       <span class="fishing-figure__hat"></span>
       <span class="fishing-figure__arm"></span>
       <span class="fishing-figure__rod"></span>
-      <span class="fishing-figure__line"></span>
     </div>
+    ${fishingLineMarkup(minigame)}
     <div class="cast-spot-layer">
       ${getAvailableCastSpots(state, minigame.method).map((spot) => castSpotMarkup(spot, minigame.selectedSpot)).join('')}
       ${selectedScatterMarkup(state, minigame)}
@@ -439,4 +457,89 @@ function fishingStageMarkup(state, minigame, options) {
       <button class="fishing-keepnet-shortcut" data-action="panel:toggle:keepnet" type="button">${t('keepnet')}</button>
     </div>
   `;
+}
+
+function fishingLineMarkup(minigame) {
+  const line = fishingLineGeometry(minigame);
+  return `
+    <svg
+      class="fishing-line-overlay fishing-line-overlay--${minigame.method} fishing-line-overlay--${minigame.bobberState}"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path class="fishing-line-overlay__shadow" d="${line.path}"></path>
+      <path class="fishing-line-overlay__line" d="${line.path}" style="--line-tension:${line.tension};"></path>
+    </svg>
+  `;
+}
+
+function fishingLineGeometry(minigame) {
+  const preset = fishingLineAnchors[minigame.method] ?? fishingLineAnchors.stickRod;
+  const start = preset.rodTipAnchor;
+  const end = bobberAnchor(minigame);
+  const distanceX = end.x - start.x;
+  const distanceY = end.y - start.y;
+  const sag = preset.sag + Math.max(0, distanceX) * 0.025 + Math.max(0, distanceY) * 0.018;
+  const tension = lineTensionForState(minigame.bobberState, preset.tension);
+  const controlOne = {
+    x: start.x + distanceX * 0.32,
+    y: start.y + distanceY * 0.2 + sag * (1 - tension),
+  };
+  const controlTwo = {
+    x: start.x + distanceX * 0.72,
+    y: start.y + distanceY * 0.78 + sag * (1.22 - tension),
+  };
+
+  return {
+    path: `M ${fmt(start.x)} ${fmt(start.y)} C ${fmt(controlOne.x)} ${fmt(controlOne.y)}, ${fmt(controlTwo.x)} ${fmt(controlTwo.y)}, ${fmt(end.x)} ${fmt(end.y)}`,
+    tension,
+  };
+}
+
+function bobberAnchor(minigame) {
+  if (minigame.phase === 'result' && minigame.bobberState === 'hidden') {
+    return { x: 12, y: 112 };
+  }
+
+  const target = minigame.castTarget ?? { x: 18, y: 68 };
+  const offsets = {
+    tiny_nibble: { x: 0.6, y: 0.2 },
+    lift: { x: -0.2, y: -4.2 },
+    slow_dip: { x: 0, y: 4.2 },
+    hard_dip: { x: 0, y: 7.4 },
+    sideways_pull: { x: 6.2, y: 1.5 },
+    strike_window: { x: 1.1, y: 4.8 },
+    hooked: { x: 4.4, y: -1.5 },
+    missed: { x: -1.2, y: 2.4 },
+    line_break: { x: -2.6, y: 3.8 },
+    submerged: { x: 0, y: 6.8 },
+  }[minigame.bobberState] ?? { x: 0, y: 0 };
+
+  return {
+    x: target.x + offsets.x,
+    y: target.y + offsets.y - 2.4,
+  };
+}
+
+function lineTensionForState(bobberState, baseTension) {
+  const adjustments = {
+    idle: 0,
+    tiny_nibble: 0.05,
+    lift: 0.12,
+    slow_dip: 0.1,
+    hard_dip: 0.2,
+    sideways_pull: 0.18,
+    strike_window: 0.26,
+    hooked: 0.34,
+    submerged: 0.28,
+    missed: -0.04,
+    line_break: -0.16,
+  };
+  return Math.max(0.12, Math.min(0.88, baseTension + (adjustments[bobberState] ?? 0)));
+}
+
+function fmt(value) {
+  return Number(value).toFixed(2);
 }

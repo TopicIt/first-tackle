@@ -16,6 +16,9 @@ import { buildInfo } from '../buildInfo.js';
 
 export function createHud(root, handlers) {
   const shownFeedbackIds = new Set();
+  const preservedScrollPositions = new Map();
+  let mobileMenuOpen = false;
+  let pendingScrollRestore = null;
 
   root.addEventListener('input', (event) => {
     const input = event.target.closest('[data-audio-setting]');
@@ -40,6 +43,40 @@ export function createHud(root, handlers) {
 
     handlers.onAudioSetting(checkbox.dataset.audioSetting, checkbox.checked ? 'true' : 'false');
   });
+
+  root.addEventListener('toggle', (event) => {
+    if (event.target.matches('.mobile-menu')) {
+      mobileMenuOpen = event.target.open;
+    }
+  }, true);
+
+  root.addEventListener('scroll', (event) => {
+    const el = event.target instanceof Element ? event.target.closest('[data-scroll-preserve]') : null;
+    if (!el || !root.contains(el)) {
+      return;
+    }
+
+    if (el.scrollTop > 0 || el.scrollLeft > 0) {
+      preservedScrollPositions.set(el.dataset.scrollPreserve, {
+        key: el.dataset.scrollPreserve,
+        top: el.scrollTop,
+        left: el.scrollLeft,
+      });
+    } else {
+      preservedScrollPositions.delete(el.dataset.scrollPreserve);
+    }
+  }, true);
+
+  root.addEventListener('pointerdown', (event) => {
+    const button = event.target.closest('button[data-action]');
+    if (!button || button.disabled) {
+      return;
+    }
+
+    const preservedScroll = capturePreservedScroll(root, button.dataset.action, preservedScrollPositions, button);
+    rememberPreservedScroll(preservedScrollPositions, preservedScroll);
+    pendingScrollRestore = preservedScroll;
+  }, true);
 
   root.addEventListener('submit', (event) => {
     const form = event.target.closest('[data-cheat-form]');
@@ -67,6 +104,7 @@ export function createHud(root, handlers) {
     if (languageButton) {
       handlers.onDismissStartupTitle?.();
       languageButton.closest('.mobile-menu')?.removeAttribute('open');
+      mobileMenuOpen = false;
       handlers.onToggleLanguage();
       return;
     }
@@ -77,14 +115,36 @@ export function createHud(root, handlers) {
     }
 
     const action = button.dataset.action;
+    const mobileMenu = button.closest('.mobile-menu');
+    const preservedScroll = capturePreservedScroll(root, action, preservedScrollPositions, button);
+    rememberPreservedScroll(preservedScrollPositions, preservedScroll);
+    if (preservedScroll) {
+      pendingScrollRestore = preservedScroll;
+    }
+    const keepMobileMenuOpen = action.startsWith('panel:toggle:')
+      && (mobileMenuOpen || Boolean(root.querySelector('.mobile-menu[open]')) || Boolean(mobileMenu));
     handlers.onDismissStartupTitle?.();
-    button.closest('.mobile-menu')?.removeAttribute('open');
+    if (!action.startsWith('panel:toggle:')) {
+      mobileMenu?.removeAttribute('open');
+      mobileMenuOpen = false;
+    } else if (keepMobileMenuOpen || mobileMenu) {
+      mobileMenuOpen = true;
+    }
 
     if (action === 'save') handlers.onSave();
     else if (action === 'load') handlers.onLoad();
     else if (action === 'reset') handlers.onReset();
     else if (action === 'transition:skip') handlers.onTransitionDone();
     else handlers.onAction(action);
+
+    restoreMobileMenu(root, keepMobileMenuOpen);
+    if (preservedScroll) {
+      restorePreservedScroll(root, preservedScroll);
+    }
+    if (pendingScrollRestore) {
+      restorePreservedScroll(root, pendingScrollRestore);
+      pendingScrollRestore = null;
+    }
   });
 
   return {
@@ -110,7 +170,7 @@ export function createHud(root, handlers) {
           <strong>${state.money}</strong>
         </div>
 
-        <section class="panel status-panel${statusCollapsed}">
+        <section class="panel glass-menu status-panel${statusCollapsed}">
           <div class="panel-toggle-row">
             <h1 class="title">${t('appTitle')}</h1>
             <button class="panel-toggle" data-action="panel:toggle:status" type="button" aria-label="${panelToggleLabel(collapsedPanels.status)}">
@@ -120,7 +180,7 @@ export function createHud(root, handlers) {
           <div class="panel-collapsible">
             <p class="hint"><strong>${context.zoneLabel}</strong><br>${context.hint}</p>
             <p class="clock-line">${t('dayLabel', { day: state.day })} · ${t(`timePhase${toPascalCase(context.timePhase ?? 'morning')}`)} · ${context.clock ?? ''}</p>
-            <details class="mobile-menu">
+            <details class="mobile-menu"${mobileMenuOpen ? ' open' : ''}>
               <summary aria-label="${t('menu')}" title="${t('menu')}">
                 <span></span><span></span><span></span>
               </summary>
@@ -162,7 +222,7 @@ export function createHud(root, handlers) {
           </div>
         </section>
 
-        <section class="panel inventory-panel${inventoryCollapsed}">
+        <section class="panel glass-menu side-detail-panel inventory-panel${inventoryCollapsed}">
           <div class="panel-toggle-row">
             <p class="section-label">${t('inventory')}</p>
             <button class="panel-toggle" data-action="panel:toggle:inventory" type="button" aria-label="${panelToggleLabel(collapsedPanels.inventory)}">
@@ -174,7 +234,7 @@ export function createHud(root, handlers) {
           </div>
         </section>
 
-        <section class="panel keepnet-panel${keepnetCollapsed}">
+        <section class="panel glass-menu side-detail-panel keepnet-panel${keepnetCollapsed}">
           <div class="panel-toggle-row">
             <p class="section-label">${t('fishBasket')}</p>
             <button class="panel-toggle" data-action="panel:toggle:keepnet" type="button" aria-label="${panelToggleLabel(collapsedPanels.keepnet)}">
@@ -186,7 +246,7 @@ export function createHud(root, handlers) {
           </div>
         </section>
 
-        <section class="panel journal-panel${journalCollapsed}">
+        <section class="panel glass-menu side-detail-panel journal-panel${journalCollapsed}">
           <div class="panel-toggle-row">
             <p class="section-label">${t('catchJournal')}</p>
             <button class="panel-toggle" data-action="panel:toggle:journal" type="button" aria-label="${panelToggleLabel(collapsedPanels.journal)}">
@@ -198,7 +258,7 @@ export function createHud(root, handlers) {
           </div>
         </section>
 
-        <section class="panel tackle-panel${tackleCollapsed}">
+        <section class="panel glass-menu side-detail-panel tackle-panel${tackleCollapsed}">
           <div class="panel-toggle-row">
             <p class="section-label">${t('tackle')}</p>
             <button class="panel-toggle" data-action="panel:toggle:tackle" type="button" aria-label="${panelToggleLabel(collapsedPanels.tackle)}">
@@ -210,7 +270,7 @@ export function createHud(root, handlers) {
           </div>
         </section>
 
-        <section class="panel journal-panel achievements-panel${achievementsCollapsed}">
+        <section class="panel glass-menu side-detail-panel journal-panel achievements-panel${achievementsCollapsed}">
           <div class="panel-toggle-row">
             <p class="section-label">${t('achievements')}</p>
             <button class="panel-toggle" data-action="panel:toggle:achievements" type="button" aria-label="${panelToggleLabel(collapsedPanels.achievements)}">
@@ -222,7 +282,7 @@ export function createHud(root, handlers) {
           </div>
         </section>
 
-        <section class="panel guide-panel map-viewer-panel${mapViewerCollapsed}">
+        <section class="panel glass-menu side-detail-panel guide-panel map-viewer-panel${mapViewerCollapsed}">
           <div class="panel-toggle-row">
             <p class="section-label">${t('map')}</p>
             <button class="panel-toggle" data-action="panel:toggle:mapViewer" type="button" aria-label="${panelToggleLabel(collapsedPanels.mapViewer)}">
@@ -234,7 +294,7 @@ export function createHud(root, handlers) {
           </div>
         </section>
 
-        <section class="panel guide-panel${guideCollapsed}">
+        <section class="panel glass-menu side-detail-panel guide-panel${guideCollapsed}">
           <div class="panel-toggle-row">
             <p class="section-label">${t('fishermanGuide')}</p>
             <button class="panel-toggle" data-action="panel:toggle:guide" type="button" aria-label="${panelToggleLabel(collapsedPanels.guide)}">
@@ -246,7 +306,7 @@ export function createHud(root, handlers) {
           </div>
         </section>
 
-        <section class="panel settings-panel${settingsCollapsed}">
+        <section class="panel glass-menu side-detail-panel settings-panel${settingsCollapsed}">
           <div class="panel-toggle-row">
             <p class="section-label">${t('settings')}</p>
             <button class="panel-toggle" data-action="panel:toggle:settings" type="button" aria-label="${panelToggleLabel(collapsedPanels.settings)}">
@@ -338,13 +398,13 @@ export function createHud(root, handlers) {
           </div>
         </section>
 
-        ${state.ui?.fishingMinigame?.open || !state.ui?.activeScene ? '' : `<section class="panel actions-panel">
+        ${state.ui?.fishingMinigame?.open || !state.ui?.activeScene ? '' : `<section class="panel glass-menu actions-panel">
           <div class="action-grid">
             ${context.actions.map(actionButtonMarkup).join('')}
           </div>
         </section>`}
 
-        <section class="panel log-panel">
+        <section class="panel glass-menu log-panel">
           <p class="section-label">${t('log')}</p>
           <ul class="log-list">${logMarkup(state)}</ul>
         </section>
@@ -352,6 +412,13 @@ export function createHud(root, handlers) {
         ${locationSceneMarkup(renderState, context)}
         ${locationTransitionMarkup(state.ui?.locationTransition)}
       `;
+
+      restoreMobileMenu(root, mobileMenuOpen);
+      const scrollRestore = pendingScrollRestore ?? getRememberedScroll(preservedScrollPositions);
+      if (scrollRestore) {
+        restorePreservedScroll(root, scrollRestore);
+        pendingScrollRestore = null;
+      }
 
       for (const feedback of visibleFeedback) {
         shownFeedbackIds.add(feedback.id);
@@ -361,6 +428,90 @@ export function createHud(root, handlers) {
     },
   };
 
+}
+
+function capturePreservedScroll(root, action, rememberedEntries, actionElement) {
+  if (!shouldPreserveScroll(action)) {
+    return null;
+  }
+
+  const closestEntry = scrollEntryForElement(actionElement?.closest('[data-scroll-preserve]'));
+  if (closestEntry) {
+    return [closestEntry];
+  }
+
+  const entries = [...root.querySelectorAll('[data-scroll-preserve]')]
+    .map(scrollEntryForElement)
+    .filter(Boolean);
+
+  return entries.length ? entries : getRememberedScroll(rememberedEntries);
+}
+
+function scrollEntryForElement(el) {
+  if (!el || (el.scrollTop <= 0 && el.scrollLeft <= 0)) {
+    return null;
+  }
+
+  return {
+    key: el.dataset.scrollPreserve,
+    top: el.scrollTop,
+    left: el.scrollLeft,
+  };
+}
+
+function rememberPreservedScroll(rememberedEntries, entries) {
+  if (!entries) {
+    return;
+  }
+
+  for (const entry of entries) {
+    rememberedEntries.set(entry.key, entry);
+  }
+}
+
+function getRememberedScroll(rememberedEntries) {
+  const entries = [...rememberedEntries.values()].filter((entry) => entry.top > 0 || entry.left > 0);
+  return entries.length ? entries : null;
+}
+
+function restorePreservedScroll(root, entries) {
+  if (!entries) {
+    return;
+  }
+
+  const apply = () => {
+    for (const entry of entries) {
+      const el = root.querySelector(`[data-scroll-preserve="${entry.key}"]`);
+      if (el) {
+        el.scrollTop = entry.top;
+        el.scrollLeft = entry.left;
+      }
+    }
+  };
+
+  window.requestAnimationFrame(() => {
+    apply();
+    window.requestAnimationFrame(apply);
+    window.setTimeout(apply, 40);
+    window.setTimeout(apply, 140);
+  });
+}
+
+function restoreMobileMenu(root, shouldOpen) {
+  if (!shouldOpen) {
+    return;
+  }
+
+  window.requestAnimationFrame(() => {
+    root.querySelector('.mobile-menu')?.setAttribute('open', '');
+  });
+}
+
+function shouldPreserveScroll(action) {
+  return action.startsWith('buy:')
+    || action.startsWith('sell:')
+    || action.startsWith('market:tab:')
+    || action.startsWith('panel:toggle:marketSpecies:');
 }
 
 function setupLocationTransition(root, state, handlers) {
@@ -425,7 +576,7 @@ function actionButtonMarkup(action) {
 
 function menuButton(panelId, labelKey, collapsedPanels) {
   const open = !collapsedPanels[panelId];
-  return `<button class="${open ? 'is-active' : ''}" data-action="panel:toggle:${panelId}" type="button">${t(labelKey)}</button>`;
+  return `<button class="glass-menu-button${open ? ' is-active' : ''}" data-action="panel:toggle:${panelId}" type="button">${t(labelKey)}</button>`;
 }
 
 function panelToggleIcon(isCollapsed) {

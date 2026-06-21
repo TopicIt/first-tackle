@@ -70,6 +70,7 @@ let lastHudSnapshot = '';
 const audio = createAudioManager(gameState.settings.audio);
 let spaceIsDown = false;
 let fishingActionLockedUntil = 0;
+let rememberedMarketScrollTop = 0;
 
 const hud = createHud(hudRoot, {
   onAction(actionId) {
@@ -332,9 +333,11 @@ const hud = createHud(hudRoot, {
         return;
       }
     }
+    const marketScrollTop = captureMarketScroll(actionId);
     runAction(actionId, gameState, context);
     syncPlayerToState();
     renderHud();
+    restoreMarketScroll(marketScrollTop, actionId);
   },
   onCloseScene() {
     dismissStartupTitle();
@@ -587,6 +590,46 @@ function renderHud() {
   }
 }
 
+function captureMarketScroll(actionId) {
+  if (!actionId.startsWith('buy:') && !actionId.startsWith('sell:')) {
+    return null;
+  }
+
+  const marketBody = document.querySelector('[data-scroll-preserve="market-body"]');
+  return marketBody?.scrollTop > 0 ? marketBody.scrollTop : rememberedMarketScrollTop || null;
+}
+
+function restoreMarketScroll(scrollTop, actionId) {
+  if (!scrollTop && !actionId.startsWith('buy:')) {
+    return;
+  }
+
+  const apply = () => {
+    const marketBody = document.querySelector('[data-scroll-preserve="market-body"]');
+    if (!marketBody) {
+      return;
+    }
+
+    if (scrollTop) {
+      marketBody.scrollTop = scrollTop;
+      return;
+    }
+
+    const target = marketBody.querySelector(`button[data-action="${actionId}"]`)?.closest('.market-card');
+    if (target) {
+      marketBody.scrollTop = Math.max(0, target.offsetTop - (marketBody.clientHeight / 2) + (target.clientHeight / 2));
+    }
+  };
+
+  window.requestAnimationFrame(() => {
+    apply();
+    window.requestAnimationFrame(apply);
+    window.setTimeout(apply, 40);
+    window.setTimeout(apply, 140);
+    window.setTimeout(apply, 320);
+  });
+}
+
 function resize() {
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -613,6 +656,12 @@ function runLockedFishingAction(action) {
 }
 
 window.addEventListener('resize', resize);
+document.addEventListener('scroll', (event) => {
+  const marketBody = event.target instanceof Element ? event.target.closest('[data-scroll-preserve="market-body"]') : null;
+  if (marketBody) {
+    rememberedMarketScrollTop = marketBody.scrollTop;
+  }
+}, true);
 window.addEventListener('keydown', (event) => {
   if (event.code !== 'Space' || !gameState.ui.fishingMinigame?.open) {
     return;

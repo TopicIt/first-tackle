@@ -122,7 +122,7 @@ export function marketMarkup(state) {
         <button class="${tab === id ? 'is-selected' : ''}" data-action="market:tab:${id}" type="button">${t(`marketTab${toPascalCase(id)}`)}</button>
       `).join('')}
     </div>
-    <div class="market-body">
+    <div class="market-body" data-scroll-preserve="market-body">
       ${tab === 'buy' ? marketBuyMarkup(state) : tab === 'prices' ? marketPricesMarkup(state) : marketSellMarkup(state)}
     </div>
   `;
