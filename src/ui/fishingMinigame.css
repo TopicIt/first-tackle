@@ -1796,3 +1796,17 @@
     display: grid;
   }
 }
+
+/* Emergency pre-demo: hide oversized 3D fisherman prototype overlay */
+.fishing-prototype3d,
+.fishing-prototype-3d,
+.fishing-prototype,
+.fishing-3d-prototype,
+.fishing-scene canvas[class*='prototype'],
+[class*='prototype3d'],
+[class*='prototype-3d'] {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
