@@ -261,6 +261,7 @@
 
 .cast-spot-layer,
 .fishing-ambience,
+.fishing-stage__prototype-3d,
 .fishing-figure,
 .fishing-line-overlay {
   position: absolute;
@@ -369,6 +370,26 @@
 .fishing-figure {
   z-index: 3;
   transform-style: preserve-3d;
+}
+
+.fishing-stage__prototype-3d {
+  z-index: 6;
+}
+
+.fishing-stage__prototype-3d-canvas {
+  position: absolute;
+  left: 2%;
+  bottom: 4%;
+  width: min(48vw, 360px);
+  height: min(62vh, 470px);
+  max-width: 52%;
+  max-height: 72%;
+  display: block;
+  overflow: visible;
+  border: 1px dashed rgb(255 244 193 / 34%);
+  border-radius: 20px;
+  background: radial-gradient(circle at 45% 55%, rgb(255 255 255 / 8%), rgb(12 20 22 / 0%) 62%);
+  filter: drop-shadow(0 18px 28px rgb(0 0 0 / 28%));
 }
 
 .fishing-line-overlay {
@@ -1359,6 +1380,15 @@
     background: transparent;
   }
 
+  .fishing-stage__prototype-3d-canvas {
+    left: 12%;
+    bottom: 8%;
+    width: min(52vw, 280px);
+    height: min(52vh, 390px);
+    max-width: 56%;
+    max-height: 60%;
+  }
+
   .fishing-minigame__controls {
     position: absolute;
     left: 8px;
@@ -1609,6 +1639,15 @@
   border: 0;
   border-radius: 0;
   background: transparent;
+}
+
+:root[data-view-mode="mobile"] .fishing-stage__prototype-3d-canvas {
+  left: 12%;
+  bottom: 8%;
+  width: min(52vw, 280px);
+  height: min(52vh, 390px);
+  max-width: 56%;
+  max-height: 60%;
 }
 
 :root[data-view-mode="mobile"] .fishing-minigame__controls {

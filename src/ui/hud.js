@@ -11,6 +11,7 @@ import {
 import { locationSceneMarkup } from './locationScene.js';
 import { locationTransitionMarkup } from './locationTransition.js';
 import { mapOverlayMarkup } from './mapOverlay.js';
+import { syncFishingPrototype3d } from './fishingPrototype3d.js';
 import { getLanguage, t } from '../i18n/i18n.js';
 import { buildInfo } from '../buildInfo.js';
 
@@ -425,6 +426,7 @@ export function createHud(root, handlers) {
       }
 
       setupLocationTransition(root, state, handlers);
+      syncFishingPrototype3d(root, state);
     },
   };
 

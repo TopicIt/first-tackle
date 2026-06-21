@@ -411,6 +411,10 @@ function fishingStageMarkup(state, minigame, options) {
       <span class="reed reed--two"></span>
       <span class="reed reed--three"></span>
     </div>
+    <div class="fishing-stage__prototype-3d" aria-hidden="true">
+      <canvas class="fishing-stage__prototype-3d-canvas" data-fishing-prototype-canvas></canvas>
+    </div>
+    <!-- Temporary 2D fallback fisherman. Disable this block later once the 3D prototype fully replaces it. -->
     <div class="fishing-figure fishing-figure--${minigame.method} fishing-figure--${minigame.phase}" aria-hidden="true">
       <span class="fishing-figure__shadow"></span>
       <span class="fishing-figure__body"></span>

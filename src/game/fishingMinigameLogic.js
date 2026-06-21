@@ -226,7 +226,7 @@ export function strikeLine(state, nowMs) {
     minigame.statusKey = 'fishingTooEarly';
     minigame.result = { outcome: 'too_early' };
     minigame.bobberState = 'missed';
-    if (!tutorialCatchActive && minigame.fishCandidateId && Math.random() < 0.32) {
+    if (!tutorialCatchActive && minigame.fishCandidateId && Math.random() < 0.18) {
       resolveMinigameResult(state, { outcome: 'escaped', statusKey: 'fishingScaredFish', sound: 'fish_escape' });
     } else {
       minigame.phase = 'waiting';
@@ -241,9 +241,10 @@ export function strikeLine(state, nowMs) {
   const reactionQuality = Math.max(0, 1 - Math.abs(nowMs - timingCenter) / timingSpread);
   const tackleBonus = getTackleBonus(state, minigame.method);
   const baitBonus = getBaitSuitability(minigame.fishCandidateId, minigame.selectedBait);
+  const fishDifficulty = fishProfile.difficulty ?? 0.5;
   const successChance = tutorialCatchActive
     ? 1
-    : clamp(0.2 + reactionQuality * 0.38 + tackleBonus + baitBonus * 0.16 - fishProfile.difficulty * 0.28, 0.08, 0.95);
+    : clamp(0.52 + reactionQuality * 0.26 + tackleBonus * 0.65 + baitBonus * 0.12 - fishDifficulty * 0.12, 0.34, 0.9);
   const roll = Math.random();
   const effects = getTackleEffects(state);
 
@@ -251,9 +252,9 @@ export function strikeLine(state, nowMs) {
 
   if (!tutorialCatchActive && ['pike', 'sudak', 'som', 'canadian_catfish', 'eel'].includes(minigame.fishCandidateId)) {
     const breakChance = clamp(
-      0.24 + Math.max(0, effects.breakPenalty) - effects.hookBonus * 0.7 - effects.stabilityBonus * 0.35,
-      0.04,
-      0.5,
+      0.07 + Math.max(0, effects.breakPenalty) * 0.4 - effects.hookBonus * 0.28 - effects.stabilityBonus * 0.2,
+      0.015,
+      0.16,
     );
     if (roll < breakChance) {
       resolveMinigameResult(state, { outcome: 'line_broke', statusKey: 'fishingLineBroke', sound: 'line_break' });
@@ -262,7 +263,11 @@ export function strikeLine(state, nowMs) {
   }
 
   if (!tutorialCatchActive && minigame.method === 'handline') {
-    const handlineBreakChance = clamp(0.08 + Math.max(0, effects.breakPenalty) - effects.hookBonus * 0.35, 0.03, 0.22);
+    const handlineBreakChance = clamp(
+      0.02 + Math.max(0, effects.breakPenalty) * 0.18 - effects.hookBonus * 0.1,
+      0.005,
+      0.08,
+    );
     if (roll > 1 - handlineBreakChance) {
       resolveMinigameResult(state, { outcome: 'line_broke', statusKey: 'fishingLineBroke', sound: 'line_break' });
       return;
@@ -1118,7 +1123,7 @@ function shouldBreakHomemadeRod(state, catchResult) {
     return false;
   }
 
-  const breakChance = catchResult.weightGrams > 650 ? 0.85 : 0.55;
+  const breakChance = catchResult.weightGrams > 650 ? 0.28 : 0.14;
   return Math.random() < breakChance;
 }
 
