@@ -1493,3 +1493,213 @@
     padding: 6px 8px;
   }
 }
+
+:root[data-view-mode="mobile"] .fishing-minigame {
+  position: fixed;
+  z-index: 80;
+  background: rgb(7 13 15 / 42%);
+  backdrop-filter: none;
+}
+
+:root[data-view-mode="mobile"] .fishing-minigame__shell {
+  display: block;
+  padding: 6px;
+}
+
+:root[data-view-mode="mobile"] .fishing-minigame__header {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 8px;
+  z-index: 12;
+  align-items: center;
+  border-radius: 999px;
+  background: rgb(8 16 17 / 40%);
+  box-shadow: none;
+  padding: 6px 10px 6px 12px;
+}
+
+:root[data-view-mode="mobile"] .fishing-minigame__header .section-label,
+:root[data-view-mode="mobile"] .fishing-minigame__header h2 {
+  display: none;
+}
+
+:root[data-view-mode="mobile"] .fishing-minigame__status {
+  max-width: 62vw;
+  overflow: hidden;
+  color: #e7f3ec;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:root[data-view-mode="mobile"] .fishing-minigame__layout,
+:root[data-view-mode="mobile"] .fishing-minigame__layout.is-controls-collapsed,
+:root[data-view-mode="mobile"] .fishing-minigame__layout.is-result-collapsed,
+:root[data-view-mode="mobile"] .fishing-minigame__layout.is-controls-collapsed.is-result-collapsed {
+  display: block;
+  height: 100%;
+  overflow: visible;
+}
+
+:root[data-view-mode="mobile"] .fishing-minigame__stage {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+:root[data-view-mode="mobile"] .fishing-stage {
+  width: 100%;
+  height: 100%;
+  min-height: 100dvh;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+:root[data-view-mode="mobile"] .fishing-minigame__controls {
+  position: absolute;
+  left: 8px;
+  top: 54px;
+  z-index: 15;
+  width: min(178px, 46vw);
+  max-height: calc(100dvh - 128px);
+  overflow: auto;
+}
+
+:root[data-view-mode="mobile"] .fishing-panel {
+  border-radius: 12px;
+  background: rgb(8 17 18 / 28%);
+  box-shadow: none;
+  padding: 8px;
+}
+
+:root[data-view-mode="mobile"] .fishing-panel__actions,
+:root[data-view-mode="mobile"] .fishing-result--compact {
+  display: none;
+}
+
+:root[data-view-mode="mobile"] .fishing-panel__quick-nav {
+  grid-template-columns: 1fr;
+}
+
+:root[data-view-mode="mobile"] .bait-button,
+:root[data-view-mode="mobile"] .zone-button,
+:root[data-view-mode="mobile"] .fishing-panel__quick-nav button {
+  min-height: 44px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  padding: 5px 8px;
+}
+
+:root[data-view-mode="mobile"] .zone-button small,
+:root[data-view-mode="mobile"] .cast-spot span,
+:root[data-view-mode="mobile"] .cast-spot.is-selected::after,
+:root[data-view-mode="mobile"] .fishing-context-action span {
+  display: none;
+}
+
+:root[data-view-mode="mobile"] .fishing-context-action {
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 18;
+}
+
+:root[data-view-mode="mobile"] .fishing-context-action__button {
+  min-width: 142px;
+  min-height: 44px;
+  border-width: 1px;
+  font-size: 0.9rem;
+  box-shadow: 0 10px 22px rgb(0 0 0 / 32%);
+}
+
+:root[data-view-mode="mobile"] .fishing-keepnet-shortcut {
+  top: 54px;
+  right: 8px;
+  min-height: 28px;
+  background: rgb(8 17 18 / 42%);
+  font-size: 0.68rem;
+  padding: 5px 9px;
+}
+
+:root[data-view-mode="mobile"] .fishing-result-modal {
+  z-index: 90;
+}
+
+:root[data-view-mode="mobile"] .fishing-result-modal .fishing-result {
+  width: min(92vw, 340px);
+  max-height: 82dvh;
+}
+
+@media (max-width: 920px) {
+  :root[data-view-mode="desktop"] .fishing-minigame__layout {
+    display: grid;
+    grid-template-columns: minmax(180px, 240px) minmax(420px, 1fr) minmax(180px, 240px);
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 768px) {
+  :root[data-view-mode="desktop"] .fishing-minigame {
+    position: absolute;
+    z-index: 20;
+    background: rgb(9 16 18 / 72%);
+    backdrop-filter: blur(10px);
+  }
+
+  :root[data-view-mode="desktop"] .fishing-minigame__shell {
+    display: grid;
+    padding: 12px;
+  }
+
+  :root[data-view-mode="desktop"] .fishing-minigame__header {
+    position: static;
+    align-items: start;
+    border-radius: 8px;
+    background: rgb(9 17 18 / 42%);
+    padding: 10px 14px;
+  }
+
+  :root[data-view-mode="desktop"] .fishing-minigame__header .section-label,
+  :root[data-view-mode="desktop"] .fishing-minigame__header h2 {
+    display: block;
+  }
+
+  :root[data-view-mode="desktop"] .fishing-minigame__status {
+    max-width: none;
+    font-size: 1rem;
+    white-space: normal;
+  }
+
+  :root[data-view-mode="desktop"] .fishing-minigame__layout,
+  :root[data-view-mode="desktop"] .fishing-minigame__layout.is-controls-collapsed,
+  :root[data-view-mode="desktop"] .fishing-minigame__layout.is-result-collapsed,
+  :root[data-view-mode="desktop"] .fishing-minigame__layout.is-controls-collapsed.is-result-collapsed {
+    display: grid;
+    height: auto;
+    overflow: hidden;
+  }
+
+  :root[data-view-mode="desktop"] .fishing-minigame__stage {
+    position: static;
+  }
+
+  :root[data-view-mode="desktop"] .fishing-stage {
+    width: auto;
+    height: auto;
+    min-height: 360px;
+    border: 1px solid rgb(255 255 255 / 14%);
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgb(101 165 192 / 8%), rgb(22 38 44 / 52%));
+  }
+
+  :root[data-view-mode="desktop"] .fishing-minigame__controls {
+    position: static;
+    width: auto;
+    max-height: none;
+  }
+
+  :root[data-view-mode="desktop"] .fishing-panel__actions,
+  :root[data-view-mode="desktop"] .fishing-result--compact {
+    display: grid;
+  }
+}

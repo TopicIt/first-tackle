@@ -1,12 +1,14 @@
 import { MAP_HOTSPOTS, MAP_HOTSPOT_DEBUG } from '../game/mapHotspots.js';
 import { canOpenWaterFromMap, getLockedReasonKey, isFishingLocation } from '../game/locations.js';
 import { t } from '../i18n/i18n.js';
-import { worldMapAsset } from '../utils/worldMapAsset.js';
+import { getWorldMapAsset } from '../utils/worldMapAsset.js';
 import './mapOverlay.css';
 
 export function mapOverlayMarkup(state) {
+  const viewMode = state.ui?.resolvedViewMode ?? 'mobile';
+  const worldMapAsset = getWorldMapAsset(viewMode);
   return `
-    <section class="illustrated-map${MAP_HOTSPOT_DEBUG ? ' is-debugging-hotspots' : ''}" aria-label="${t('mapHint')}" data-map-asset="test-world-map-concept1">
+    <section class="illustrated-map${MAP_HOTSPOT_DEBUG ? ' is-debugging-hotspots' : ''}" aria-label="${t('mapHint')}" data-map-mode="${viewMode}">
       <div class="illustrated-map__frame">
         <img
           class="illustrated-map__image"

@@ -10,6 +10,7 @@ import {
 } from './fishInventory.js';
 import { countItem, hasItem, removeItem } from './inventory.js';
 import { normalizeWaterId } from './locations.js';
+import { markFirstCrucianCatchRewardSeen, queueFirstCrucianCatchReward } from './locationTransitions.js';
 import { pushFeedback, pushLog, queueSound } from './state.js';
 import { getTackleEffects } from './tackle.js';
 import { advanceTime, getTimePhase } from './time.js';
@@ -263,6 +264,9 @@ export function strikeLine(state, nowMs) {
       resolveMinigameResult(state, { outcome: 'rod_broke', statusKey: 'fishingRodBroke', sound: 'line_break' });
       return;
     }
+    const shouldShowFirstCrucianReward = catchResult.id === 'crucian'
+      && !state.progress?.firstCrucianCatchRewardShown
+      && !state.catchJournal?.crucian?.discovered;
     const entry = addCaughtFish(state, catchResult, {
       catchSpotId: minigame.selectedSpot,
       method: minigame.method,
@@ -276,6 +280,9 @@ export function strikeLine(state, nowMs) {
       sound: 'catch_success',
       catchResult,
     });
+    if (shouldShowFirstCrucianReward && !queueFirstCrucianCatchReward(state)) {
+      markFirstCrucianCatchRewardSeen(state);
+    }
     minigame.bobberState = 'hooked';
     return;
   }

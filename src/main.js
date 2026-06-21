@@ -35,6 +35,12 @@ import { getLocationTransition, markLocationTransitionVisit, shouldUseLocationTr
 import { arriveAtWater } from './game/travel.js';
 import { createHud } from './ui/hud.js';
 import { updateMapOverlayMotion } from './ui/mapOverlay.js';
+import {
+  applyViewModeToDocument,
+  loadStoredViewMode,
+  normalizeViewMode,
+  persistViewMode,
+} from './ui/viewMode.js';
 import { getLanguage, t, toggleLanguage } from './i18n/i18n.js';
 
 const canvas = document.querySelector('#game');
@@ -46,6 +52,8 @@ ensureMarketState(gameState);
 ensureTackleState(gameState);
 ensureTimeState(gameState);
 normalizeTransitionSettings(gameState);
+normalizeViewModeSettings(gameState);
+applyViewModeToDocument(gameState);
 normalizePanelStateForViewport(gameState);
 pushLog(gameState, 'logMorning');
 
@@ -345,6 +353,16 @@ const hud = createHud(hudRoot, {
   onTransitionDone() {
     finishLocationTransition();
   },
+  onViewModeSetting(value) {
+    audio.activate();
+    gameState.settings.viewMode = normalizeViewMode(value);
+    persistViewMode(gameState.settings.viewMode);
+    applyViewModeToDocument(gameState);
+    normalizePanelStateForViewport(gameState);
+    gameState.audioQueue.push('ui_click');
+    lastHudSnapshot = '';
+    renderHud();
+  },
   onCheat(value) {
     const match = String(value).trim().match(/^\+(\d{1,7})$/);
     const coins = match ? Number(match[1]) : 0;
@@ -377,6 +395,8 @@ const hud = createHud(hudRoot, {
       ensureTackleState(gameState);
       ensureTimeState(gameState);
       normalizeTransitionSettings(gameState);
+      normalizeViewModeSettings(gameState);
+      applyViewModeToDocument(gameState);
       normalizePanelStateForViewport(gameState);
       player.restore(gameState.player);
       audio.syncSettings(gameState.settings.audio);
@@ -395,6 +415,8 @@ const hud = createHud(hudRoot, {
     ensureTackleState(gameState);
     ensureTimeState(gameState);
     normalizeTransitionSettings(gameState);
+    normalizeViewModeSettings(gameState);
+    applyViewModeToDocument(gameState);
     normalizePanelStateForViewport(gameState);
     player.restore(gameState.player);
     audio.syncSettings(gameState.settings.audio);
@@ -426,7 +448,8 @@ function normalizePanelStateForViewport(state) {
     ...(state.ui.collapsedPanels ?? {}),
   };
 
-  if (!window.matchMedia('(max-width: 768px)').matches) {
+  const resolvedViewMode = applyViewModeToDocument(state);
+  if (resolvedViewMode !== 'mobile') {
     return;
   }
 
@@ -435,6 +458,11 @@ function normalizePanelStateForViewport(state) {
   for (const panelId of ['inventory', 'keepnet', 'tackle', 'guide', 'journal', 'settings']) {
     state.ui.collapsedPanels[panelId] = true;
   }
+}
+
+function normalizeViewModeSettings(state) {
+  state.settings ??= {};
+  state.settings.viewMode = normalizeViewMode(loadStoredViewMode() ?? state.settings.viewMode ?? 'auto');
 }
 
 function normalizeTransitionSettings(state) {
@@ -476,6 +504,11 @@ function finishLocationTransition() {
   }
 
   gameState.ui.locationTransition = null;
+  if (transition.type === 'reward') {
+    renderHud();
+    return;
+  }
+
   gameState.ui.activeScene = transition.targetScene;
   gameState.ui.selectedHotspot = transition.targetScene;
   gameState.audioQueue.push('open_scene');
@@ -496,6 +529,8 @@ function renderHud() {
     audio: gameState.settings.audio,
     fishingSettings: gameState.settings.fishing,
     transitionSettings: gameState.settings.transitions,
+    viewMode: gameState.settings.viewMode,
+    resolvedViewMode: gameState.ui.resolvedViewMode,
     fishBasket: gameState.fishBasket,
     catchJournal: gameState.catchJournal,
     trophies: gameState.trophies,
@@ -522,6 +557,13 @@ function renderHud() {
 function resize() {
   const width = window.innerWidth;
   const height = window.innerHeight;
+  const previousViewMode = gameState.ui?.resolvedViewMode;
+  applyViewModeToDocument(gameState);
+  if (previousViewMode !== gameState.ui?.resolvedViewMode) {
+    normalizePanelStateForViewport(gameState);
+    lastHudSnapshot = '';
+    renderHud();
+  }
   renderer.setSize(width, height, false);
   world.camera.aspect = width / height;
   world.camera.updateProjectionMatrix();

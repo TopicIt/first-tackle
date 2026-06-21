@@ -68,6 +68,7 @@ function mergeState(base, saved) {
         ...base.settings.transitions,
         ...(saved.settings?.transitions ?? {}),
       },
+      viewMode: saved.settings?.viewMode ?? base.settings.viewMode,
     },
     purchased: {
       ...base.purchased,
@@ -103,6 +104,7 @@ function mergeState(base, saved) {
       ...(saved.progress ?? {}),
       firstTackleReady: true,
       firstCatchDone: Boolean(saved.progress?.firstCatchDone ?? saved.stats?.totalFishCaught > 0),
+      firstCrucianCatchRewardShown: Boolean(saved.progress?.firstCrucianCatchRewardShown),
     },
     stats: {
       ...base.stats,

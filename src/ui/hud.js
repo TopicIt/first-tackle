@@ -25,6 +25,12 @@ export function createHud(root, handlers) {
   });
 
   root.addEventListener('change', (event) => {
+    const viewModeInput = event.target.closest('[data-view-mode-setting]');
+    if (viewModeInput) {
+      handlers.onViewModeSetting(viewModeInput.value);
+      return;
+    }
+
     const checkbox = event.target.closest('input[data-audio-setting][type="checkbox"]');
     if (!checkbox) {
       return;
@@ -212,6 +218,18 @@ export function createHud(root, handlers) {
             </button>
           </div>
           <div class="panel-collapsible">
+            <section class="settings-block">
+              <p class="section-label">${t('viewMode')}</p>
+              <div class="view-mode-grid">
+                ${['auto', 'mobile', 'desktop'].map((mode) => `
+                  <label class="view-mode-option${(state.settings?.viewMode ?? 'auto') === mode ? ' is-selected' : ''}">
+                    <input data-view-mode-setting type="radio" name="view-mode" value="${mode}"${(state.settings?.viewMode ?? 'auto') === mode ? ' checked' : ''} />
+                    <span>${t(`viewMode${toPascalCase(mode)}`)}</span>
+                  </label>
+                `).join('')}
+              </div>
+              <small>${t('viewModeHint')}</small>
+            </section>
             <section class="settings-block">
               <p class="section-label">${t('language')}</p>
               <div class="settings-flag-card">

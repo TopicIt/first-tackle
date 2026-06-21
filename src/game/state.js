@@ -134,6 +134,7 @@ export function createInitialState() {
     progress: {
       firstTackleReady: true,
       firstCatchDone: false,
+      firstCrucianCatchRewardShown: false,
     },
     stats: {
       totalFishCaught: 0,
@@ -157,6 +158,7 @@ export function createInitialState() {
       },
     },
     settings: {
+      viewMode: 'auto',
       audio: {
         soundEnabled: true,
         musicEnabled: true,

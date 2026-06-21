@@ -48,6 +48,37 @@ export function getLocationTransition(sceneId, state) {
   };
 }
 
+export function getFirstCrucianCatchRewardTransition() {
+  return {
+    id: 'first_crucian_catch',
+    type: 'reward',
+    targetScene: null,
+    labelKey: 'firstCatchReward',
+    fallbackImage: assetPath('/assets/fish/catch_crucian_card.png'),
+    fallbackImageAlt: assetPath('/assets/fish/catch_result_frame.png'),
+    videoSources: [
+      { src: assetPath('/assets/transitions/first-catch/first-crucian-catch.webm'), type: 'video/webm' },
+      { src: assetPath('/assets/transitions/first-catch/first-crucian-catch.mp4'), type: 'video/mp4' },
+    ],
+  };
+}
+
+export function queueFirstCrucianCatchReward(state) {
+  if (!state?.ui || state.settings?.transitions?.enabled === false) {
+    return false;
+  }
+
+  state.progress ??= {};
+  state.progress.firstCrucianCatchRewardShown = true;
+  state.ui.locationTransition = getFirstCrucianCatchRewardTransition();
+  return true;
+}
+
+export function markFirstCrucianCatchRewardSeen(state) {
+  state.progress ??= {};
+  state.progress.firstCrucianCatchRewardShown = true;
+}
+
 export function markLocationTransitionVisit(state, transition) {
   if (!state?.ui || !transition?.id) {
     return;

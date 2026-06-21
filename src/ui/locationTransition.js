@@ -6,12 +6,13 @@ export function locationTransitionMarkup(transition) {
     return '';
   }
 
+  const label = t(transition.labelKey ?? 'transitionLoading');
   const sources = (transition.videoSources ?? [])
     .map((source) => `<source src="${source.src}" type="${source.type}" />`)
     .join('');
 
   return `
-    <section class="location-transition" data-location-transition="${transition.id}" aria-label="${t('transitionLoading')}">
+    <section class="location-transition" data-location-transition="${transition.id}" aria-label="${label}">
       <img
         class="location-transition__fallback"
         src="${transition.fallbackImage}"
@@ -30,7 +31,7 @@ export function locationTransitionMarkup(transition) {
       </video>
       <div class="location-transition__shade" aria-hidden="true"></div>
       <button class="location-transition__skip" data-action="transition:skip" type="button">${t('skipTransition')}</button>
-      <span class="location-transition__fallback-note">${t('transitionLoading')}</span>
+      <span class="location-transition__fallback-note">${label}</span>
     </section>
   `;
 }

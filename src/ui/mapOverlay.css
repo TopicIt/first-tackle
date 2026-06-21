@@ -13,6 +13,15 @@
   overflow: hidden;
 }
 
+.illustrated-map[data-map-mode="desktop"] .illustrated-map__frame {
+  left: 50%;
+  top: 50%;
+  width: min(100vw, calc(100vh * 1491 / 1055));
+  height: min(100vh, calc(100vw * 1055 / 1491));
+  overflow: visible;
+  transform: translate(-50%, -50%);
+}
+
 .illustrated-map__image,
 .illustrated-map__breath,
 .illustrated-map__water {
@@ -27,6 +36,11 @@
   filter: saturate(1.08) contrast(1.04);
   object-fit: cover;
   object-position: center 56%;
+}
+
+.illustrated-map[data-map-mode="desktop"] .illustrated-map__image {
+  object-fit: contain;
+  object-position: center;
 }
 
 .illustrated-map__breath {
@@ -54,6 +68,15 @@
 .illustrated-map__hotspots {
   position: absolute;
   inset: 0;
+}
+
+.illustrated-map[data-map-mode="desktop"] .illustrated-map__hotspots {
+  inset: 0;
+}
+
+.illustrated-map[data-map-mode="desktop"] .illustrated-map__breath,
+.illustrated-map[data-map-mode="desktop"] .illustrated-map__water {
+  inset: -18vh -18vw;
 }
 
 .map-hotspot {
