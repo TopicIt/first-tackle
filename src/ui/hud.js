@@ -1,9 +1,11 @@
 import {
   catchJournalMarkup,
+  achievementsMarkup,
   guideMarkup,
   inventoryMarkup,
   keepnetMarkup,
   logMarkup,
+  mapViewerMarkup,
   tackleMarkup,
 } from './panels.js';
 import { locationSceneMarkup } from './locationScene.js';
@@ -94,6 +96,8 @@ export function createHud(root, handlers) {
       const tackleCollapsed = collapsedPanels.tackle ? ' is-collapsed' : '';
       const guideCollapsed = collapsedPanels.guide ? ' is-collapsed' : '';
       const settingsCollapsed = collapsedPanels.settings ? ' is-collapsed' : '';
+      const achievementsCollapsed = collapsedPanels.achievements ? ' is-collapsed' : '';
+      const mapViewerCollapsed = collapsedPanels.mapViewer ? ' is-collapsed' : '';
 
       root.innerHTML = `
         ${mapOverlayMarkup(renderState)}
@@ -123,6 +127,8 @@ export function createHud(root, handlers) {
                   ${menuButton('tackle', 'tackle', collapsedPanels)}
                   ${menuButton('guide', 'fishermanGuide', collapsedPanels)}
                   ${menuButton('journal', 'catchJournal', collapsedPanels)}
+                  ${menuButton('achievements', 'achievements', collapsedPanels)}
+                  ${menuButton('mapViewer', 'map', collapsedPanels)}
                   ${menuButton('settings', 'settings', collapsedPanels)}
                 </nav>
                 <div class="mobile-menu__service">
@@ -139,6 +145,8 @@ export function createHud(root, handlers) {
               ${menuButton('tackle', 'tackle', collapsedPanels)}
               ${menuButton('guide', 'fishermanGuide', collapsedPanels)}
               ${menuButton('journal', 'catchJournal', collapsedPanels)}
+              ${menuButton('achievements', 'achievements', collapsedPanels)}
+              ${menuButton('mapViewer', 'map', collapsedPanels)}
               ${menuButton('settings', 'settings', collapsedPanels)}
             </nav>
             <div class="save-row">
@@ -195,6 +203,30 @@ export function createHud(root, handlers) {
           </div>
           <div class="panel-collapsible">
             ${tackleMarkup(state)}
+          </div>
+        </section>
+
+        <section class="panel journal-panel achievements-panel${achievementsCollapsed}">
+          <div class="panel-toggle-row">
+            <p class="section-label">${t('achievements')}</p>
+            <button class="panel-toggle" data-action="panel:toggle:achievements" type="button" aria-label="${panelToggleLabel(collapsedPanels.achievements)}">
+              ${panelToggleIcon(collapsedPanels.achievements)}
+            </button>
+          </div>
+          <div class="panel-collapsible">
+            ${achievementsMarkup(state)}
+          </div>
+        </section>
+
+        <section class="panel guide-panel map-viewer-panel${mapViewerCollapsed}">
+          <div class="panel-toggle-row">
+            <p class="section-label">${t('map')}</p>
+            <button class="panel-toggle" data-action="panel:toggle:mapViewer" type="button" aria-label="${panelToggleLabel(collapsedPanels.mapViewer)}">
+              ${panelToggleIcon(collapsedPanels.mapViewer)}
+            </button>
+          </div>
+          <div class="panel-collapsible">
+            ${mapViewerMarkup(state)}
           </div>
         </section>
 
@@ -339,29 +371,42 @@ function setupLocationTransition(root, state, handlers) {
   }
 
   let finished = false;
+  const startedAt = performance.now();
+  const minVisibleMs = state.ui.locationTransition?.type === 'reward' ? 1800 : 900;
   const finish = () => {
     if (finished) {
       return;
     }
     finished = true;
-    handlers.onTransitionDone();
+    const remainingMs = Math.max(0, minVisibleMs - (performance.now() - startedAt));
+    window.setTimeout(handlers.onTransitionDone, remainingMs);
   };
-  const fallback = () => window.setTimeout(finish, 450);
+  const fallback = () => window.setTimeout(finish, minVisibleMs);
 
   video.addEventListener('ended', finish, { once: true });
   video.addEventListener('error', fallback, { once: true });
   video.addEventListener('stalled', fallback, { once: true });
+  video.addEventListener('abort', fallback, { once: true });
 
-  const playResult = video.play();
-  if (playResult?.catch) {
-    playResult.catch(fallback);
+  const startPlayback = () => {
+    const playResult = video.play();
+    if (playResult?.catch) {
+      playResult.catch(fallback);
+    }
+  };
+
+  if (video.readyState >= 2) {
+    startPlayback();
+  } else {
+    video.addEventListener('loadeddata', startPlayback, { once: true });
+    video.load();
   }
 
   window.setTimeout(() => {
     if (!finished && video.readyState === 0) {
       fallback();
     }
-  }, 450);
+  }, 1400);
 }
 
 function actionButtonMarkup(action) {

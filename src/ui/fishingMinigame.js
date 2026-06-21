@@ -2,7 +2,7 @@ import './fishingMinigame.css';
 import { getFishData } from '../game/fishData.js';
 import { getAvailableBaits, getAvailableCastSpots, getFishingContextAction } from '../game/fishingMinigameLogic.js';
 import { getCastSpot } from '../game/bitePatterns.js';
-import { catchJournalMarkup, keepnetMarkup } from './panels.js';
+import { catchJournalMarkup, keepnetMarkup, trophyBadgeMarkup } from './panels.js';
 import { t } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
 import { getFishingLocation } from '../game/locations.js';
@@ -204,6 +204,7 @@ function catchResultModalMarkup(state, fish, result, minigame) {
           </div>
           <div class="fishing-result__copy">
             <h3>${t(fish.nameKey)}</h3>
+            ${entry?.trophyTier ? trophyBadgeMarkup(entry.trophyTier, entry.weightGrams) : ''}
             <ul>
               <li>${t('weight')}: <strong>${result.weightGrams}g</strong></li>
               <li>${t('rarity')}: <strong>${t(fish.rarityKey)}</strong></li>

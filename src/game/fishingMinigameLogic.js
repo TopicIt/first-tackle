@@ -14,6 +14,7 @@ import { markFirstCrucianCatchRewardSeen, queueFirstCrucianCatchReward } from '.
 import { pushFeedback, pushLog, queueSound } from './state.js';
 import { getTackleEffects } from './tackle.js';
 import { advanceTime, getTimePhase } from './time.js';
+import { getWaterFishIds, getWaterSizeRange } from './waterFishDistribution.js';
 
 const ambientLogKeys = ['logAmbientBird', 'logAmbientRings', 'logAmbientDrift'];
 
@@ -272,6 +273,9 @@ export function strikeLine(state, nowMs) {
       method: minigame.method,
       bait: minigame.consumedBait ?? minigame.selectedBait,
     });
+    if (entry?.trophyTier) {
+      queueSound(state, 'trophy_fanfare');
+    }
     state.ui.catchResult = catchResult;
     minigame.currentCatchEntryId = entry?.id ?? null;
     resolveMinigameResult(state, {
@@ -490,6 +494,11 @@ export function getAvailableBaits(state) {
   return [
     { id: 'worms', count: countItem(state, 'worms'), disabled: countItem(state, 'worms') === 0 },
     { id: 'larvae', count: countItem(state, 'larvae'), disabled: countItem(state, 'larvae') === 0 },
+    { id: 'bread', count: countItem(state, 'bread'), disabled: countItem(state, 'bread') === 0 },
+    { id: 'mastyrka', count: countItem(state, 'mastyrka'), disabled: countItem(state, 'mastyrka') === 0 },
+    { id: 'corn', count: countItem(state, 'corn'), disabled: countItem(state, 'corn') === 0 },
+    { id: 'dough', count: countItem(state, 'dough'), disabled: countItem(state, 'dough') === 0 },
+    { id: 'nightcrawler', count: countItem(state, 'nightcrawler'), disabled: countItem(state, 'nightcrawler') === 0 },
     { id: 'live_bait', count: liveBaitCount, disabled: liveBaitCount === 0 },
   ];
 }
@@ -807,7 +816,7 @@ function tickRareInsect(state, minigame, nowMs) {
 }
 
 function consumeBait(state, baitId) {
-  if (baitId === 'worms' || baitId === 'larvae') {
+  if (['worms', 'larvae', 'bread', 'mastyrka', 'corn', 'dough', 'nightcrawler'].includes(baitId)) {
     return removeItem(state, baitId, 1);
   }
 
@@ -870,6 +879,8 @@ function getFishWeight(state, minigame, fishId, profile, spot) {
 
   if (profile.preferred.baits.includes(minigame.selectedBait)) {
     score *= 1.22;
+  } else if (['bread', 'mastyrka', 'corn', 'dough', 'nightcrawler'].includes(minigame.selectedBait)) {
+    score *= 0.58;
   }
 
   score *= 1 + Math.max(0, 1 - getTackleEffects(state).scatterScale) * 0.14;
@@ -929,6 +940,13 @@ function buildCyclePattern(fishId, cycle, total) {
     sudak: ['sideways_pull', 'hard_dip', 'strike_window'],
     som: cycle === total ? ['slow_dip', 'submerged', 'strike_window'] : ['idle', 'slow_dip', 'hard_dip', 'strike_window'],
     canadian_catfish: cycle === total ? ['slow_dip', 'submerged', 'strike_window'] : ['idle', 'slow_dip', 'strike_window'],
+    carp: cycle === total ? ['slow_dip', 'hard_dip', 'strike_window'] : ['tiny_nibble', 'slow_dip', 'strike_window'],
+    grass_carp: ['sideways_pull', 'hard_dip', 'strike_window'],
+    silver_carp: ['slow_dip', 'submerged', 'strike_window'],
+    white_bream: cycle === total ? ['lift', 'slow_dip', 'strike_window'] : ['tiny_nibble', 'slow_dip', 'strike_window'],
+    bream: cycle === total ? ['lift', 'slow_dip', 'submerged', 'strike_window'] : ['tiny_nibble', 'slow_dip', 'strike_window'],
+    plotytsia: ['tiny_nibble', 'slow_dip', 'strike_window'],
+    gudgeon: ['tiny_nibble', 'hard_dip', 'strike_window'],
   };
   return profiles[fishId] ?? ['tiny_nibble', 'strike_window'];
 }
@@ -990,6 +1008,13 @@ function getTimeMultiplier(state, fishId) {
     sudak: ['evening', 'night'],
     som: ['evening', 'night'],
     canadian_catfish: ['evening', 'night'],
+    carp: ['morning', 'evening'],
+    grass_carp: ['day', 'evening'],
+    silver_carp: ['day', 'evening'],
+    white_bream: ['morning', 'evening'],
+    bream: ['morning', 'evening'],
+    plotytsia: ['morning', 'day'],
+    gudgeon: ['day'],
   }[fishId] ?? ['day'];
   if (preferred.includes(phase)) return 1.25;
   if ((fishId === 'sudak' || fishId === 'som') && phase === 'day') return 0.35;
@@ -1068,14 +1093,18 @@ function adjustCatchForWater(state, catchResult) {
     mining_lake: { pike: [1.18, 1.34], okun: [1.12, 1.26], lynok: [1.12, 1.3], sudak: [1.2, 1.38], som: [1.18, 1.42], canadian_catfish: [1.18, 1.38] },
   };
   const range = multipliers[waterId]?.[catchResult.id];
-  if (range) {
-    catchResult.weightGrams = Math.round(catchResult.weightGrams * randomBetween(...range));
+  const centralizedRange = getWaterSizeRange(waterId, catchResult.id);
+  if (centralizedRange || range) {
+    catchResult.weightGrams = Math.round(catchResult.weightGrams * randomBetween(...(centralizedRange ?? range)));
   }
   catchResult.weightGrams = Math.max(1, catchResult.weightGrams);
 }
 
 function getWaterFishMultiplier(state, fishId) {
   const waterId = normalizeWaterId(state.travel?.selectedWater);
+  if (!getWaterFishIds(waterId).includes(fishId)) {
+    return 0;
+  }
   const phase = getTimePhase(state);
   const multipliers = {
     canal: { rotan: 1.15, crucian: 1.02, pike: 0.75, canadian_catfish: 0 },

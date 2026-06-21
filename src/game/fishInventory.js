@@ -17,6 +17,7 @@ export function createFishEntry(catchResult, caughtAtDay, context = {}) {
     value: catchResult.value,
     status: 'fresh',
     isLiveBaitEligible: liveBaitSpecies.includes(catchResult.id),
+    trophyTier: null,
   };
 }
 
@@ -24,6 +25,8 @@ export function ensureFishState(state) {
   state.fishBasket ??= [];
   state.catchJournal ??= {};
   state.trophies ??= [];
+  state.achievements ??= {};
+  state.achievements.trophyBySpecies ??= {};
   state.day ??= 1;
   state.progress ??= {};
   state.stats ??= {};
@@ -45,6 +48,8 @@ export function ensureFishState(state) {
 export function addCaughtFish(state, catchResult, context = {}) {
   ensureFishState(state);
   const entry = createFishEntry(catchResult, state.day, context);
+  const fish = getFishData(entry.fishId);
+  entry.trophyTier = classifyTrophyCatch(entry, fish);
   state.fishBasket.push(entry);
   state.stats.totalFishCaught = (state.stats.totalFishCaught ?? 0) + 1;
   if (!state.progress.firstCatchDone) {
@@ -330,6 +335,7 @@ function normalizeFishEntry(entry, day) {
     bait: entry.bait ?? null,
     status: trackedStatuses.includes(entry.status) ? entry.status : 'fresh',
     isLiveBaitEligible: entry.isLiveBaitEligible ?? liveBaitSpecies.includes(entry.fishId),
+    trophyTier: entry.trophyTier ?? null,
   };
 }
 
@@ -363,6 +369,19 @@ function updateCatchJournal(state, entry) {
   if (entry.weightGrams >= fish.maxWeight * 0.88) {
     trophies.push('trophyLargeFish');
   }
+  if (entry.trophyTier) {
+    trophies.push(trophyKeyForTier(entry.trophyTier));
+    state.achievements ??= {};
+    state.achievements.trophyBySpecies ??= {};
+    state.achievements.trophyBySpecies[entry.fishId] ??= {};
+    state.achievements.trophyBySpecies[entry.fishId][entry.trophyTier] = {
+      weightGrams: Math.max(
+        entry.weightGrams,
+        state.achievements.trophyBySpecies[entry.fishId][entry.trophyTier]?.weightGrams ?? 0,
+      ),
+      caughtAtDay: entry.caughtAtDay,
+    };
+  }
 
   for (const trophyKey of trophies) {
     state.trophies.unshift({
@@ -371,11 +390,38 @@ function updateCatchJournal(state, entry) {
       fishId: entry.fishId,
       weightGrams: entry.weightGrams,
       caughtAtDay: entry.caughtAtDay,
+      tier: entry.trophyTier,
     });
     pushFeedback(state, trophyKey, { fishKey: fish.nameKey }, 'trophy');
   }
 
   state.trophies = state.trophies.slice(0, 24);
+}
+
+export function classifyTrophyCatch(entry, fish = getFishData(entry?.fishId)) {
+  if (!entry || !fish) {
+    return null;
+  }
+
+  const sizeRatio = entry.weightGrams / fish.maxWeight;
+  if (sizeRatio >= 0.97 && ['rarityVeryRare', 'rarityRare'].includes(fish.rarityKey)) {
+    return 'rarest';
+  }
+  if (sizeRatio >= 0.93 || (sizeRatio >= 0.82 && fish.rarityKey === 'rarityVeryRare')) {
+    return 'very_rare';
+  }
+  if (sizeRatio >= 0.84 || ['rarityVeryRare'].includes(fish.rarityKey)) {
+    return 'normal';
+  }
+  return null;
+}
+
+export function trophyKeyForTier(tier) {
+  return {
+    normal: 'trophyTierNormal',
+    very_rare: 'trophyTierVeryRare',
+    rarest: 'trophyTierRarest',
+  }[tier] ?? 'trophyLargeFish';
 }
 
 function updateJournalEntry(journal, entry) {

@@ -67,6 +67,12 @@ export const fallbackSoundPresets = {
     { type: 'sine', frequency: 520, duration: 0.12, gain: 0.08 },
     { type: 'sine', frequency: 720, duration: 0.14, gain: 0.06, delay: 0.08 },
   ],
+  trophy_fanfare: [
+    { type: 'triangle', frequency: 523, duration: 0.12, gain: 0.09 },
+    { type: 'triangle', frequency: 659, duration: 0.13, gain: 0.08, delay: 0.1 },
+    { type: 'triangle', frequency: 784, duration: 0.18, gain: 0.08, delay: 0.22 },
+    { type: 'sine', frequency: 1046, duration: 0.2, gain: 0.06, delay: 0.38 },
+  ],
   fish_escape: [
     { type: 'triangle', frequency: 360, duration: 0.14, gain: 0.07 },
   ],

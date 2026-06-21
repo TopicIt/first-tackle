@@ -64,30 +64,6 @@ export function getInteractionContext(state, playerPosition) {
     });
   }
 
-  if (zone.id === 'market') {
-    actions.push({
-      id: 'sell:fish',
-      label: t('sellFish'),
-    });
-    actions.push({
-      id: 'buy:betterLine',
-      label: t('buyBetterLine'),
-      variant: 'future',
-      disabled: Boolean(state.purchased.betterLine),
-    });
-    actions.push({
-      id: 'buy:simpleFloat',
-      label: t('buySimpleFloat'),
-      variant: 'future',
-      disabled: Boolean(state.purchased.simpleFloat),
-    });
-    actions.push({
-      id: 'buy:bicycle',
-      label: t('buyBicycle'),
-      disabled: Boolean(state.purchased.bicycle),
-    });
-  }
-
   return {
     zoneId: zone.id,
     zoneLabel: getZoneLabel(zone.id),
@@ -330,10 +306,6 @@ function getSceneActions(state, zoneId) {
         id: 'gather:rodStick',
         label: t('gatherRodStick'),
       }] : []),
-      {
-        id: 'gather:stones',
-        label: t('gatherSmallStones'),
-      },
       {
         id: 'clean:fish',
         label: t('cleanFish'),

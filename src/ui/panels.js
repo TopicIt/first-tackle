@@ -1,5 +1,5 @@
 import { fishData } from '../game/fishData.js';
-import { countFishByStatus, getCatchJournal, getFishEntries, getKeepnetSummary } from '../game/fishInventory.js';
+import { countFishByStatus, getCatchJournal, getFishEntries, getKeepnetSummary, trophyKeyForTier } from '../game/fishInventory.js';
 import { getFishGuideEntries, waterGuide } from '../game/guideData.js';
 import { getFishSaleValue, getFreshnessInfo, getMarketPriceInfo } from '../game/market.js';
 import { getCastSpot } from '../game/bitePatterns.js';
@@ -8,6 +8,7 @@ import { componentLabels, getActiveRig, getAvailableRigs, tackleComponents } fro
 import { countItem, itemLabels } from '../game/inventory.js';
 import { t, translateEntry } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
+import { getWorldMapAsset } from '../utils/worldMapAsset.js';
 
 const inventoryOrder = [
   'thread',
@@ -17,6 +18,11 @@ const inventoryOrder = [
   'bicycle',
   'worms',
   'larvae',
+  'bread',
+  'mastyrka',
+  'corn',
+  'dough',
+  'nightcrawler',
   'cleanedFish',
   'saltedFish',
   'dryingFish',
@@ -36,9 +42,17 @@ const inventoryOrder = [
   'sudak',
   'som',
   'canadian_catfish',
+  'carp',
+  'grass_carp',
+  'silver_carp',
+  'white_bream',
+  'bream',
+  'plotytsia',
+  'gudgeon',
 ];
 
 const itemImages = {
+  shovel: '/assets/items/item_shovel.png',
   betterLine: '/assets/items/better_line.png',
   simpleFloat: '/assets/items/fishing_float.png',
   properFloat: '/assets/items/fishing_float.png',
@@ -51,6 +65,18 @@ const itemImages = {
   stickRod: '/assets/items/tackle_components.png',
   taranka: '/assets/items/taranka_drying.png',
   smokedFish: '/assets/items/taranka_drying.png',
+  baitBread: '/assets/items/bait_bread.png',
+  baitWorms: '/assets/items/bait_worm.png',
+  baitMastyrka: '/assets/items/bait_mastyrka.png',
+  baitCorn: '/assets/items/bait_corn.png',
+  baitDough: '/assets/items/bait_dough.png',
+  baitNightcrawler: '/assets/items/bait_nightcrawler.png',
+  bread: '/assets/items/bait_bread.png',
+  worms: '/assets/items/bait_worm.png',
+  mastyrka: '/assets/items/bait_mastyrka.png',
+  corn: '/assets/items/bait_corn.png',
+  dough: '/assets/items/bait_dough.png',
+  nightcrawler: '/assets/items/bait_nightcrawler.png',
 };
 
 const waterImages = {
@@ -133,6 +159,52 @@ export function catchJournalMarkup(state) {
     <div class="trophy-strip">
       <p class="section-label">${t('trophyCatch')}</p>
       ${trophies.slice(0, 4).map(trophyMarkup).join('') || `<p class="empty-panel">${t('noTrophiesYet')}</p>`}
+    </div>
+  `;
+}
+
+export function achievementsMarkup(state) {
+  const trophyBySpecies = state.achievements?.trophyBySpecies ?? {};
+  const rows = fishData.map((fish) => {
+    const tiers = trophyBySpecies[fish.id] ?? {};
+    const achieved = ['normal', 'very_rare', 'rarest'].filter((tier) => tiers[tier]);
+    if (achieved.length === 0) {
+      return '';
+    }
+
+    return `
+      <article class="achievement-card">
+        <img src="${speciesImage(fish.id)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
+        <div>
+          <h3>${t(fish.nameKey)}</h3>
+          <div class="trophy-badge-row">
+            ${achieved.map((tier) => trophyBadgeMarkup(tier, tiers[tier].weightGrams)).join('')}
+          </div>
+        </div>
+      </article>
+    `;
+  }).join('');
+
+  return rows || `<p class="empty-panel">${t('achievementsEmpty')}</p>`;
+}
+
+export function mapViewerMarkup(state) {
+  const zoom = state.ui?.mapViewerZoom ?? 1;
+  const mapAsset = getWorldMapAsset(state.ui?.resolvedViewMode ?? 'mobile');
+  return `
+    <div class="map-viewer-tools">
+      <button data-action="mapViewer:zoomOut" type="button">-</button>
+      <strong>${Math.round(zoom * 100)}%</strong>
+      <button data-action="mapViewer:zoomIn" type="button">+</button>
+    </div>
+    <div class="map-viewer-scroll">
+      <img
+        class="map-viewer-image"
+        style="--map-viewer-zoom:${zoom};"
+        src="${mapAsset.primary}"
+        onerror="this.onerror=null;this.src='${mapAsset.fallback}'"
+        alt="${t('map')}"
+      />
     </div>
   `;
 }
@@ -222,6 +294,12 @@ export function getShopItemLabel(itemId) {
     bicycle: 'itemBicycle',
     salt: 'itemSalt',
     hooksPack: 'itemHooksPack',
+    baitBread: 'itemBread',
+    baitWorms: 'itemWorms',
+    baitMastyrka: 'itemMastyrka',
+    baitCorn: 'itemCorn',
+    baitDough: 'itemDough',
+    baitNightcrawler: 'itemNightcrawler',
   };
   return t(labels[itemId] ?? itemId);
 }
@@ -257,6 +335,7 @@ function keepnetEntryMarkup(state, entry) {
   return `
     <div class="keepnet-entry">
       <span>${entry.weightGrams}g · ${t(statusKey(entry.status))}</span>
+      ${entry.trophyTier ? trophyBadgeMarkup(entry.trophyTier, entry.weightGrams) : ''}
       <small>${entry.catchSpotId ? t(getCastSpot(entry.catchSpotId).labelKey) : t('unknownSpot')}</small>
       <small>${t('freshness')}: ${t(freshness.key)}</small>
       <button data-action="keepnet:release:${entry.id}" type="button">${t('release')}</button>
@@ -288,11 +367,17 @@ function journalSpeciesMarkup(entry) {
 function trophyMarkup(trophy) {
   const fish = fishData.find((entry) => entry.id === trophy.fishId);
   return `
-    <div class="trophy-item">
+    <div class="trophy-item${trophy.tier ? ` trophy-item--${trophy.tier}` : ''}">
       <strong>${t(trophy.key)}</strong>
       <span>${t(fish?.nameKey ?? trophy.fishId)} · ${trophy.weightGrams}g</span>
     </div>
   `;
+}
+
+export function trophyBadgeMarkup(tier, weightGrams = null) {
+  const stars = { normal: '*', very_rare: '**', rarest: '***' }[tier] ?? '*';
+  const weight = weightGrams ? ` ${weightGrams}g` : '';
+  return `<span class="trophy-badge trophy-badge--${tier}" title="${t(trophyKeyForTier(tier))}">${stars}${weight}</span>`;
 }
 
 function speciesImage(fishId) {
@@ -337,16 +422,6 @@ function marketSellMarkup(state) {
     </section>
     <p class="section-label">${t('marketBulkActions')}</p>
     <div class="market-card-grid">
-      <article class="market-card">
-        <img src="${assetPath('/assets/fish/catch_result_frame.png')}" alt="" />
-        <div>
-          <h3>${t('sellFreshFish')}</h3>
-          <p>${t('marketFreshnessNote')}</p>
-          <strong>${freshValue} ${t('coins').toLowerCase()}</strong>
-        </div>
-        <button data-action="sell:fish" type="button"${freshEntries.length === 0 ? ' disabled' : ''}>${t('sell')}</button>
-        ${marketReasonMarkup(freshEntries.length === 0 ? t('reasonNoFreshFish') : '')}
-      </article>
       <article class="market-card">
         <img src="${assetPath('/assets/items/taranka_drying.png')}" alt="" />
         <div>
@@ -431,6 +506,12 @@ function shopDescriptionKey(itemId) {
     bicycle: 'shopDescBicycle',
     salt: 'shopDescSalt',
     hooksPack: 'shopDescHooks',
+    baitBread: 'shopDescBaitBread',
+    baitWorms: 'shopDescBaitWorms',
+    baitMastyrka: 'shopDescBaitMastyrka',
+    baitCorn: 'shopDescBaitCorn',
+    baitDough: 'shopDescBaitDough',
+    baitNightcrawler: 'shopDescBaitNightcrawler',
   };
   return keys[itemId] ?? 'shopDescFallback';
 }

@@ -96,6 +96,12 @@ function getShopItemKey(itemId) {
     bicycle: 'itemBicycle',
     salt: 'itemSalt',
     hooksPack: 'itemHooksPack',
+    baitBread: 'itemBread',
+    baitWorms: 'itemWorms',
+    baitMastyrka: 'itemMastyrka',
+    baitCorn: 'itemCorn',
+    baitDough: 'itemDough',
+    baitNightcrawler: 'itemNightcrawler',
   };
   return labels[itemId] ?? itemId;
 }

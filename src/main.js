@@ -153,6 +153,14 @@ const hud = createHud(hudRoot, {
       return;
     }
 
+    if (actionId === 'mapViewer:zoomIn' || actionId === 'mapViewer:zoomOut') {
+      const delta = actionId === 'mapViewer:zoomIn' ? 0.25 : -0.25;
+      gameState.ui.mapViewerZoom = Math.min(2.4, Math.max(1, (gameState.ui.mapViewerZoom ?? 1) + delta));
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
     if (actionId.startsWith('tackle:equip:')) {
       const [, , slot, componentId] = actionId.split(':');
       equipTackleComponent(gameState, slot, componentId);
@@ -430,7 +438,7 @@ function syncPlayerToState() {
 }
 
 function closeSiblingPanels(state, openedPanelId) {
-  const exclusivePanels = ['inventory', 'keepnet', 'tackle', 'guide', 'journal', 'settings'];
+  const exclusivePanels = ['inventory', 'keepnet', 'tackle', 'guide', 'journal', 'achievements', 'mapViewer', 'settings'];
   if (!exclusivePanels.includes(openedPanelId)) {
     return;
   }
@@ -455,7 +463,7 @@ function normalizePanelStateForViewport(state) {
 
   state.ui.collapsedPanels.status = false;
 
-  for (const panelId of ['inventory', 'keepnet', 'tackle', 'guide', 'journal', 'settings']) {
+  for (const panelId of ['inventory', 'keepnet', 'tackle', 'guide', 'journal', 'achievements', 'mapViewer', 'settings']) {
     state.ui.collapsedPanels[panelId] = true;
   }
 }

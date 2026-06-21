@@ -967,6 +967,97 @@ button:disabled {
   font-size: 0.82rem;
 }
 
+.achievement-card {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  align-items: center;
+  gap: 9px;
+  border-radius: 7px;
+  background: rgb(255 255 255 / 7%);
+  padding: 9px;
+}
+
+.achievement-card img {
+  width: 42px;
+  height: 42px;
+  border-radius: 7px;
+  object-fit: contain;
+  background: rgb(7 14 14 / 24%);
+}
+
+.achievement-card h3 {
+  margin: 0 0 5px;
+  color: #fff8df;
+  font-size: 0.94rem;
+}
+
+.trophy-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.trophy-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 999px;
+  color: #f9fff2;
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 3px 7px;
+}
+
+.trophy-badge--normal {
+  background: #2d7d55;
+}
+
+.trophy-badge--very_rare {
+  background: #a83b3b;
+}
+
+.trophy-badge--rarest {
+  background: #6c3bb0;
+}
+
+.map-viewer-tools {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.map-viewer-tools button {
+  min-height: 40px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 999px;
+  background: rgb(245 244 232 / 72%);
+}
+
+.map-viewer-tools strong {
+  color: #fff8df;
+  text-align: center;
+}
+
+.map-viewer-scroll {
+  height: min(58vh, 520px);
+  overflow: auto;
+  border-radius: 8px;
+  background: rgb(7 14 14 / 26%);
+  -webkit-overflow-scrolling: touch;
+}
+
+.map-viewer-image {
+  display: block;
+  width: calc(100% * var(--map-viewer-zoom, 1));
+  max-width: none;
+  min-width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+
 .tackle-grid,
 .guide-body,
 .guide-list,
@@ -1272,7 +1363,7 @@ button:disabled {
   }
 
   .mobile-menu[open] {
-    z-index: 90;
+    z-index: 300;
   }
 
   .mobile-menu[open]::before {
@@ -1294,7 +1385,7 @@ button:disabled {
     top: calc(max(8px, env(safe-area-inset-top)) + 52px);
     max-height: calc(100dvh - 68px - env(safe-area-inset-bottom));
     width: min(220px, calc(100vw - 16px));
-    z-index: 95;
+    z-index: 310;
     display: grid;
     align-content: start;
     gap: 10px;
@@ -1525,7 +1616,7 @@ button:disabled {
   position: fixed;
   left: 8px;
   top: max(8px, env(safe-area-inset-top));
-  z-index: 98;
+  z-index: 300;
   display: block;
   margin: 0;
 }
@@ -1570,7 +1661,7 @@ button:disabled {
   top: calc(max(8px, env(safe-area-inset-top)) + 52px);
   width: min(220px, calc(100vw - 16px));
   max-height: calc(100dvh - 68px - env(safe-area-inset-bottom));
-  z-index: 95;
+  z-index: 310;
   display: grid;
   align-content: start;
   gap: 10px;
@@ -1604,6 +1695,16 @@ button:disabled {
 
 :root[data-view-mode="mobile"] .mobile-menu__list button.is-active {
   background: #f3c45f;
+}
+
+body:has(.mobile-menu[open]) .panel:not(.status-panel) {
+  pointer-events: none;
+}
+
+body:has(.mobile-menu[open]) .mobile-menu,
+body:has(.mobile-menu[open]) .mobile-menu__sheet,
+body:has(.mobile-menu[open]) .mobile-menu__sheet * {
+  pointer-events: auto;
 }
 
 :root[data-view-mode="mobile"] .inventory-panel,

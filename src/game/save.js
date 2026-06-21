@@ -119,6 +119,14 @@ function mergeState(base, saved) {
       ...(saved.catchJournal ?? {}),
     },
     trophies: Array.isArray(saved.trophies) ? saved.trophies : base.trophies,
+    achievements: {
+      ...base.achievements,
+      ...(saved.achievements ?? {}),
+      trophyBySpecies: {
+        ...base.achievements.trophyBySpecies,
+        ...(saved.achievements?.trophyBySpecies ?? {}),
+      },
+    },
     tackle: {
       activeRig: saved.tackle?.activeRig ?? base.tackle.activeRig,
       owned: {
@@ -145,6 +153,7 @@ function mergeState(base, saved) {
         ...base.ui.expandedMarketSpecies,
         ...(saved.ui?.expandedMarketSpecies ?? {}),
       },
+      mapViewerZoom: clampNumber(saved.ui?.mapViewerZoom, 1, 2.4, base.ui.mapViewerZoom),
       locationTransition: null,
     },
     feedback: Array.isArray(saved.feedback) ? saved.feedback.slice(0, 4) : base.feedback,
@@ -163,4 +172,12 @@ function mergeMarketState(savedMarket, day) {
       ...(savedMarket?.prices ?? {}),
     },
   };
+}
+
+function clampNumber(value, min, max, fallback) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return fallback;
+  }
+  return Math.min(max, Math.max(min, number));
 }
