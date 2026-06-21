@@ -58,12 +58,14 @@ export function createHud(root, handlers) {
   root.addEventListener('click', (event) => {
     const closeButton = event.target.closest('button[data-scene-close]');
     if (closeButton) {
+      handlers.onDismissStartupTitle?.();
       handlers.onCloseScene();
       return;
     }
 
     const languageButton = event.target.closest('button[data-language-toggle]');
     if (languageButton) {
+      handlers.onDismissStartupTitle?.();
       languageButton.closest('.mobile-menu')?.removeAttribute('open');
       handlers.onToggleLanguage();
       return;
@@ -75,6 +77,7 @@ export function createHud(root, handlers) {
     }
 
     const action = button.dataset.action;
+    handlers.onDismissStartupTitle?.();
     button.closest('.mobile-menu')?.removeAttribute('open');
 
     if (action === 'save') handlers.onSave();
@@ -101,6 +104,7 @@ export function createHud(root, handlers) {
 
       root.innerHTML = `
         ${mapOverlayMarkup(renderState)}
+        ${state.ui?.startupTitleDismissed ? '' : `<div class="startup-title" aria-hidden="true">${t('appTitle')}</div>`}
         <div class="coin-hud" aria-label="${t('coins')}">
           <span class="coin-hud__icon" aria-hidden="true"></span>
           <strong>${state.money}</strong>
@@ -334,7 +338,7 @@ export function createHud(root, handlers) {
           </div>
         </section>
 
-        ${state.ui?.fishingMinigame?.open ? '' : `<section class="panel actions-panel">
+        ${state.ui?.fishingMinigame?.open || !state.ui?.activeScene ? '' : `<section class="panel actions-panel">
           <div class="action-grid">
             ${context.actions.map(actionButtonMarkup).join('')}
           </div>

@@ -53,6 +53,7 @@ ensureTackleState(gameState);
 ensureTimeState(gameState);
 normalizeTransitionSettings(gameState);
 normalizeViewModeSettings(gameState);
+resetLaunchUiState(gameState);
 applyViewModeToDocument(gameState);
 normalizePanelStateForViewport(gameState);
 pushLog(gameState, 'logMorning');
@@ -72,6 +73,7 @@ let fishingActionLockedUntil = 0;
 
 const hud = createHud(hudRoot, {
   onAction(actionId) {
+    dismissStartupTitle();
     audio.activate();
 
     if (actionId.startsWith('open:')) {
@@ -335,12 +337,14 @@ const hud = createHud(hudRoot, {
     renderHud();
   },
   onCloseScene() {
+    dismissStartupTitle();
     audio.activate();
     gameState.ui.activeScene = null;
     closeFishingMinigame(gameState);
     renderHud();
   },
   onToggleLanguage() {
+    dismissStartupTitle();
     audio.activate();
     toggleLanguage();
     gameState.audioQueue.push('ui_click');
@@ -372,6 +376,7 @@ const hud = createHud(hudRoot, {
     renderHud();
   },
   onCheat(value) {
+    dismissStartupTitle();
     const match = String(value).trim().match(/^\+(\d{1,7})$/);
     const coins = match ? Number(match[1]) : 0;
     if (!Number.isSafeInteger(coins) || coins <= 0) {
@@ -387,6 +392,7 @@ const hud = createHud(hudRoot, {
     renderHud();
   },
   onSave() {
+    dismissStartupTitle();
     audio.activate();
     gameState.player = player.snapshot();
     saveGame(gameState);
@@ -394,6 +400,7 @@ const hud = createHud(hudRoot, {
     renderHud();
   },
   onLoad() {
+    dismissStartupTitle();
     audio.activate();
     const loaded = loadGame();
     if (loaded) {
@@ -415,6 +422,7 @@ const hud = createHud(hudRoot, {
     renderHud();
   },
   onReset() {
+    dismissStartupTitle();
     audio.activate();
     resetGame();
     gameState = createInitialState();
@@ -430,6 +438,9 @@ const hud = createHud(hudRoot, {
     audio.syncSettings(gameState.settings.audio);
     pushLog(gameState, 'logFreshMorning');
     renderHud();
+  },
+  onDismissStartupTitle() {
+    dismissStartupTitle();
   },
 });
 
@@ -471,6 +482,20 @@ function normalizePanelStateForViewport(state) {
 function normalizeViewModeSettings(state) {
   state.settings ??= {};
   state.settings.viewMode = normalizeViewMode(loadStoredViewMode() ?? state.settings.viewMode ?? 'auto');
+}
+
+function resetLaunchUiState(state) {
+  state.ui ??= {};
+  state.ui.startupTitleDismissed = false;
+}
+
+function dismissStartupTitle() {
+  if (gameState.ui?.startupTitleDismissed) {
+    return;
+  }
+  gameState.ui ??= {};
+  gameState.ui.startupTitleDismissed = true;
+  lastHudSnapshot = '';
 }
 
 function normalizeTransitionSettings(state) {

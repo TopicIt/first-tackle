@@ -9,8 +9,8 @@ export const FISHING_LOCATION_IDS = [
   'mining_lake',
 ];
 
-export const BICYCLE_WATER_IDS = ['greada', 'sluice', 'fire_ponds'];
-export const BUS_WATER_IDS = ['lake_tur', 'mining_lake'];
+export const BICYCLE_WATER_IDS = ['sluice', 'fire_ponds'];
+export const BUS_WATER_IDS = ['greada', 'lake_tur', 'mining_lake'];
 
 export const fishingLocations = {
   canal: {
@@ -64,7 +64,8 @@ export const fishingLocations = {
   greada: {
     id: 'greada',
     order: 4,
-    access: 'bicycle',
+    access: 'bus',
+    ticketCost: 25,
     labelKey: 'zoneGreada',
     titleKey: 'sceneGreadaTitle',
     descriptionKey: 'sceneGreadaDescription',
@@ -75,7 +76,7 @@ export const fishingLocations = {
     bestTimeKey: 'timeEveningNight',
     tackleKey: 'guideGreadaTackle',
     baitKey: 'guideWormBunch',
-    unlockKey: 'buyBicycleToReachWaters',
+    unlockKey: 'busTicketUnlock',
   },
   lake_tur: {
     id: 'lake_tur',
@@ -150,6 +151,10 @@ export function canOpenWaterFromMap(state, locationId) {
 
   if (location.access === 'bicycle') {
     return hasUsableBicycle(state);
+  }
+
+  if (location.access === 'bus') {
+    return state.travel?.selectedWater === location.id;
   }
 
   return false;
