@@ -45,6 +45,9 @@ function mergeState(base, saved) {
   return {
     ...base,
     ...saved,
+    money: saved.progress?.uahEconomyStarted
+      ? saved.money ?? base.money
+      : Math.max(saved.money ?? base.money, base.money),
     inventory: {
       ...base.inventory,
       ...(saved.inventory ?? {}),
@@ -80,6 +83,10 @@ function mergeState(base, saved) {
       ...(saved.travel ?? {}),
       farWatersUnlocked: Boolean(saved.travel?.farWatersUnlocked ?? saved.purchased?.bicycle ?? base.travel.farWatersUnlocked),
       greadaUnlocked: Boolean(saved.travel?.greadaUnlocked ?? saved.travel?.farWatersUnlocked ?? saved.purchased?.bicycle ?? base.travel.greadaUnlocked),
+      bicycleTier: saved.travel?.bicycleTier
+        ?? (saved.purchased?.bestBicycle ? 'best' : saved.purchased?.betterBicycle ? 'better' : saved.purchased?.bicycle ? 'used' : base.travel.bicycleTier),
+      bicycleTripsLeft: saved.travel?.bicycleTripsLeft
+        ?? (saved.purchased?.bestBicycle ? 9999 : saved.purchased?.betterBicycle ? 120 : saved.purchased?.bicycle ? 20 : base.travel.bicycleTripsLeft),
       selectedWater: normalizeWaterId(saved.travel?.selectedWater ?? base.travel.selectedWater),
       visitedWaters: {
         ...base.travel.visitedWaters,
@@ -105,6 +112,7 @@ function mergeState(base, saved) {
       firstTackleReady: true,
       firstCatchDone: Boolean(saved.progress?.firstCatchDone ?? saved.stats?.totalFishCaught > 0),
       firstCrucianCatchRewardShown: Boolean(saved.progress?.firstCrucianCatchRewardShown),
+      uahEconomyStarted: true,
     },
     stats: {
       ...base.stats,

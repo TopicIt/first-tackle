@@ -1,3 +1,5 @@
+import { getFishPricePerKg } from './fishEconomy.js';
+
 export const fishData = [
   {
     id: 'rotan',
@@ -189,6 +191,16 @@ export const fishData = [
     weight: 8,
     descriptionKey: 'descGudgeon',
   },
+  {
+    id: 'eel',
+    nameKey: 'fishEel',
+    rarityKey: 'rarityRare',
+    minWeight: 120,
+    maxWeight: 4500,
+    basePrice: 900,
+    weight: 0.8,
+    descriptionKey: 'descEel',
+  },
 ];
 
 export function getFishData(fishId) {
@@ -205,7 +217,8 @@ export function getFreshFishValue(fishResult) {
     return 0;
   }
 
-  return Math.max(fish.basePrice, Math.round(fish.basePrice * (fishResult.weightGrams / fish.maxWeight)));
+  const weightKg = Math.max(0.001, (fishResult.weightGrams ?? 0) / 1000);
+  return Math.max(1, Math.ceil(weightKg * getFishPricePerKg(fish.id)));
 }
 
 export function rollFish() {
@@ -224,11 +237,11 @@ export function rollFish() {
   };
 }
 
-export function rollFishById(fishId) {
+export function rollFishById(fishId, options = {}) {
   const fish = getFishData(fishId) ?? fishData[0];
   return {
     id: fish.id,
-    weightGrams: randomInt(fish.minWeight, fish.maxWeight),
+    weightGrams: options.rollWeight ? options.rollWeight(fish.id, options) : randomInt(fish.minWeight, fish.maxWeight),
     value: 0,
   };
 }

@@ -40,8 +40,8 @@ export const waterFishDistribution = {
     size: { som: [1.16, 1.48], canadian_catfish: [1.12, 1.32], sudak: [1.08, 1.22], pike: [1.08, 1.22] },
   },
   mining_lake: {
-    fishIds: ['okun', 'crucian', 'lynok', 'canadian_catfish', 'white_bream', 'bream', 'plotytsia'],
-    weights: { okun: 4.2, crucian: 1.25, lynok: 1.1, canadian_catfish: 1.4, white_bream: 1.65, bream: 1.15, plotytsia: 2.15 },
+    fishIds: ['okun', 'crucian', 'lynok', 'canadian_catfish', 'white_bream', 'bream', 'plotytsia', 'eel'],
+    weights: { okun: 4.2, crucian: 1.25, lynok: 1.1, canadian_catfish: 1.4, white_bream: 1.65, bream: 1.15, plotytsia: 2.15, eel: 0.38 },
     size: { okun: [1.08, 1.24], lynok: [1.04, 1.16], bream: [1.04, 1.18] },
   },
 };

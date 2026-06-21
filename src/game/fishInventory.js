@@ -1,9 +1,10 @@
 import { fishIds } from './inventory.js';
 import { getFishData } from './fishData.js';
 import { pushFeedback, pushLog } from './state.js';
+import { classifyCatchSize, trophyTierForCategory } from './fishSizeProfiles.js';
 
 const trackedStatuses = ['fresh', 'cleaned', 'salted', 'drying', 'ready_taranka', 'taranka', 'smoked', 'live_bait'];
-const liveBaitSpecies = ['bleak', 'roach', 'rudd'];
+const liveBaitSpecies = ['gudgeon', 'crucian', 'plotytsia', 'loach'];
 
 export function createFishEntry(catchResult, caughtAtDay, context = {}) {
   return {
@@ -16,7 +17,8 @@ export function createFishEntry(catchResult, caughtAtDay, context = {}) {
     bait: context.bait ?? null,
     value: catchResult.value,
     status: 'fresh',
-    isLiveBaitEligible: liveBaitSpecies.includes(catchResult.id),
+    isLiveBaitEligible: isLiveBaitEligible(catchResult.id, catchResult.weightGrams),
+    catchCategory: catchResult.catchCategory ?? classifyCatchSize(catchResult.id, catchResult.weightGrams),
     trophyTier: null,
   };
 }
@@ -49,6 +51,7 @@ export function addCaughtFish(state, catchResult, context = {}) {
   ensureFishState(state);
   const entry = createFishEntry(catchResult, state.day, context);
   const fish = getFishData(entry.fishId);
+  entry.catchCategory = classifyCatchSize(entry.fishId, entry.weightGrams);
   entry.trophyTier = classifyTrophyCatch(entry, fish);
   state.fishBasket.push(entry);
   state.stats.totalFishCaught = (state.stats.totalFishCaught ?? 0) + 1;
@@ -318,7 +321,7 @@ function createLegacyEntry(fishId, status, day) {
     bait: null,
     value: fish.basePrice,
     status,
-    isLiveBaitEligible: liveBaitSpecies.includes(fishId),
+    isLiveBaitEligible: isLiveBaitEligible(fishId, Math.round((fish.minWeight + fish.maxWeight) / 2)),
   };
 }
 
@@ -334,7 +337,8 @@ function normalizeFishEntry(entry, day) {
     method: entry.method ?? null,
     bait: entry.bait ?? null,
     status: trackedStatuses.includes(entry.status) ? entry.status : 'fresh',
-    isLiveBaitEligible: entry.isLiveBaitEligible ?? liveBaitSpecies.includes(entry.fishId),
+    isLiveBaitEligible: entry.isLiveBaitEligible ?? isLiveBaitEligible(entry.fishId, entry.weightGrams),
+    catchCategory: entry.catchCategory ?? classifyCatchSize(entry.fishId, entry.weightGrams),
     trophyTier: entry.trophyTier ?? null,
   };
 }
@@ -399,21 +403,8 @@ function updateCatchJournal(state, entry) {
 }
 
 export function classifyTrophyCatch(entry, fish = getFishData(entry?.fishId)) {
-  if (!entry || !fish) {
-    return null;
-  }
-
-  const sizeRatio = entry.weightGrams / fish.maxWeight;
-  if (sizeRatio >= 0.97 && ['rarityVeryRare', 'rarityRare'].includes(fish.rarityKey)) {
-    return 'rarest';
-  }
-  if (sizeRatio >= 0.93 || (sizeRatio >= 0.82 && fish.rarityKey === 'rarityVeryRare')) {
-    return 'very_rare';
-  }
-  if (sizeRatio >= 0.84 || ['rarityVeryRare'].includes(fish.rarityKey)) {
-    return 'normal';
-  }
-  return null;
+  void fish;
+  return trophyTierForCategory(entry?.catchCategory ?? classifyCatchSize(entry?.fishId, entry?.weightGrams ?? 0));
 }
 
 export function trophyKeyForTier(tier) {
@@ -422,6 +413,12 @@ export function trophyKeyForTier(tier) {
     very_rare: 'trophyTierVeryRare',
     rarest: 'trophyTierRarest',
   }[tier] ?? 'trophyLargeFish';
+}
+
+export function isLiveBaitEligible(fishId, weightGrams) {
+  if (fishId === 'loach') return true;
+  if (['gudgeon', 'crucian', 'plotytsia'].includes(fishId)) return weightGrams <= 50;
+  return false;
 }
 
 function updateJournalEntry(journal, entry) {

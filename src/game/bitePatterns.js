@@ -166,7 +166,7 @@ export const castSpots = [
     scale: 0.82,
     allowedMethods: ['stickRod', 'betterLine'],
     waterId: 'mining_lake',
-    weights: getWaterFishWeights('mining_lake', { okun: 1.35, crucian: 0.88, lynok: 1.05, canadian_catfish: 1.05, white_bream: 1.1, bream: 1.05, plotytsia: 1.2 }),
+    weights: getWaterFishWeights('mining_lake', { okun: 1.35, crucian: 0.88, lynok: 1.05, canadian_catfish: 1.05, white_bream: 1.1, bream: 1.05, plotytsia: 1.2, eel: 0.55 }),
   },
   {
     id: 'mining_lake_shadow',
@@ -177,7 +177,7 @@ export const castSpots = [
     scale: 0.74,
     allowedMethods: ['betterLine'],
     waterId: 'mining_lake',
-    weights: getWaterFishWeights('mining_lake', { okun: 1.25, crucian: 0.75, lynok: 1.15, canadian_catfish: 1.2, white_bream: 0.95, bream: 1.15, plotytsia: 0.9 }),
+    weights: getWaterFishWeights('mining_lake', { okun: 1.25, crucian: 0.75, lynok: 1.15, canadian_catfish: 1.2, white_bream: 0.95, bream: 1.15, plotytsia: 0.9, eel: 1.5 }),
   },
 ];
 
@@ -451,6 +451,20 @@ export const biteProfiles = {
     patterns: [
       ['tiny_nibble', 'tiny_nibble', 'hard_dip', 'strike_window'],
       ['idle', 'tiny_nibble', 'strike_window'],
+    ],
+  },
+  eel: {
+    difficulty: 0.84,
+    hookWindowMs: [1600, 2600],
+    biteCycles: [1, 2],
+    preferred: {
+      methods: ['stickRod', 'liveBait'],
+      zones: ['mid_water', 'reed_edge'],
+      baits: ['nightcrawler', 'live_bait'],
+    },
+    patterns: [
+      ['idle', 'slow_dip', 'submerged', 'strike_window'],
+      ['sideways_pull', 'submerged', 'strike_window'],
     ],
   },
 };

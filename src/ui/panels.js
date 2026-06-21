@@ -49,6 +49,7 @@ const inventoryOrder = [
   'bream',
   'plotytsia',
   'gudgeon',
+  'eel',
 ];
 
 const itemImages = {
@@ -61,6 +62,8 @@ const itemImages = {
   hooksPack: '/assets/items/hooks_box.png',
   salt: '/assets/items/salt_bag.png',
   bicycle: '/assets/items/bicycle.png',
+  betterBicycle: '/assets/items/bicycle.png',
+  bestBicycle: '/assets/items/bicycle.png',
   primitiveTackle: '/assets/items/primitive_tackle.png',
   stickRod: '/assets/items/tackle_components.png',
   taranka: '/assets/items/taranka_drying.png',
@@ -292,6 +295,8 @@ export function getShopItemLabel(itemId) {
     sharperHook: 'componentSharperHook',
     properRod: 'componentProperRod',
     bicycle: 'itemBicycle',
+    betterBicycle: 'itemBetterBicycle',
+    bestBicycle: 'itemBestBicycle',
     salt: 'itemSalt',
     hooksPack: 'itemHooksPack',
     baitBread: 'itemBread',
@@ -335,7 +340,7 @@ function keepnetEntryMarkup(state, entry) {
   return `
     <div class="keepnet-entry">
       <span>${entry.weightGrams}g · ${t(statusKey(entry.status))}</span>
-      ${entry.trophyTier ? trophyBadgeMarkup(entry.trophyTier, entry.weightGrams) : ''}
+      ${catchCategoryBadgeMarkup(entry.catchCategory, entry.weightGrams)}
       <small>${entry.catchSpotId ? t(getCastSpot(entry.catchSpotId).labelKey) : t('unknownSpot')}</small>
       <small>${t('freshness')}: ${t(freshness.key)}</small>
       <button data-action="keepnet:release:${entry.id}" type="button">${t('release')}</button>
@@ -380,6 +385,18 @@ export function trophyBadgeMarkup(tier, weightGrams = null) {
   return `<span class="trophy-badge trophy-badge--${tier}" title="${t(trophyKeyForTier(tier))}">${stars}${weight}</span>`;
 }
 
+export function catchCategoryBadgeMarkup(category, weightGrams = null) {
+  const stars = {
+    small: '0',
+    ordinary: '*',
+    trophy: '*',
+    very_rare: '**',
+    legendary: '***',
+  }[category] ?? '*';
+  const weight = weightGrams ? ` ${weightGrams}g` : '';
+  return `<span class="catch-category-badge catch-category-badge--${category ?? 'ordinary'}" title="${t(catchCategoryKey(category))}">${stars}${weight}</span>`;
+}
+
 function speciesImage(fishId) {
   if (fishImages[fishId]) {
     return assetPath(fishImages[fishId]);
@@ -405,6 +422,7 @@ function marketSellMarkup(state) {
   return `
     <div class="market-summary">
       <p>${t('marketSellHint')}</p>
+      <button data-action="sell:fish" type="button"${freshEntries.length === 0 ? ' disabled' : ''}>${t('sellAllFish')}</button>
       <strong>${t('freshFish')}: ${freshEntries.length} · ${freshValue} ${t('coins').toLowerCase()}</strong>
     </div>
     <section class="market-keepnet-sell">
@@ -449,29 +467,43 @@ function marketSellMarkup(state) {
 }
 
 function marketBuyMarkup(state) {
+  const categories = [
+    ['bait', 'marketCategoryBait'],
+    ['tackle', 'marketCategoryTackle'],
+    ['other', 'marketCategoryOther'],
+  ];
   return `
-    <div class="market-card-grid">
-      ${shopItems.map((item) => {
-        const owned = item.type !== 'consumable' && state.purchased[item.id];
-        const disabledReason = owned
-          ? t('reasonAlreadyOwned')
-          : state.money < item.price
-            ? t('reasonNeedMoreCoins', { coins: item.price - state.money })
-            : '';
-        return `
-          <article class="market-card">
-            <img src="${itemImage(item.id)}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
-            <div>
-              <h3>${getShopItemLabel(item.id)}</h3>
-              <p>${t(shopDescriptionKey(item.id))}</p>
-              <strong>${owned ? t('owned') : `${item.price} ${t('coins').toLowerCase()}`}</strong>
-            </div>
-            <button data-action="buy:${item.id}" type="button"${owned || state.money < item.price ? ' disabled' : ''}>${owned ? t('owned') : t('buy')}</button>
-            ${marketReasonMarkup(disabledReason)}
-          </article>
-        `;
-      }).join('')}
+    <div class="market-buy-categories">
+      ${categories.map(([category, labelKey]) => `
+        <section class="market-buy-category">
+          <h3>${t(labelKey)}</h3>
+          <div class="market-card-grid market-card-grid--compact">
+            ${shopItems.filter((item) => (item.category ?? 'other') === category).map((item) => marketBuyCardMarkup(state, item)).join('')}
+          </div>
+        </section>
+      `).join('')}
     </div>
+  `;
+}
+
+function marketBuyCardMarkup(state, item) {
+  const owned = item.type !== 'consumable' && state.purchased[item.id];
+  const disabledReason = owned
+    ? t('reasonAlreadyOwned')
+    : state.money < item.price
+      ? t('reasonNeedMoreCoins', { coins: item.price - state.money })
+      : '';
+  return `
+    <article class="market-card">
+      <img src="${itemImage(item.id)}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
+      <div>
+        <h3>${getShopItemLabel(item.id)}</h3>
+        <p>${t(shopDescriptionKey(item.id))}</p>
+        <strong>${owned ? t('owned') : `${item.price} ${t('coins').toLowerCase()}`}</strong>
+      </div>
+      <button data-action="buy:${item.id}" type="button"${owned || state.money < item.price ? ' disabled' : ''}>${owned ? t('owned') : t('buy')}</button>
+      ${marketReasonMarkup(disabledReason)}
+    </article>
   `;
 }
 
@@ -485,7 +517,7 @@ function marketPricesMarkup(state) {
           <article class="market-price-card trend-${price.trend}">
             <img src="${speciesImage(fish.id)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
             <span>${t(fish.nameKey)}</span>
-            <strong>${trendArrow(price.trend)} ${price.currentPrice}</strong>
+            <strong>${trendArrow(price.trend)} ${price.currentPrice} ${t('uahPerKg')}</strong>
             <small>${price.multiplier.toFixed(2)}x · ${t(trendKey(price.trend))}</small>
           </article>
         `;
@@ -504,6 +536,8 @@ function shopDescriptionKey(itemId) {
     sharperHook: 'shopDescSharperHook',
     properRod: 'shopDescProperRod',
     bicycle: 'shopDescBicycle',
+    betterBicycle: 'shopDescBetterBicycle',
+    bestBicycle: 'shopDescBestBicycle',
     salt: 'shopDescSalt',
     hooksPack: 'shopDescHooks',
     baitBread: 'shopDescBaitBread',
@@ -547,11 +581,12 @@ function marketSpeciesSellMarkup(state, group, isExpanded) {
 
 function marketFishEntryMarkup(state, entry) {
   const freshness = getFreshnessInfo(state, entry);
+  const price = getMarketPriceInfo(state, entry.fishId);
   return `
     <div class="market-fish-entry">
       <div>
         <span>${entry.weightGrams}g · ${t('freshness')}: ${t(freshness.key)}</span>
-        <small>${entry.catchSpotId ? t(getCastSpot(entry.catchSpotId).labelKey) : t('unknownSpot')}</small>
+        <small>${price.currentPrice} ${t('uahPerKg')} В· ${entry.catchSpotId ? t(getCastSpot(entry.catchSpotId).labelKey) : t('unknownSpot')}</small>
       </div>
       <strong>${getFishSaleValue(state, entry)} ${t('coins').toLowerCase()}</strong>
       <button data-action="sell:entry:${entry.id}" type="button">${t('sell')}</button>
@@ -667,4 +702,14 @@ function trendKey(trend) {
     falling: 'priceFalling',
     stable: 'priceStable',
   }[trend] ?? 'priceStable';
+}
+
+function catchCategoryKey(category) {
+  return {
+    small: 'catchCategorySmall',
+    ordinary: 'catchCategoryOrdinary',
+    trophy: 'catchCategoryTrophy',
+    very_rare: 'catchCategoryVeryRare',
+    legendary: 'catchCategoryLegendary',
+  }[category] ?? 'catchCategoryOrdinary';
 }

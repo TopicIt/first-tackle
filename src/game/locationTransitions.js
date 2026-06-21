@@ -30,6 +30,18 @@ export const locationTransitions = {
       ],
     ],
   },
+  garden: {
+    id: 'garden',
+    targetScene: 'garden',
+    fallbackImage: assetPath('/assets/locations/garden_location_concept.png'),
+    fallbackImageAlt: assetPath('/assets/locations/pond_location_concept.png'),
+    videos: [
+      [
+        { src: assetPath('/assets/transitions/garden/garden-flyin.webm'), type: 'video/webm' },
+        { src: assetPath('/assets/transitions/garden/garden-flyin.mp4'), type: 'video/mp4' },
+      ],
+    ],
+  },
 };
 
 export function getLocationTransition(sceneId, state) {

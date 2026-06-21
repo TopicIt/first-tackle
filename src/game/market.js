@@ -1,4 +1,5 @@
 import { fishData, getFishData } from './fishData.js';
+import { getFishPricePerKg } from './fishEconomy.js';
 
 const trendSteps = {
   rising: 0.08,
@@ -40,16 +41,16 @@ export function getMarketPriceInfo(state, fishId) {
     fishId,
     multiplier: entry.multiplier,
     trend: entry.trend,
-    currentPrice: Math.max(1, Math.round((fish?.basePrice ?? 1) * entry.multiplier)),
+    currentPrice: Math.max(1, Math.round(getFishPricePerKg(fish?.id ?? fishId) * entry.multiplier)),
+    pricePerKg: getFishPricePerKg(fishId),
   };
 }
 
 export function getFishSaleValue(state, entry) {
-  const fish = getFishData(entry.fishId);
-  const baseValue = entry.value || fish?.basePrice || 1;
   const market = getMarketPriceInfo(state, entry.fishId);
   const processedMultiplier = getProcessedMultiplier(entry);
-  return Math.max(1, Math.round(baseValue * market.multiplier * getFreshnessMultiplier(state, entry) * processedMultiplier));
+  const weightKg = Math.max(0.001, (entry.weightGrams ?? 0) / 1000);
+  return Math.max(1, Math.ceil(weightKg * market.pricePerKg * market.multiplier * getFreshnessMultiplier(state, entry) * processedMultiplier));
 }
 
 export function getFreshnessInfo(state, entry) {

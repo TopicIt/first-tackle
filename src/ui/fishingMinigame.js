@@ -2,7 +2,7 @@ import './fishingMinigame.css';
 import { getFishData } from '../game/fishData.js';
 import { getAvailableBaits, getAvailableCastSpots, getFishingContextAction } from '../game/fishingMinigameLogic.js';
 import { getCastSpot } from '../game/bitePatterns.js';
-import { catchJournalMarkup, keepnetMarkup, trophyBadgeMarkup } from './panels.js';
+import { catchCategoryBadgeMarkup, catchJournalMarkup, keepnetMarkup } from './panels.js';
 import { t } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
 import { getFishingLocation } from '../game/locations.js';
@@ -188,7 +188,6 @@ function isActiveFishingPhase(phase) {
 function catchResultModalMarkup(state, fish, result, minigame) {
   const image = getCatchImage(result.id);
   const entry = state.fishBasket?.find((item) => item.id === minigame.currentCatchEntryId);
-  const liveBaitDisabled = !entry?.isLiveBaitEligible ? ' disabled' : '';
 
   return `
     <section class="fishing-result-modal">
@@ -204,7 +203,7 @@ function catchResultModalMarkup(state, fish, result, minigame) {
           </div>
           <div class="fishing-result__copy">
             <h3>${t(fish.nameKey)}</h3>
-            ${entry?.trophyTier ? trophyBadgeMarkup(entry.trophyTier, entry.weightGrams) : ''}
+            ${catchCategoryBadgeMarkup(entry?.catchCategory ?? result.catchCategory, entry?.weightGrams ?? result.weightGrams)}
             <ul>
               <li>${t('weight')}: <strong>${result.weightGrams}g</strong></li>
               <li>${t('rarity')}: <strong>${t(fish.rarityKey)}</strong></li>
@@ -215,7 +214,7 @@ function catchResultModalMarkup(state, fish, result, minigame) {
           <div class="fishing-result__actions">
             <button data-action="minigame:keep" type="button">${t('close')}</button>
             <button data-action="minigame:openKeepnet" type="button">${t('openKeepnet')}</button>
-            <button data-action="minigame:liveBait" type="button"${liveBaitDisabled}>${t('useAsLiveBait')}</button>
+            ${entry?.isLiveBaitEligible ? `<button data-action="minigame:liveBait" type="button">${t('useAsLiveBait')}</button>` : ''}
             <button data-action="minigame:release" type="button">${t('release')}</button>
           </div>
         </div>

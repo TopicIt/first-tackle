@@ -19,7 +19,7 @@ import {
   waitUntilTomorrow,
 } from './fishing.js';
 import { hasItem } from './inventory.js';
-import { BICYCLE_WATER_IDS, BUS_WATER_IDS, canSelectWaterForFishing, getFishingLocation, getFishingLocationList, isFishingLocation } from './locations.js';
+import { BICYCLE_WATER_IDS, BUS_WATER_IDS, canSelectWaterForFishing, getFishingLocation, getFishingLocationList, hasUsableBicycle, isFishingLocation } from './locations.js';
 import { arriveAtWater, buyBusTicket, travelByBicycle } from './travel.js';
 import { interactionZones } from './world.js';
 import { getTimePhase } from './time.js';
@@ -496,15 +496,16 @@ function pushActionLog(state, key) {
 }
 
 function bicycleRouteActions(state) {
+  const usableBicycle = hasUsableBicycle(state);
   return BICYCLE_WATER_IDS.map((waterId) => {
     const location = getFishingLocation(waterId);
     return {
       id: `travel:water:${waterId}`,
-      label: state.purchased?.bicycle
+      label: usableBicycle
         ? t('travelToWater', { destination: t(location.labelKey) })
         : t('requiresBicycle'),
-      disabled: !state.purchased?.bicycle,
-      variant: state.purchased?.bicycle ? 'secondary' : 'future',
+      disabled: !usableBicycle,
+      variant: usableBicycle ? 'secondary' : 'future',
     };
   });
 }

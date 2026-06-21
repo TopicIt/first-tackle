@@ -1,4 +1,4 @@
-import { getFishingLocation, normalizeWaterId } from './locations.js';
+import { getFishingLocation, hasUsableBicycle, normalizeWaterId } from './locations.js';
 import { pushFeedback, pushLog, queueSound } from './state.js';
 
 export function arriveAtWater(state, locationId, logKey = 'logArrivedAtWater') {
@@ -33,13 +33,19 @@ export function travelByBicycle(state, locationId) {
     return false;
   }
 
-  if (!state.purchased?.bicycle) {
+  if (!hasUsableBicycle(state)) {
     pushLog(state, 'logNeedBicycleForTravel');
     return false;
   }
 
   state.travel ??= {};
   state.travel.farWatersUnlocked = true;
+  if (!state.purchased?.bestBicycle) {
+    state.travel.bicycleTripsLeft = Math.max(0, (state.travel.bicycleTripsLeft ?? 0) - 1);
+    if (state.travel.bicycleTripsLeft === 0) {
+      pushLog(state, 'logBicycleBroken');
+    }
+  }
   return arriveAtWater(state, location.id, 'logTravelByBicycle');
 }
 

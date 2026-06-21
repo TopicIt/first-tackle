@@ -59,8 +59,24 @@ export function buyShopItem(state, itemId) {
   }
 
   state.purchased[itemId] = true;
-  if (itemId === 'bicycle') {
+  if (['bicycle', 'betterBicycle', 'bestBicycle'].includes(itemId)) {
     state.travel ??= {};
+    const tier = {
+      bicycle: 'used',
+      betterBicycle: 'better',
+      bestBicycle: 'best',
+    }[itemId];
+    const trips = {
+      bicycle: 20,
+      betterBicycle: 120,
+      bestBicycle: 9999,
+    }[itemId];
+    state.travel.bicycleTier = tier;
+    state.travel.bicycleTripsLeft = trips;
+    state.purchased.bicycle = true;
+    if (itemId === 'bestBicycle') {
+      state.purchased.betterBicycle = true;
+    }
     state.travel.farWatersUnlocked = true;
     state.travel.greadaUnlocked = true;
     state.travel.visitedWaters = {
@@ -94,6 +110,8 @@ function getShopItemKey(itemId) {
     sharperHook: 'componentSharperHook',
     properRod: 'componentProperRod',
     bicycle: 'itemBicycle',
+    betterBicycle: 'itemBetterBicycle',
+    bestBicycle: 'itemBestBicycle',
     salt: 'itemSalt',
     hooksPack: 'itemHooksPack',
     baitBread: 'itemBread',

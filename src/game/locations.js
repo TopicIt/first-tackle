@@ -81,7 +81,7 @@ export const fishingLocations = {
     id: 'lake_tur',
     order: 5,
     access: 'bus',
-    ticketCost: 70,
+    ticketCost: 100,
     labelKey: 'zoneLakeTur',
     titleKey: 'sceneLakeTurTitle',
     descriptionKey: 'sceneLakeTurDescription',
@@ -98,7 +98,7 @@ export const fishingLocations = {
     id: 'mining_lake',
     order: 6,
     access: 'bus',
-    ticketCost: 40,
+    ticketCost: 50,
     labelKey: 'zoneMiningLake',
     titleKey: 'sceneMiningLakeTitle',
     descriptionKey: 'sceneMiningLakeDescription',
@@ -149,7 +149,7 @@ export function canOpenWaterFromMap(state, locationId) {
   }
 
   if (location.access === 'bicycle') {
-    return Boolean(state.purchased?.bicycle);
+    return hasUsableBicycle(state);
   }
 
   return false;
@@ -166,7 +166,7 @@ export function canSelectWaterForFishing(state, locationId) {
   }
 
   if (location.access === 'bicycle') {
-    return Boolean(state.purchased?.bicycle);
+    return hasUsableBicycle(state);
   }
 
   return state.travel?.selectedWater === location.id;
@@ -182,9 +182,14 @@ export function getLockedReasonKey(state, locationId) {
     return 'requiresBusTicket';
   }
 
-  if (location.access === 'bicycle' && !state.purchased?.bicycle) {
+  if (location.access === 'bicycle' && !hasUsableBicycle(state)) {
     return 'requiresBicycle';
   }
 
   return 'locked';
+}
+
+export function hasUsableBicycle(state) {
+  return Boolean(state.purchased?.bestBicycle)
+    || Boolean((state.travel?.bicycleTripsLeft ?? 0) > 0);
 }

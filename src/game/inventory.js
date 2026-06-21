@@ -20,7 +20,7 @@ export const itemLabels = {
   hooksPack: 'itemHooksPack',
 };
 
-export const fishIds = ['rotan', 'crucian', 'bleak', 'roach', 'rudd', 'loach', 'pike', 'okun', 'lynok', 'sudak', 'som', 'canadian_catfish', 'carp', 'grass_carp', 'silver_carp', 'white_bream', 'bream', 'plotytsia', 'gudgeon'];
+export const fishIds = ['rotan', 'crucian', 'bleak', 'roach', 'rudd', 'loach', 'pike', 'okun', 'lynok', 'sudak', 'som', 'canadian_catfish', 'carp', 'grass_carp', 'silver_carp', 'white_bream', 'bream', 'plotytsia', 'gudgeon', 'eel'];
 
 export function countItem(state, itemId) {
   return state.inventory[itemId] ?? 0;
