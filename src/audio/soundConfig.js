@@ -21,6 +21,7 @@ export const availableAudioAssets = {
   music: Object.fromEntries(musicTracks.map((track) => [track.id, track.sources[0]])),
   sfx: {
     catch_success: assetPath('/assets/audio/music/sfx/catch%20success.mp3'),
+    trophy_fanfare: assetPath('/assets/audio/trophy-fanfare.mp3'),
   },
 };
 

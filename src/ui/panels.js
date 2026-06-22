@@ -53,28 +53,40 @@ const inventoryOrder = [
 ];
 
 const itemImages = {
+  thread: '/assets/items/grandma_thread.png',
   shovel: '/assets/items/item_shovel.png',
   betterLine: '/assets/items/better_line.png',
-  simpleFloat: '/assets/items/fishing_float.png',
-  properFloat: '/assets/items/fishing_float.png',
+  simpleFloat: '/assets/items/float-cheap.png',
+  cheap_float: '/assets/items/float-cheap.png',
+  properFloat: '/assets/items/float-proper.png',
+  proper_float: '/assets/items/float-proper.png',
   properSinker: '/assets/items/proper_sinker.png',
-  sharperHook: '/assets/items/hooks_box.png',
+  proper_sinker: '/assets/items/proper_sinker.png',
+  sharperHook: '/assets/items/sharp-hook.png',
+  sharper_hook: '/assets/items/sharp-hook.png',
   hooksPack: '/assets/items/hooks_box.png',
   salt: '/assets/items/salt_bag.png',
   bicycle: '/assets/items/bicycle.png',
-  betterBicycle: '/assets/items/bicycle.png',
-  bestBicycle: '/assets/items/bicycle.png',
+  betterBicycle: '/assets/items/bicycle-better.png',
+  bestBicycle: '/assets/items/bicycle-best.png',
   primitiveTackle: '/assets/items/primitive_tackle.png',
-  stickRod: '/assets/items/tackle_components.png',
+  stickRod: '/assets/items/simple_stick_rod.png',
+  simple_stick_rod: '/assets/items/simple_stick_rod.png',
+  properRod: '/assets/items/proper_rod.png',
+  proper_rod: '/assets/items/proper_rod.png',
+  grandma_thread: '/assets/items/grandma_thread.png',
   taranka: '/assets/items/taranka_drying.png',
   smokedFish: '/assets/items/taranka_drying.png',
   baitBread: '/assets/items/bait_bread.png',
+  gooseFeatherFloat: '/assets/items/fishing_float.png',
+  baitLarvae: '/assets/items/bait_larvae.png',
   baitWorms: '/assets/items/bait_worm.png',
   baitMastyrka: '/assets/items/bait_mastyrka.png',
   baitCorn: '/assets/items/bait_corn.png',
   baitDough: '/assets/items/bait_dough.png',
   baitNightcrawler: '/assets/items/bait_nightcrawler.png',
   bread: '/assets/items/bait_bread.png',
+  larvae: '/assets/items/bait_larvae.png',
   worms: '/assets/items/bait_worm.png',
   mastyrka: '/assets/items/bait_mastyrka.png',
   corn: '/assets/items/bait_corn.png',
@@ -104,7 +116,10 @@ export function inventoryMarkup(state) {
     .map(
       (itemId) => `
         <li class="row">
-          <span>${getItemLabel(itemId)}</span>
+          <span class="row__label">
+            ${itemVisualMarkup(itemId)}
+            <span>${getItemLabel(itemId)}</span>
+          </span>
           <strong>${countItem(state, itemId)}</strong>
         </li>
       `,
@@ -161,7 +176,7 @@ export function catchJournalMarkup(state) {
     </div>
     <div class="trophy-strip">
       <p class="section-label">${t('trophyCatch')}</p>
-      ${trophies.slice(0, 4).map(trophyMarkup).join('') || `<p class="empty-panel">${t('noTrophiesYet')}</p>`}
+      ${trophies.slice(0, 4).map(trophyCardMarkup).join('') || `<p class="empty-panel">${t('noTrophiesYet')}</p>`}
     </div>
   `;
 }
@@ -224,9 +239,12 @@ export function tackleMarkup(state) {
       <div class="rig-grid">
         ${rigs.map((rig) => `
           <article class="rig-card${activeRig.id === rig.id ? ' is-selected' : ''}${rig.available ? '' : ' is-disabled'}">
-            <div>
-              <h3>${t(rig.labelKey)}</h3>
-              <p>${t(rig.descriptionKey)}</p>
+            <div class="rig-card__copy">
+              ${rigVisualMarkup(rig.id)}
+              <div>
+                <h3>${t(rig.labelKey)}</h3>
+                <p>${t(rig.descriptionKey)}</p>
+              </div>
             </div>
             <button data-action="tackle:rig:${rig.id}" type="button"${rig.available ? '' : ' disabled'}>
               ${activeRig.id === rig.id ? t('selected') : t('useThisTackle')}
@@ -239,11 +257,15 @@ export function tackleMarkup(state) {
       ${Object.entries(tackleComponents).map(([slot, options]) => `
         <section class="tackle-slot">
           <p class="section-label">${t(`tackleSlot${toPascalCase(slot)}`)}</p>
-          <strong>${t(componentLabels[equipped[slot]] ?? equipped[slot] ?? 'componentNone')}</strong>
+          <strong class="tackle-slot__equipped">
+            ${tackleComponentVisualMarkup(equipped[slot])}
+            <span>${t(componentLabels[equipped[slot]] ?? equipped[slot] ?? 'componentNone')}</span>
+          </strong>
           <div class="tackle-options">
             ${options.filter((id) => owned[id]).map((id) => `
               <button class="${equipped[slot] === id ? 'is-selected' : ''}" data-action="tackle:equip:${slot}:${id}" type="button">
-                ${t(componentLabels[id] ?? id)}
+                ${tackleComponentVisualMarkup(id)}
+                <span>${t(componentLabels[id] ?? id)}</span>
               </button>
             `).join('')}
           </div>
@@ -385,6 +407,19 @@ export function trophyBadgeMarkup(tier, weightGrams = null) {
   return `<span class="trophy-badge trophy-badge--${tier}" title="${t(trophyKeyForTier(tier))}">${stars}${weight}</span>`;
 }
 
+function trophyCardMarkup(trophy) {
+  const fish = fishData.find((entry) => entry.id === trophy.fishId);
+  return `
+    <div class="trophy-item${trophy.tier ? ` trophy-item--${trophy.tier}` : ''}">
+      <img src="${speciesImage(trophy.fishId)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
+      <div>
+        <strong>${t(trophy.key)}</strong>
+        <span>${t(fish?.nameKey ?? trophy.fishId)} В· ${trophy.weightGrams}g</span>
+      </div>
+    </div>
+  `;
+}
+
 export function catchCategoryBadgeMarkup(category, weightGrams = null) {
   const stars = {
     small: '0',
@@ -407,6 +442,48 @@ function speciesImage(fishId) {
 
 function itemImage(itemId) {
   return itemImages[itemId] ? assetPath(itemImages[itemId]) : assetPath('/assets/items/tackle_components.png');
+}
+
+function itemVisualMarkup(itemId) {
+  const isFish = fishData.some((fish) => fish.id === itemId);
+  const image = isFish ? speciesImage(itemId) : itemImage(itemId);
+  const fallback = isFish
+    ? assetPath('/assets/fish/catch_result_frame.png')
+    : assetPath('/assets/items/tackle_components.png');
+  return `<img class="item-chip__icon" src="${image}" onerror="this.src='${fallback}'" alt="" />`;
+}
+
+function tackleComponentVisualMarkup(componentId) {
+  if (!componentId || componentId === 'none' || componentId === 'small_stone') {
+    return '<span class="item-chip__icon item-chip__icon--placeholder" aria-hidden="true"></span>';
+  }
+
+  const componentImageIds = {
+    grandma_thread: 'grandma_thread',
+    better_line: 'betterLine',
+    old_dull_hook: 'hooksPack',
+    sharper_hook: 'sharper_hook',
+    proper_sinker: 'proper_sinker',
+    goose_feather_float: 'gooseFeatherFloat',
+    cheap_float: 'cheap_float',
+    proper_float: 'proper_float',
+    simple_stick_rod: 'simple_stick_rod',
+    proper_rod: 'proper_rod',
+  };
+
+  return `<img class="item-chip__icon" src="${itemImage(componentImageIds[componentId] ?? componentId)}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />`;
+}
+
+function rigVisualMarkup(rigId) {
+  const imageId = {
+    handline: 'grandma_thread',
+    first_rod: 'simple_stick_rod',
+    proper_rod: 'proper_rod',
+  }[rigId];
+
+  return imageId
+    ? `<img class="item-chip__icon item-chip__icon--large" src="${itemImage(imageId)}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />`
+    : '';
 }
 
 function marketSellMarkup(state) {
