@@ -75,13 +75,17 @@ export function getFirstCrucianCatchRewardTransition() {
   };
 }
 
-export function queueFirstCrucianCatchReward(state) {
+export function queueFirstCrucianCatchReward(state, options = {}) {
   if (!state?.ui || state.settings?.transitions?.enabled === false) {
     return false;
   }
 
   state.progress ??= {};
-  state.progress.firstCrucianCatchRewardShown = true;
+  if (!options.repeat) {
+    state.progress.firstCrucianCatchRewardShown = true;
+    state.seenEvents ??= {};
+    state.seenEvents.firstCrucianVideoShown = true;
+  }
   state.ui.locationTransition = getFirstCrucianCatchRewardTransition();
   return true;
 }
@@ -89,6 +93,8 @@ export function queueFirstCrucianCatchReward(state) {
 export function markFirstCrucianCatchRewardSeen(state) {
   state.progress ??= {};
   state.progress.firstCrucianCatchRewardShown = true;
+  state.seenEvents ??= {};
+  state.seenEvents.firstCrucianVideoShown = true;
 }
 
 export function markLocationTransitionVisit(state, transition) {

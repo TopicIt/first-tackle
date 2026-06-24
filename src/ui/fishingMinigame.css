@@ -773,10 +773,43 @@
 }
 
 .fishing-stage__bobber--float-goose_feather_float .fishing-stage__bobber-top {
-  width: 7px;
-  height: 42px;
+  width: 6px;
+  height: 48px;
+  border-color: rgb(88 72 48 / 28%);
   border-radius: 999px 999px 4px 4px;
-  background: linear-gradient(180deg, #fff9df, #c8d4c8 54%, #d94b3d 55%);
+  background: linear-gradient(180deg, #fffef0 0 62%, #b94d3c 63% 78%, #5f4329 79%);
+  box-shadow: none;
+}
+
+.fishing-stage__bobber--float-goose_feather_float .fishing-stage__bobber-top::before,
+.fishing-stage__bobber--float-goose_feather_float .fishing-stage__bobber-top::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  width: 12px;
+  height: 34px;
+  border-radius: 90% 12% 80% 10%;
+  background: linear-gradient(160deg, rgb(255 254 232 / 88%), rgb(199 212 196 / 36%));
+}
+
+.fishing-stage__bobber--float-goose_feather_float .fishing-stage__bobber-top::before {
+  right: 3px;
+  transform: rotate(-12deg);
+  transform-origin: right bottom;
+}
+
+.fishing-stage__bobber--float-goose_feather_float .fishing-stage__bobber-top::after {
+  left: 3px;
+  transform: rotate(12deg) scaleX(-1);
+  transform-origin: left bottom;
+}
+
+.fishing-stage__bobber--float-goose_feather_float .fishing-stage__bobber-bottom {
+  top: 43px;
+  width: 5px;
+  height: 12px;
+  border-radius: 3px;
+  background: #5f4329;
 }
 
 .fishing-stage__bobber--float-cheap_float .fishing-stage__bobber-top {

@@ -45,6 +45,22 @@ const sceneConfigs = {
     bgClass: 'scene-bg--slow-zoom',
     effects: ['scene-water-ripples', 'scene-cloud-shadow'],
   },
+  sluice_map: {
+    titleKey: 'sceneSluiceTitle',
+    descriptionKey: 'sceneSluiceDescription',
+    image: getLocationImage('sluice'),
+    fallbackImage: getLocationImageFallback('sluice'),
+    bgClass: 'scene-bg--slow-zoom',
+    effects: ['scene-water-ripples', 'scene-cloud-shadow'],
+  },
+  fire_ponds_map: {
+    titleKey: 'sceneFirePondsTitle',
+    descriptionKey: 'sceneFirePondsDescription',
+    image: getLocationImage('firePonds'),
+    fallbackImage: getLocationImageFallback('firePonds'),
+    bgClass: 'scene-bg--slow-zoom',
+    effects: ['scene-water-ripples', 'scene-cloud-shadow'],
+  },
 };
 
 export function locationSceneMarkup(state, context) {
@@ -67,9 +83,11 @@ export function locationSceneMarkup(state, context) {
       <div class="scene-shell">
         <header class="scene-header">
           <div>
-            <p class="section-label">${t('location')}</p>
             <h2>${t(config.titleKey)}</h2>
-            <p>${t(config.descriptionKey)}</p>
+            <details class="scene-description">
+              <summary>${t('locationDescription')}</summary>
+              <p>${t(config.descriptionKey)}</p>
+            </details>
           </div>
           <div class="scene-header__actions">
             <button class="scene-map" data-action="scene:map" type="button">${t('backToMap')}</button>
@@ -79,7 +97,6 @@ export function locationSceneMarkup(state, context) {
 
         <div class="scene-body">
           <section class="scene-actions">
-            <p class="section-label">${t('actions')}</p>
             <div class="scene-action-grid">
               ${context.sceneActions.map(actionButtonMarkup).join('')}
             </div>
@@ -87,7 +104,6 @@ export function locationSceneMarkup(state, context) {
 
           ${sceneId === 'market' ? `
             <section class="scene-actions scene-market">
-              <p class="section-label">${t('market')}</p>
               ${marketMarkup(state)}
             </section>
           ` : ''}

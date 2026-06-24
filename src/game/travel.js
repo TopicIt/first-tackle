@@ -1,4 +1,4 @@
-import { getFishingLocation, hasUsableBicycle, normalizeWaterId } from './locations.js';
+import { BUS_WATER_IDS, canUseBusStation, getFishingLocation, hasUsableBicycle, normalizeWaterId } from './locations.js';
 import { pushFeedback, pushLog, queueSound } from './state.js';
 
 export function arriveAtWater(state, locationId, logKey = 'logArrivedAtWater') {
@@ -29,7 +29,7 @@ export function arriveAtWater(state, locationId, logKey = 'logArrivedAtWater') {
 
 export function travelByBicycle(state, locationId) {
   const location = getFishingLocation(locationId);
-  if (!location || location.access !== 'bicycle') {
+  if (!location || !['bicycle', 'bicycle_or_bus'].includes(location.access)) {
     return false;
   }
 
@@ -51,7 +51,12 @@ export function travelByBicycle(state, locationId) {
 
 export function buyBusTicket(state, locationId) {
   const location = getFishingLocation(locationId);
-  if (!location || location.access !== 'bus') {
+  if (!location || !BUS_WATER_IDS.includes(location.id)) {
+    return false;
+  }
+
+  if (!canUseBusStation(state)) {
+    pushLog(state, 'logBusStationLocked');
     return false;
   }
 
@@ -62,6 +67,11 @@ export function buyBusTicket(state, locationId) {
   }
 
   state.money -= cost;
+  state.travel ??= {};
+  state.travel.boughtTickets = {
+    ...(state.travel.boughtTickets ?? {}),
+    [location.id]: (state.travel.boughtTickets?.[location.id] ?? 0) + 1,
+  };
   pushLog(state, 'logBoughtTicket', { waterKey: location.labelKey, coins: cost });
   queueSound(state, 'buy_item');
   return arriveAtWater(state, location.id, 'logArrivedByBus');

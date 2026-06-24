@@ -79,7 +79,7 @@ export function openFishingMinigame(state, method) {
     guide: true,
     journal: true,
     settings: true,
-    fishingControls: false,
+    fishingControls: true,
     fishingResult: true,
   };
   state.ui.fishingMinigame = createFishingMinigameState(method);
@@ -318,7 +318,13 @@ export function strikeLine(state, nowMs) {
       sound: 'catch_success',
       catchResult,
     });
-    if (shouldShowFirstCrucianReward && !queueFirstCrucianCatchReward(state)) {
+    const shouldShowTrophyCrucianReward = catchResult.id === 'crucian' && Boolean(entry?.trophyTier);
+    if (shouldShowTrophyCrucianReward) {
+      if (shouldShowFirstCrucianReward) {
+        markFirstCrucianCatchRewardSeen(state);
+      }
+      queueFirstCrucianCatchReward(state, { repeat: true });
+    } else if (shouldShowFirstCrucianReward && !queueFirstCrucianCatchReward(state)) {
       markFirstCrucianCatchRewardSeen(state);
     }
     minigame.bobberState = 'hooked';
@@ -912,11 +918,11 @@ function getFishWeight(state, minigame, fishId, profile, spot) {
     score *= 1.16;
   }
 
-  if (profile.preferred.baits.includes(minigame.selectedBait)) {
-    score *= 1.22;
-  } else if (['bread', 'mastyrka', 'corn', 'dough', 'nightcrawler'].includes(minigame.selectedBait)) {
-    score *= 0.58;
+  const baitSuitability = getBaitSuitability(fishId, minigame.selectedBait);
+  if (baitSuitability <= 0) {
+    return 0;
   }
+  score *= baitSuitability;
 
   score *= 1 + Math.max(0, 1 - getTackleEffects(state).scatterScale) * 0.14;
 
@@ -925,7 +931,7 @@ function getFishWeight(state, minigame, fishId, profile, spot) {
   score *= getWaterFishMultiplier(state, fishId);
 
   if (fishId === 'rotan' && minigame.selectedZone === 'near_bank' && minigame.method === 'handline') {
-    score *= 1.25;
+    score *= 0.82;
   }
 
   if (fishId === 'crucian' && minigame.selectedZone !== 'near_bank') {
@@ -1002,7 +1008,40 @@ function getBiteCycleTotal(fishId) {
 
 function getBaitSuitability(fishId, baitId) {
   const profile = getBiteProfile(fishId);
-  return profile.preferred.baits.includes(baitId) ? 1 : 0.55;
+  if (!baitId || !profile) {
+    return 0;
+  }
+
+  if (profile.preferred.baits.includes(baitId)) {
+    return 1.24;
+  }
+
+  const animalBaits = ['worms', 'larvae', 'nightcrawler', 'live_bait'];
+  const predators = ['pike', 'sudak', 'som', 'eel'];
+  if (predators.includes(fishId)) {
+    return animalBaits.includes(baitId) ? 0.16 : 0;
+  }
+
+  const neutralBaits = {
+    crucian: ['larvae'],
+    bleak: ['dough'],
+    roach: ['corn'],
+    rudd: ['mastyrka', 'corn'],
+    loach: ['larvae', 'live_bait'],
+    okun: ['live_bait'],
+    lynok: ['larvae', 'mastyrka'],
+    canadian_catfish: ['live_bait'],
+    carp: ['worms'],
+    grass_carp: ['mastyrka', 'dough'],
+    silver_carp: ['bread'],
+    white_bream: ['larvae'],
+    bream: ['larvae', 'corn'],
+    plotytsia: ['larvae'],
+    gudgeon: ['larvae'],
+    rotan: ['live_bait'],
+  }[fishId] ?? [];
+
+  return neutralBaits.includes(baitId) ? 0.28 : 0.05;
 }
 
 function getTackleBonus(state, method) {

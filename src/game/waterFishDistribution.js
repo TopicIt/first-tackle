@@ -1,7 +1,7 @@
 export const waterFishDistribution = {
   canal: {
     fishIds: ['rotan', 'crucian', 'bleak', 'roach', 'loach'],
-    weights: { rotan: 4.4, crucian: 2.2, bleak: 1.4, roach: 1, loach: 0.18 },
+    weights: { rotan: 2.15, crucian: 2.55, bleak: 1.45, roach: 1.1, loach: 0.18 },
     size: { crucian: [0.92, 1.08], rotan: [0.9, 1.05] },
   },
   sluice: {
@@ -16,7 +16,7 @@ export const waterFishDistribution = {
   },
   greada: {
     fishIds: ['crucian', 'rotan', 'lynok', 'canadian_catfish', 'loach'],
-    weights: { crucian: 2.6, rotan: 0.95, lynok: 0.6, canadian_catfish: 2.15, loach: 0.75 },
+    weights: { crucian: 2.6, rotan: 0.5, lynok: 0.6, canadian_catfish: 2.15, loach: 0.75 },
     size: { canadian_catfish: [1.08, 1.24], lynok: [1.06, 1.18] },
   },
   lake_tur: {

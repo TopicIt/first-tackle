@@ -9,7 +9,7 @@ export const FISHING_LOCATION_IDS = [
   'mining_lake',
 ];
 
-export const BICYCLE_WATER_IDS = ['sluice', 'fire_ponds'];
+export const BICYCLE_WATER_IDS = ['sluice', 'fire_ponds', 'greada'];
 export const BUS_WATER_IDS = ['greada', 'lake_tur', 'mining_lake'];
 
 export const fishingLocations = {
@@ -64,7 +64,7 @@ export const fishingLocations = {
   greada: {
     id: 'greada',
     order: 4,
-    access: 'bus',
+    access: 'bicycle_or_bus',
     ticketCost: 25,
     labelKey: 'zoneGreada',
     titleKey: 'sceneGreadaTitle',
@@ -153,6 +153,10 @@ export function canOpenWaterFromMap(state, locationId) {
     return hasUsableBicycle(state);
   }
 
+  if (location.access === 'bicycle_or_bus') {
+    return hasUsableBicycle(state) || state.travel?.selectedWater === location.id;
+  }
+
   if (location.access === 'bus') {
     return state.travel?.selectedWater === location.id;
   }
@@ -174,6 +178,10 @@ export function canSelectWaterForFishing(state, locationId) {
     return hasUsableBicycle(state);
   }
 
+  if (location.access === 'bicycle_or_bus') {
+    return hasUsableBicycle(state) || state.travel?.selectedWater === location.id;
+  }
+
   return state.travel?.selectedWater === location.id;
 }
 
@@ -187,7 +195,7 @@ export function getLockedReasonKey(state, locationId) {
     return 'requiresBusTicket';
   }
 
-  if (location.access === 'bicycle' && !hasUsableBicycle(state)) {
+  if ((location.access === 'bicycle' || location.access === 'bicycle_or_bus') && !hasUsableBicycle(state)) {
     return 'requiresBicycle';
   }
 
@@ -197,4 +205,18 @@ export function getLockedReasonKey(state, locationId) {
 export function hasUsableBicycle(state) {
   return Boolean(state.purchased?.bestBicycle)
     || Boolean((state.travel?.bicycleTripsLeft ?? 0) > 0);
+}
+
+export function getGrandmaTrustProgress(state) {
+  const required = state.progress?.grandmaTrust?.required ?? 5;
+  const caught = Math.min(required, state.progress?.grandmaTrust?.canadianCatfishCaught ?? state.catchJournal?.canadian_catfish?.totalCaught ?? 0);
+  return {
+    caught,
+    required,
+    unlocked: Boolean(state.travel?.busStationUnlocked || caught >= required),
+  };
+}
+
+export function canUseBusStation(state) {
+  return getGrandmaTrustProgress(state).unlocked;
 }

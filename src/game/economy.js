@@ -120,6 +120,7 @@ function getShopItemKey(itemId) {
     baitCorn: 'itemCorn',
     baitDough: 'itemDough',
     baitNightcrawler: 'itemNightcrawler',
+    baitLarvae: 'itemLarvae',
   };
   return labels[itemId] ?? itemId;
 }

@@ -2,6 +2,7 @@ import { fishIds } from './inventory.js';
 import { getFishData } from './fishData.js';
 import { pushFeedback, pushLog } from './state.js';
 import { classifyCatchSize, trophyTierForCategory } from './fishSizeProfiles.js';
+import { syncGrandmaTrust } from './profile.js';
 
 const trackedStatuses = ['fresh', 'cleaned', 'salted', 'drying', 'ready_taranka', 'taranka', 'smoked', 'live_bait'];
 const liveBaitSpecies = ['gudgeon', 'crucian', 'plotytsia', 'loach'];
@@ -60,6 +61,7 @@ export function addCaughtFish(state, catchResult, context = {}) {
     pushFeedback(state, 'feedbackFirstCatch', {}, 'trophy');
   }
   updateCatchJournal(state, entry);
+  syncGrandmaTrust(state);
   syncInventoryFromFishBasket(state);
   return entry;
 }

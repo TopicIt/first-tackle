@@ -1,9 +1,12 @@
 import { fishData } from '../game/fishData.js';
 import { countFishByStatus, getCatchJournal, getFishEntries, getKeepnetSummary, trophyKeyForTier } from '../game/fishInventory.js';
 import { getFishGuideEntries, waterGuide } from '../game/guideData.js';
+import { biteProfiles } from '../game/bitePatterns.js';
+import { fishSizeProfiles } from '../game/fishSizeProfiles.js';
 import { getFishSaleValue, getFreshnessInfo, getMarketPriceInfo } from '../game/market.js';
 import { getCastSpot } from '../game/bitePatterns.js';
 import { shopItems } from '../game/state.js';
+import { profileAvatars } from '../game/profile.js';
 import { componentLabels, getActiveRig, getAvailableRigs, tackleComponents } from '../game/tackle.js';
 import { countItem, itemLabels } from '../game/inventory.js';
 import { t, translateEntry } from '../i18n/i18n.js';
@@ -85,6 +88,7 @@ const itemImages = {
   baitCorn: '/assets/items/bait_corn.png',
   baitDough: '/assets/items/bait_dough.png',
   baitNightcrawler: '/assets/items/bait_nightcrawler.png',
+  baitLarvae: '/assets/items/bait_larvae.png',
   bread: '/assets/items/bait_bread.png',
   larvae: '/assets/items/bait_larvae.png',
   worms: '/assets/items/bait_worm.png',
@@ -127,6 +131,42 @@ export function inventoryMarkup(state) {
     .join('');
 
   return rows || '<li class="row"><span>Empty</span><strong>0</strong></li>';
+}
+
+export function profileMarkup(state) {
+  const profile = state.playerProfile ?? {};
+  const entries = getCatchJournal(state).filter((entry) => entry.discovered);
+  const totalTrophies = (state.trophies ?? []).filter((entry) => entry.tier).length;
+  const biggest = entries.reduce((best, entry) => entry.bestWeight > (best?.bestWeight ?? 0) ? entry : best, null);
+  const unlockedWaters = Object.entries(state.travel?.visitedWaters ?? {})
+    .filter(([, visited]) => visited)
+    .map(([waterId]) => waterGuide.find((water) => water.id === waterId)?.nameKey)
+    .filter(Boolean);
+
+  return `
+    <div class="profile-card">
+      <img class="profile-card__avatar" src="${assetPath(profile.avatar ?? profileAvatars[0])}" onerror="this.src='${assetPath(profileAvatars[0])}'" alt="" />
+      <div>
+        <h3>${escapeHtml(profile.name ?? '')}</h3>
+        <p>${t('coins')}: <strong>${state.money}</strong></p>
+      </div>
+    </div>
+    <form class="profile-form profile-form--inline" data-profile-form>
+      <input name="name" type="text" autocomplete="name" value="${escapeHtml(profile.name ?? '')}" placeholder="${t('defaultPlayerName')}" />
+      <div class="avatar-grid avatar-grid--small">
+        ${profileAvatars.map((avatar) => avatarButtonMarkup(avatar, profile.avatar)).join('')}
+      </div>
+      <button type="submit">${t('saveProfile')}</button>
+    </form>
+    <dl class="profile-stats">
+      <div><dt>${t('daysFishing')}</dt><dd>${state.day ?? 1}</dd></div>
+      <div><dt>${t('totalFishCaught')}</dt><dd>${state.stats?.totalFishCaught ?? 0}</dd></div>
+      <div><dt>${t('totalTrophies')}</dt><dd>${totalTrophies}</dd></div>
+      <div><dt>${t('biggestFish')}</dt><dd>${biggest ? `${t(fishData.find((fish) => fish.id === biggest.fishId)?.nameKey ?? biggest.fishId)} ${biggest.bestWeight}g` : t('none')}</dd></div>
+      <div><dt>${t('favoriteWater')}</dt><dd>${favoriteWaterLabel(state)}</dd></div>
+      <div><dt>${t('unlockedWaters')}</dt><dd>${unlockedWaters.length ? unlockedWaters.map((key) => t(key)).join(', ') : t('waterCanal')}</dd></div>
+    </dl>
+  `;
 }
 
 export function marketMarkup(state) {
@@ -327,6 +367,7 @@ export function getShopItemLabel(itemId) {
     baitCorn: 'itemCorn',
     baitDough: 'itemDough',
     baitNightcrawler: 'itemNightcrawler',
+    baitLarvae: 'itemLarvae',
   };
   return t(labels[itemId] ?? itemId);
 }
@@ -623,6 +664,7 @@ function shopDescriptionKey(itemId) {
     baitCorn: 'shopDescBaitCorn',
     baitDough: 'shopDescBaitDough',
     baitNightcrawler: 'shopDescBaitNightcrawler',
+    baitLarvae: 'shopDescBaitLarvae',
   };
   return keys[itemId] ?? 'shopDescFallback';
 }
@@ -707,9 +749,9 @@ function fishGuideMarkup(state) {
         <dl>
           <div><dt>${t('whereItLives')}</dt><dd>${t(entry.livesKey)}</dd></div>
           <div><dt>${t('bestTime')}</dt><dd>${t(entry.timeKey)}</dd></div>
-          <div><dt>${t('preferredBait')}</dt><dd>${t(entry.baitKey)}</dd></div>
-          <div><dt>${t('fishingTips')}</dt><dd>${t(entry.tipsKey)}</dd></div>
-          <div><dt>${t('economicNote')}</dt><dd>${t(entry.economyKey)}</dd></div>
+          <div><dt>${t('preferredBait')}</dt><dd>${favoriteBaitsMarkup(entry.fishId)}</dd></div>
+          <div><dt>${t('weakerBaits')}</dt><dd>${weakerBaitsMarkup(entry.fishId)}</dd></div>
+          <div><dt>${t('trophyThresholds')}</dt><dd>${thresholdMarkup(entry.fishId)}</dd></div>
         </dl>
       </div>
     </article>
@@ -747,6 +789,57 @@ function guideSimpleMarkup(tab) {
     processing: 'guideProcessingText',
   };
   return `<article class="guide-card guide-card--text"><p>${t(keys[tab])}</p></article>`;
+}
+
+function favoriteBaitsMarkup(fishId) {
+  const baits = biteProfiles[fishId]?.preferred?.baits ?? [];
+  return baits.length ? baits.map((bait) => t(`bait${toPascalCase(bait)}`)).join(', ') : t('none');
+}
+
+function weakerBaitsMarkup(fishId) {
+  const favorites = new Set(biteProfiles[fishId]?.preferred?.baits ?? []);
+  const predator = ['pike', 'sudak', 'som', 'eel'].includes(fishId);
+  const baits = ['worms', 'larvae', 'bread', 'dough', 'mastyrka', 'corn', 'nightcrawler', 'live_bait']
+    .filter((bait) => !favorites.has(bait))
+    .filter((bait) => !predator || ['worms', 'nightcrawler', 'live_bait'].includes(bait))
+    .slice(0, 4);
+  return baits.length ? baits.map((bait) => t(`bait${toPascalCase(bait)}`)).join(', ') : t('none');
+}
+
+function thresholdMarkup(fishId) {
+  const profile = fishSizeProfiles[fishId];
+  if (!profile) {
+    return t('none');
+  }
+  return `0 < ${profile.common[0]}g В· * ${profile.common[0]}g В· ${t('catchCategoryTrophy')} ${profile.trophyWeight}g В· ** ${Math.round(profile.trophyWeight * 1.45)}g В· *** ${profile.legendaryWeight}g`;
+}
+
+function favoriteWaterLabel(state) {
+  const waterCounts = {};
+  for (const entry of state.fishBasket ?? []) {
+    const waterId = entry.waterId ?? state.travel?.selectedWater ?? 'canal';
+    waterCounts[waterId] = (waterCounts[waterId] ?? 0) + 1;
+  }
+  const waterId = Object.entries(waterCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'canal';
+  const water = waterGuide.find((entry) => entry.id === waterId);
+  return water ? t(water.nameKey) : t('waterCanal');
+}
+
+export function avatarButtonMarkup(avatar, selectedAvatar) {
+  const selected = avatar === selectedAvatar ? ' is-selected' : '';
+  return `
+    <button class="avatar-button${selected}" data-action="profile:avatar:${avatar}" type="button" aria-label="${t('selectAvatar')}">
+      <img src="${assetPath(avatar)}" onerror="this.closest('button').style.display='none'" alt="" />
+    </button>
+  `;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
 }
 
 function statusKey(status) {

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import '../style.css';
-import { createInitialState, pushFeedback, pushLog } from './game/state.js';
+import { DEFAULT_AVATAR, GAME_TITLE, createInitialState, pushFeedback, pushLog } from './game/state.js';
 import { createWorld } from './game/world.js';
 import { createPlayerController } from './game/player.js';
 import { ensureFishState } from './game/fishInventory.js';
@@ -25,14 +25,24 @@ import {
   useCatchAsLiveBait,
 } from './game/fishingMinigameLogic.js';
 import { getInteractionContext, getLocationSceneContext, runAction } from './game/interactions.js';
-import { loadGame, resetGame, saveGame } from './game/save.js';
+import { exportSave, importSave, loadGame, resetGame, saveGame } from './game/save.js';
 import { createAudioManager } from './audio/audioManager.js';
 import { ensureMarketState, freshFishAtRisk } from './game/market.js';
 import { ensureTackleState, equipTackleComponent, getRigMethod, selectActiveRig } from './game/tackle.js';
 import { ensureTimeState, formatGameTime, getTimePhase } from './game/time.js';
-import { canOpenWaterFromMap, getFishingLocation, getLockedReasonKey, isFishingLocation } from './game/locations.js';
+import { canOpenWaterFromMap, canUseBusStation, getFishingLocation, getLockedReasonKey, hasUsableBicycle, isFishingLocation } from './game/locations.js';
 import { getLocationTransition, markLocationTransitionVisit, shouldUseLocationTransitions } from './game/locationTransitions.js';
 import { arriveAtWater } from './game/travel.js';
+import {
+  completeTutorialStep,
+  ensureProfileState,
+  grantPrimitiveTackle,
+  selectAvatar,
+  skipTutorial,
+  startTutorial,
+  syncGrandmaTrust,
+  updateProfile,
+} from './game/profile.js';
 import { createHud } from './ui/hud.js';
 import { updateMapOverlayMotion } from './ui/mapOverlay.js';
 import {
@@ -42,6 +52,7 @@ import {
   persistViewMode,
 } from './ui/viewMode.js';
 import { getLanguage, t, toggleLanguage } from './i18n/i18n.js';
+import { assetPath } from './utils/assetPath.js';
 
 const canvas = document.querySelector('#game');
 const hudRoot = document.querySelector('#hud');
@@ -51,6 +62,8 @@ ensureFishState(gameState);
 ensureMarketState(gameState);
 ensureTackleState(gameState);
 ensureTimeState(gameState);
+ensureProfileState(gameState);
+syncGrandmaTrust(gameState);
 normalizeTransitionSettings(gameState);
 normalizeViewModeSettings(gameState);
 resetLaunchUiState(gameState);
@@ -71,14 +84,110 @@ const audio = createAudioManager(gameState.settings.audio);
 let spaceIsDown = false;
 let fishingActionLockedUntil = 0;
 let rememberedMarketScrollTop = 0;
+let lastAutosaveAt = 0;
+let lastAutosaveSignature = '';
+let autosaveTimer = null;
 
 const hud = createHud(hudRoot, {
   onAction(actionId) {
     dismissStartupTitle();
     audio.activate();
 
+    if (actionId.startsWith('startup:')) {
+      handleStartupAction(actionId);
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('profile:avatar:')) {
+      selectAvatar(gameState, actionId.replace('profile:avatar:', ''));
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'profile:edit') {
+      gameState.ui.editingProfile = true;
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'tutorial:start') {
+      startTutorial(gameState);
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'tutorial:skip') {
+      skipTutorial(gameState);
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'tutorial:step') {
+      completeTutorialStep(gameState);
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('mapWater:')) {
+      const waterId = actionId.replace('mapWater:', '');
+      if (!hasUsableBicycle(gameState)) {
+        pushLog(gameState, 'logNeedBicycleForTravel');
+        renderHud();
+        return;
+      }
+      gameState.ui.activeScene = `${waterId}_map`;
+      gameState.ui.selectedHotspot = waterId;
+      gameState.audioQueue.push('open_scene');
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'save:now') {
+      gameState.player = player.snapshot();
+      saveGame(gameState);
+      pushLog(gameState, 'logSaved');
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'save:export') {
+      exportCurrentSave();
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'save:reset') {
+      if (!window.confirm(t('resetProgressConfirm'))) {
+        return;
+      }
+      resetToFreshState();
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'intro:replay') {
+      gameState.ui.startupStep = 'introVideo';
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'intro:showOnStartup') {
+      gameState.settings.intro = {
+        ...(gameState.settings.intro ?? {}),
+        showOnStartup: !gameState.settings.intro?.showOnStartup,
+      };
+      renderHud();
+      return;
+    }
+
     if (actionId.startsWith('open:')) {
       const sceneId = actionId.replace('open:', '');
+      if (sceneId === 'bus_station' && !canUseBusStation(gameState)) {
+        pushLog(gameState, 'logBusStationLocked');
+        renderHud();
+        return;
+      }
       if (isFishingLocation(sceneId)) {
         if (!canOpenWaterFromMap(gameState, sceneId)) {
           pushLog(gameState, getLockedReasonKey(gameState, sceneId) === 'requiresBusTicket' ? 'logNeedBusTicket' : 'logNeedBicycleForTravel');
@@ -408,14 +517,7 @@ const hud = createHud(hudRoot, {
     const loaded = loadGame();
     if (loaded) {
       gameState = loaded;
-      ensureFishState(gameState);
-      ensureMarketState(gameState);
-      ensureTackleState(gameState);
-      ensureTimeState(gameState);
-      normalizeTransitionSettings(gameState);
-      normalizeViewModeSettings(gameState);
-      applyViewModeToDocument(gameState);
-      normalizePanelStateForViewport(gameState);
+      ensureRuntimeState(gameState);
       player.restore(gameState.player);
       audio.syncSettings(gameState.settings.audio);
       pushLog(gameState, 'logLoaded');
@@ -427,32 +529,46 @@ const hud = createHud(hudRoot, {
   onReset() {
     dismissStartupTitle();
     audio.activate();
-    resetGame();
-    gameState = createInitialState();
-    ensureFishState(gameState);
-    ensureMarketState(gameState);
-    ensureTackleState(gameState);
-    ensureTimeState(gameState);
-    normalizeTransitionSettings(gameState);
-    normalizeViewModeSettings(gameState);
-    applyViewModeToDocument(gameState);
-    normalizePanelStateForViewport(gameState);
-    player.restore(gameState.player);
-    audio.syncSettings(gameState.settings.audio);
-    pushLog(gameState, 'logFreshMorning');
+    if (!window.confirm(t('resetProgressConfirm'))) {
+      return;
+    }
+    resetToFreshState();
     renderHud();
   },
   onDismissStartupTitle() {
     dismissStartupTitle();
   },
+  onProfileSubmit(profile) {
+    updateProfile(gameState, {
+      name: profile.name,
+      avatar: gameState.playerProfile?.avatar || DEFAULT_AVATAR,
+    });
+    gameState.ui.editingProfile = false;
+    advanceStartupAfterProfile();
+    renderHud();
+  },
+  onImportSave(rawText) {
+    try {
+      gameState = importSave(rawText);
+      ensureRuntimeState(gameState);
+      player.restore(gameState.player);
+      audio.syncSettings(gameState.settings.audio);
+      pushLog(gameState, 'logImportedSave');
+    } catch {
+      pushLog(gameState, 'logImportSaveFailed');
+    }
+    renderHud();
+  },
 });
+
+startBootFlow();
 
 function syncPlayerToState() {
   gameState.player = player.snapshot();
 }
 
 function closeSiblingPanels(state, openedPanelId) {
-  const exclusivePanels = ['inventory', 'keepnet', 'tackle', 'guide', 'journal', 'achievements', 'mapViewer', 'settings'];
+  const exclusivePanels = ['profile', 'inventory', 'keepnet', 'tackle', 'guide', 'journal', 'achievements', 'mapViewer', 'settings'];
   if (!exclusivePanels.includes(openedPanelId)) {
     return;
   }
@@ -477,7 +593,7 @@ function normalizePanelStateForViewport(state) {
 
   state.ui.collapsedPanels.status = false;
 
-  for (const panelId of ['inventory', 'keepnet', 'tackle', 'guide', 'journal', 'achievements', 'mapViewer', 'settings']) {
+  for (const panelId of ['profile', 'inventory', 'keepnet', 'tackle', 'guide', 'journal', 'achievements', 'mapViewer', 'settings']) {
     state.ui.collapsedPanels[panelId] = true;
   }
 }
@@ -490,6 +606,8 @@ function normalizeViewModeSettings(state) {
 function resetLaunchUiState(state) {
   state.ui ??= {};
   state.ui.startupTitleDismissed = false;
+  state.ui.startupStep = 'loading';
+  state.ui.editingProfile = false;
 }
 
 function dismissStartupTitle() {
@@ -572,6 +690,9 @@ function renderHud() {
     trophies: gameState.trophies,
     market: gameState.market,
     travel: gameState.travel,
+    playerProfile: gameState.playerProfile,
+    tutorialState: gameState.tutorialState,
+    seenEvents: gameState.seenEvents,
     ui: gameState.ui,
     feedback: gameState.feedback,
     log: gameState.log,
@@ -587,6 +708,172 @@ function renderHud() {
     lastHudSnapshot = hudSnapshot;
     hud.render(gameState, context);
     updateMapOverlayMotion(performance.now());
+    queueAutosave();
+  }
+}
+
+function ensureRuntimeState(state) {
+  ensureFishState(state);
+  ensureMarketState(state);
+  ensureTackleState(state);
+  ensureTimeState(state);
+  ensureProfileState(state);
+  syncGrandmaTrust(state);
+  normalizeTransitionSettings(state);
+  normalizeViewModeSettings(state);
+  applyViewModeToDocument(state);
+  normalizePanelStateForViewport(state);
+}
+
+function resetToFreshState() {
+  resetGame();
+  gameState = createInitialState();
+  ensureRuntimeState(gameState);
+  resetLaunchUiState(gameState);
+  player.restore(gameState.player);
+  audio.syncSettings(gameState.settings.audio);
+  pushLog(gameState, 'logFreshMorning');
+  startBootFlow();
+}
+
+function startBootFlow() {
+  gameState.ui ??= {};
+  gameState.ui.startupStep = 'loading';
+  preloadCriticalAssets().finally(() => {
+    if (gameState.ui?.startupStep !== 'loading') {
+      return;
+    }
+    gameState.ui.startupStep = getNextStartupStep();
+    lastHudSnapshot = '';
+    renderHud();
+  });
+}
+
+function getNextStartupStep() {
+  const shouldOfferIntro = !gameState.seenEvents?.introResolved
+    || (gameState.settings?.intro?.showOnStartup && gameState.playerProfile?.setupComplete);
+  if (shouldOfferIntro) {
+    return 'introChoice';
+  }
+  if (!gameState.playerProfile?.setupComplete) {
+    return 'profile';
+  }
+  return null;
+}
+
+function handleStartupAction(actionId) {
+  if (actionId === 'startup:intro:watch') {
+    gameState.ui.startupStep = 'introVideo';
+    return;
+  }
+
+  if (actionId === 'startup:intro:skip') {
+    gameState.seenEvents.introResolved = true;
+    gameState.seenEvents.introSkipped = true;
+    gameState.settings.intro.showOnStartup = false;
+    gameState.ui.startupStep = gameState.playerProfile?.setupComplete ? null : 'profile';
+    return;
+  }
+
+  if (actionId === 'startup:intro:done') {
+    gameState.seenEvents.introResolved = true;
+    gameState.seenEvents.introWatched = true;
+    gameState.settings.intro.showOnStartup = false;
+    gameState.ui.startupStep = gameState.playerProfile?.setupComplete ? null : 'profile';
+    return;
+  }
+}
+
+function advanceStartupAfterProfile() {
+  if (gameState.tutorialState?.completed || gameState.tutorialState?.skipped) {
+    gameState.ui.startupStep = null;
+    return;
+  }
+  gameState.ui.startupStep = null;
+}
+
+function preloadCriticalAssets() {
+  const assets = [
+    assetPath('/assets/logo/logo-mark.png'),
+    assetPath('/assets/logo/logo-ua.png'),
+    assetPath('/assets/locations/world_map_concept1.png'),
+    assetPath('/assets/locations/fishing-canal.webp'),
+    assetPath('/assets/items/primitive_tackle.png'),
+    assetPath('/assets/items/bait_worm.png'),
+    assetPath('/assets/items/bait_larvae.png'),
+    ...['grandson-1.png', 'granddaughter-1.png', 'boy-1.png', 'girl-1.png'].map((name) => assetPath(`/assets/profile/${name}`)),
+  ];
+
+  return Promise.race([
+    Promise.allSettled(assets.map(preloadImage)),
+    new Promise((resolve) => window.setTimeout(resolve, 900)),
+  ]);
+}
+
+function preloadImage(src) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = resolve;
+    image.onerror = resolve;
+    image.src = src;
+  });
+}
+
+function exportCurrentSave() {
+  gameState.player = player.snapshot();
+  saveGame(gameState);
+  const blob = new Blob([exportSave(gameState)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = 'rybalka-save.json';
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+  pushLog(gameState, 'logExportedSave');
+}
+
+function queueAutosave() {
+  if (!gameState.playerProfile?.setupComplete) {
+    return;
+  }
+
+  const signature = JSON.stringify({
+    version: gameState.version,
+    playerProfile: gameState.playerProfile,
+    money: gameState.money,
+    inventory: gameState.inventory,
+    fishBasket: gameState.fishBasket,
+    tackle: gameState.tackle,
+    travel: gameState.travel,
+    trophyLog: gameState.trophies,
+    catchStats: gameState.catchJournal,
+    settings: gameState.settings,
+    seenEvents: gameState.seenEvents,
+    tutorialState: gameState.tutorialState,
+    progress: gameState.progress,
+  });
+  if (signature === lastAutosaveSignature) {
+    return;
+  }
+  lastAutosaveSignature = signature;
+
+  const now = performance.now();
+  const saveNow = () => {
+    autosaveTimer = null;
+    lastAutosaveAt = performance.now();
+    gameState.player = player.snapshot();
+    saveGame(gameState);
+  };
+
+  if (now - lastAutosaveAt > 1200) {
+    saveNow();
+    return;
+  }
+
+  if (!autosaveTimer) {
+    autosaveTimer = window.setTimeout(saveNow, 1200);
   }
 }
 

@@ -1,4 +1,9 @@
-export const SAVE_KEY = 'first-tackle-save-v1';
+export const SAVE_KEY = 'first-tackle-save-v2';
+export const LEGACY_SAVE_KEYS = ['first-tackle-save-v1'];
+export const SAVE_VERSION = 2;
+export const DEFAULT_PLAYER_NAME = '\u0406\u0432\u0430\u0441\u0438\u043a \u0422\u0435\u043b\u0435\u0441\u0438\u043a';
+export const DEFAULT_AVATAR = '/assets/profile/Grandson-1.png';
+export const GAME_TITLE = '\u0420\u0438\u0431\u0430\u043b\u043a\u0430 \u0440\u043e\u0434\u043e\u043c \u0437 \u0434\u0438\u0442\u0438\u043d\u0441\u0442\u0432\u0430';
 
 export const shopItems = [
   {
@@ -128,6 +133,16 @@ export const shopItems = [
     category: 'bait',
   },
   {
+    id: 'baitLarvae',
+    label: 'Larvae',
+    price: 35,
+    description: 'Small larvae for perch, roach-like fish and quick bites',
+    type: 'consumable',
+    itemId: 'larvae',
+    amount: 20,
+    category: 'bait',
+  },
+  {
     id: 'hooksPack',
     label: 'Hooks pack',
     price: 100,
@@ -165,6 +180,14 @@ export const shopItems = [
 
 export function createInitialState() {
   return {
+    version: SAVE_VERSION,
+    playerProfile: {
+      setupComplete: false,
+      name: DEFAULT_PLAYER_NAME,
+      avatar: DEFAULT_AVATAR,
+      createdAt: null,
+      updatedAt: null,
+    },
     money: 1000,
     inventory: {
       thread: 1,
@@ -176,7 +199,7 @@ export function createInitialState() {
       corn: 0,
       dough: 0,
       nightcrawler: 0,
-      primitiveTackle: 1,
+      primitiveTackle: 0,
       stickRod: 0,
       cleanedFish: 0,
       saltedFish: 0,
@@ -212,6 +235,8 @@ export function createInitialState() {
       farWatersUnlocked: false,
       selectedWater: 'canal',
       greadaUnlocked: false,
+      busStationUnlocked: false,
+      boughtTickets: {},
       bicycleTier: null,
       bicycleTripsLeft: 0,
       visitedWaters: {
@@ -233,10 +258,28 @@ export function createInitialState() {
     },
     fishBasket: [],
     progress: {
-      firstTackleReady: true,
+      firstTackleReady: false,
       firstCatchDone: false,
       firstCrucianCatchRewardShown: false,
       uahEconomyStarted: true,
+      profileSetupComplete: false,
+      grandmaTrust: {
+        canadianCatfishCaught: 0,
+        required: 5,
+      },
+    },
+    tutorialState: {
+      promptDismissed: false,
+      started: false,
+      completed: false,
+      skipped: false,
+      step: 0,
+    },
+    seenEvents: {
+      introResolved: false,
+      introWatched: false,
+      introSkipped: false,
+      firstCrucianVideoShown: false,
     },
     stats: {
       totalFishCaught: 0,
@@ -279,6 +322,9 @@ export function createInitialState() {
         enabled: true,
         explicit: false,
       },
+      intro: {
+        showOnStartup: true,
+      },
     },
     audioQueue: [],
     ui: {
@@ -306,6 +352,8 @@ export function createInitialState() {
       mapViewerZoom: 1,
       locationTransition: null,
       transitionVisits: {},
+      startupStep: 'loading',
+      activeSubMap: null,
     },
     feedback: [],
     log: [],

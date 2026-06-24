@@ -1,5 +1,5 @@
 import { MAP_HOTSPOTS, MAP_HOTSPOT_DEBUG } from '../game/mapHotspots.js';
-import { canOpenWaterFromMap, getLockedReasonKey, isFishingLocation } from '../game/locations.js';
+import { canOpenWaterFromMap, canUseBusStation, getLockedReasonKey, isFishingLocation } from '../game/locations.js';
 import { t } from '../i18n/i18n.js';
 import { getWorldMapAsset } from '../utils/worldMapAsset.js';
 import './mapOverlay.css';
@@ -29,8 +29,8 @@ export function mapOverlayMarkup(state) {
 
 function hotspotMarkup(hotspot, state) {
   const selected = state.ui?.selectedHotspot === hotspot.id ? ' is-selected' : '';
-  const locked = isFishingLocation(hotspot.scene) && !canOpenWaterFromMap(state, hotspot.scene);
-  const lockedReason = locked ? getLockedReasonKey(state, hotspot.scene) : null;
+  const locked = isHotspotLocked(hotspot, state);
+  const lockedReason = locked ? getHotspotLockedReason(hotspot, state) : null;
   const shapeClass = ` map-hotspot--${hotspot.type ?? 'ellipse'}`;
   const style = hotspotStyle(hotspot);
   const ariaLabel = locked ? `${t(hotspot.labelKey)} - ${t(lockedReason)}` : t(hotspot.actionKey);
@@ -48,6 +48,30 @@ function hotspotMarkup(hotspot, state) {
       <span class="map-hotspot__label">${label}</span>
     </button>
   `;
+}
+
+function isHotspotLocked(hotspot, state) {
+  if (isFishingLocation(hotspot.scene)) {
+    return !canOpenWaterFromMap(state, hotspot.scene);
+  }
+
+  if (hotspot.scene === 'bus_station') {
+    return !canUseBusStation(state);
+  }
+
+  return false;
+}
+
+function getHotspotLockedReason(hotspot, state) {
+  if (isFishingLocation(hotspot.scene)) {
+    return getLockedReasonKey(state, hotspot.scene);
+  }
+
+  if (hotspot.scene === 'bus_station') {
+    return 'requiresGrandmaTrust';
+  }
+
+  return 'locked';
 }
 
 export function updateMapOverlayMotion(elapsedMs) {

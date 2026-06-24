@@ -21,7 +21,9 @@
   .location-scene--garden,
   .location-scene--bus_station,
   .location-scene--market,
-  .location-scene--fishing_select
+  .location-scene--fishing_select,
+  .location-scene--sluice_map,
+  .location-scene--fire_ponds_map
 ) .scene-vignette {
   background:
     radial-gradient(circle at 50% 42%, rgb(255 255 255 / 0%) 0 48%, rgb(0 0 0 / 24%) 100%),
@@ -202,21 +204,27 @@
   .location-scene--garden,
   .location-scene--bus_station,
   .location-scene--market,
-  .location-scene--fishing_select
+  .location-scene--fishing_select,
+  .location-scene--sluice_map,
+  .location-scene--fire_ponds_map
 ) .scene-header,
 .location-scene:is(
   .location-scene--house,
   .location-scene--garden,
   .location-scene--bus_station,
   .location-scene--market,
-  .location-scene--fishing_select
+  .location-scene--fishing_select,
+  .location-scene--sluice_map,
+  .location-scene--fire_ponds_map
 ) .scene-actions,
 .location-scene:is(
   .location-scene--house,
   .location-scene--garden,
   .location-scene--bus_station,
   .location-scene--market,
-  .location-scene--fishing_select
+  .location-scene--fishing_select,
+  .location-scene--sluice_map,
+  .location-scene--fire_ponds_map
 ) .scene-log {
   border-color: rgb(255 255 255 / 14%);
   background: rgb(6 12 11 / 18%);
@@ -230,7 +238,9 @@
   .location-scene--garden,
   .location-scene--bus_station,
   .location-scene--market,
-  .location-scene--fishing_select
+  .location-scene--fishing_select,
+  .location-scene--sluice_map,
+  .location-scene--fire_ponds_map
 ) .scene-header {
   max-width: min(740px, 100%);
 }
@@ -258,6 +268,27 @@
   max-width: 680px;
   margin: 0;
   color: rgb(217 234 223 / 88%);
+}
+
+.scene-description {
+  max-width: 680px;
+  color: rgb(217 234 223 / 88%);
+  font-size: 0.86rem;
+}
+
+.scene-description summary {
+  width: fit-content;
+  border-radius: 999px;
+  background: rgb(8 17 18 / 28%);
+  color: #fff8df;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 850;
+  padding: 5px 9px;
+}
+
+.scene-description p {
+  margin-top: 8px;
 }
 
 .scene-header__actions {
@@ -311,7 +342,9 @@
 .location-scene--house .scene-body,
 .location-scene--garden .scene-body,
 .location-scene--bus_station .scene-body,
-.location-scene--fishing_select .scene-body {
+.location-scene--fishing_select .scene-body,
+.location-scene--sluice_map .scene-body,
+.location-scene--fire_ponds_map .scene-body {
   grid-template-columns: minmax(220px, 360px) minmax(180px, 260px);
   align-content: end;
   justify-content: start;
@@ -551,7 +584,9 @@
   .location-scene--garden,
   .location-scene--bus_station,
   .location-scene--market,
-  .location-scene--fishing_select
+  .location-scene--fishing_select,
+  .location-scene--sluice_map,
+  .location-scene--fire_ponds_map
 ) .scene-action-grid {
   grid-template-columns: 1fr;
 }
@@ -561,7 +596,9 @@
   .location-scene--garden,
   .location-scene--bus_station,
   .location-scene--market,
-  .location-scene--fishing_select
+  .location-scene--fishing_select,
+  .location-scene--sluice_map,
+  .location-scene--fire_ponds_map
 ) .scene-action-grid button {
   min-height: 44px;
   border: 1px solid rgb(255 255 255 / 16%);
@@ -575,11 +612,15 @@
   backdrop-filter: blur(4px);
 }
 
-.location-scene--fishing_select .scene-action-grid {
+.location-scene--fishing_select .scene-action-grid,
+.location-scene--sluice_map .scene-action-grid,
+.location-scene--fire_ponds_map .scene-action-grid {
   gap: 7px;
 }
 
-.location-scene--fishing_select .scene-action-grid button {
+.location-scene--fishing_select .scene-action-grid button,
+.location-scene--sluice_map .scene-action-grid button,
+.location-scene--fire_ponds_map .scene-action-grid button {
   justify-items: start;
   min-height: 46px;
   border-radius: 8px;
@@ -587,12 +628,16 @@
   text-align: left;
 }
 
-.location-scene--fishing_select .scene-action-grid button.secondary {
+.location-scene--fishing_select .scene-action-grid button.secondary,
+.location-scene--sluice_map .scene-action-grid button.secondary,
+.location-scene--fire_ponds_map .scene-action-grid button.secondary {
   border-color: rgb(148 212 196 / 34%);
   background: rgb(148 212 196 / 18%);
 }
 
-.location-scene--fishing_select .scene-action-grid button.future {
+.location-scene--fishing_select .scene-action-grid button.future,
+.location-scene--sluice_map .scene-action-grid button.future,
+.location-scene--fire_ponds_map .scene-action-grid button.future {
   border-style: dashed;
   background: rgb(8 17 18 / 16%);
   color: rgb(242 239 229 / 72%);
@@ -601,7 +646,9 @@
 .location-scene:is(
   .location-scene--garden,
   .location-scene--bus_station,
-  .location-scene--fishing_select
+  .location-scene--fishing_select,
+  .location-scene--sluice_map,
+  .location-scene--fire_ponds_map
 ) .scene-actions {
   width: min(360px, 100%);
 }
@@ -893,7 +940,9 @@
     .location-scene--garden,
     .location-scene--bus_station,
     .location-scene--market,
-    .location-scene--fishing_select
+    .location-scene--fishing_select,
+    .location-scene--sluice_map,
+    .location-scene--fire_ponds_map
   ) .scene-shell {
     align-content: end;
   }
@@ -903,7 +952,9 @@
     .location-scene--garden,
     .location-scene--bus_station,
     .location-scene--market,
-    .location-scene--fishing_select
+    .location-scene--fishing_select,
+    .location-scene--sluice_map,
+    .location-scene--fire_ponds_map
   ) .scene-header {
     padding: 12px;
   }
@@ -913,7 +964,9 @@
     .location-scene--garden,
     .location-scene--bus_station,
     .location-scene--market,
-    .location-scene--fishing_select
+    .location-scene--fishing_select,
+    .location-scene--sluice_map,
+    .location-scene--fire_ponds_map
   ) .scene-header h2 {
     font-size: 1.55rem;
   }
@@ -923,7 +976,9 @@
     .location-scene--garden,
     .location-scene--bus_station,
     .location-scene--market,
-    .location-scene--fishing_select
+    .location-scene--fishing_select,
+    .location-scene--sluice_map,
+    .location-scene--fire_ponds_map
   ) .scene-header p {
     font-size: 0.9rem;
   }
@@ -952,7 +1007,9 @@
     .location-scene--garden,
     .location-scene--bus_station,
     .location-scene--market,
-    .location-scene--fishing_select
+    .location-scene--fishing_select,
+    .location-scene--sluice_map,
+    .location-scene--fire_ponds_map
   ) .scene-body {
     align-content: end;
     gap: 10px;
@@ -963,7 +1020,9 @@
     .location-scene--garden,
     .location-scene--bus_station,
     .location-scene--market,
-    .location-scene--fishing_select
+    .location-scene--fishing_select,
+    .location-scene--sluice_map,
+    .location-scene--fire_ponds_map
   ) .scene-actions {
     padding: 10px;
   }

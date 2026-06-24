@@ -1,36 +1,33 @@
-import { SAVE_KEY, createInitialMarketState, createInitialState } from './state.js';
+import {
+  LEGACY_SAVE_KEYS,
+  SAVE_KEY,
+  SAVE_VERSION,
+  createInitialMarketState,
+  createInitialState,
+} from './state.js';
 import { ensureFishState } from './fishInventory.js';
 import { ensureMarketState } from './market.js';
 import { ensureTackleState } from './tackle.js';
 import { normalizeWaterId } from './locations.js';
 
 export function saveGame(state) {
-  const serializableState = {
-    ...state,
-    audioQueue: [],
-    feedback: [],
-    ui: {
-      ...state.ui,
-      activeScene: null,
-      catchResult: null,
-      fishingMinigame: null,
-    },
-  };
-
+  const serializableState = cleanForSave(state);
   localStorage.setItem(SAVE_KEY, JSON.stringify(serializableState));
 }
 
 export function loadGame() {
-  const raw = localStorage.getItem(SAVE_KEY);
+  const raw = localStorage.getItem(SAVE_KEY)
+    ?? LEGACY_SAVE_KEYS.map((key) => localStorage.getItem(key)).find(Boolean);
   if (!raw) {
     return null;
   }
 
   try {
-    const merged = mergeState(createInitialState(), JSON.parse(raw));
-    ensureFishState(merged);
-    ensureMarketState(merged);
-    ensureTackleState(merged);
+    const migrated = migrateSave(JSON.parse(raw));
+    const merged = normalizeLoadedState(migrated);
+    if (migrated.version !== SAVE_VERSION) {
+      saveGame(merged);
+    }
     return merged;
   } catch {
     return null;
@@ -39,18 +36,127 @@ export function loadGame() {
 
 export function resetGame() {
   localStorage.removeItem(SAVE_KEY);
+  for (const key of LEGACY_SAVE_KEYS) {
+    localStorage.removeItem(key);
+  }
+}
+
+export function exportSave(state) {
+  return JSON.stringify({
+    game: 'first-tackle',
+    version: SAVE_VERSION,
+    exportedAt: new Date().toISOString(),
+    save: cleanForSave(state),
+  }, null, 2);
+}
+
+export function importSave(rawText) {
+  const parsed = JSON.parse(rawText);
+  const save = parsed?.save && typeof parsed.save === 'object' ? parsed.save : parsed;
+  const merged = normalizeLoadedState(migrateSave(save));
+  saveGame(merged);
+  return merged;
+}
+
+function cleanForSave(state) {
+  return {
+    ...state,
+    version: SAVE_VERSION,
+    audioQueue: [],
+    feedback: [],
+    ui: {
+      ...state.ui,
+      activeScene: null,
+      catchResult: null,
+      fishingMinigame: null,
+      locationTransition: null,
+      activeSubMap: null,
+    },
+  };
+}
+
+function normalizeLoadedState(saved) {
+  const merged = mergeState(createInitialState(), saved);
+  ensureFishState(merged);
+  ensureMarketState(merged);
+  ensureTackleState(merged);
+  return merged;
+}
+
+function migrateSave(saved) {
+  const input = saved && typeof saved === 'object' ? saved : {};
+  const version = Number(input.version ?? 1);
+  const migrated = version < 2 ? migrateV1ToV2(input) : input;
+  return {
+    ...migrated,
+    version: SAVE_VERSION,
+  };
+}
+
+function migrateV1ToV2(saved) {
+  const initial = createInitialState();
+  const hadStarterTackle = (saved.inventory?.primitiveTackle ?? 0) > 0 || saved.progress?.firstTackleReady !== false;
+  const catfishCaught = saved.progress?.grandmaTrust?.canadianCatfishCaught
+    ?? saved.catchJournal?.canadian_catfish?.totalCaught
+    ?? 0;
+
+  return {
+    ...saved,
+    playerProfile: {
+      ...initial.playerProfile,
+      ...(saved.playerProfile ?? {}),
+      setupComplete: Boolean(saved.playerProfile?.setupComplete ?? saved.progress?.profileSetupComplete ?? true),
+    },
+    progress: {
+      ...initial.progress,
+      ...(saved.progress ?? {}),
+      profileSetupComplete: Boolean(saved.progress?.profileSetupComplete ?? saved.playerProfile?.setupComplete ?? true),
+      firstTackleReady: Boolean(saved.progress?.firstTackleReady ?? hadStarterTackle),
+      grandmaTrust: {
+        canadianCatfishCaught: catfishCaught,
+        required: 5,
+      },
+    },
+    tutorialState: {
+      ...initial.tutorialState,
+      ...(saved.tutorialState ?? {}),
+      promptDismissed: true,
+      completed: Boolean(saved.tutorialState?.completed ?? hadStarterTackle),
+    },
+    seenEvents: {
+      ...initial.seenEvents,
+      ...(saved.seenEvents ?? {}),
+      introResolved: Boolean(saved.seenEvents?.introResolved ?? true),
+      introSkipped: Boolean(saved.seenEvents?.introSkipped ?? true),
+      firstCrucianVideoShown: Boolean(saved.seenEvents?.firstCrucianVideoShown ?? saved.progress?.firstCrucianCatchRewardShown),
+    },
+  };
 }
 
 function mergeState(base, saved) {
+  const profileSetupComplete = Boolean(saved.playerProfile?.setupComplete ?? saved.progress?.profileSetupComplete);
+  const firstTackleReady = Boolean(saved.progress?.firstTackleReady ?? saved.tutorialState?.completed ?? saved.tutorialState?.skipped);
+  const catfishCaught = Math.max(
+    saved.progress?.grandmaTrust?.canadianCatfishCaught ?? 0,
+    saved.catchJournal?.canadian_catfish?.totalCaught ?? 0,
+  );
+
   return {
     ...base,
     ...saved,
+    version: SAVE_VERSION,
+    playerProfile: {
+      ...base.playerProfile,
+      ...(saved.playerProfile ?? {}),
+      setupComplete: profileSetupComplete,
+    },
     money: saved.progress?.uahEconomyStarted
       ? saved.money ?? base.money
       : Math.max(saved.money ?? base.money, base.money),
     inventory: {
       ...base.inventory,
       ...(saved.inventory ?? {}),
+      primitiveTackle: firstTackleReady ? Math.max(1, saved.inventory?.primitiveTackle ?? 0) : (saved.inventory?.primitiveTackle ?? 0),
     },
     timers: {
       ...base.timers,
@@ -71,6 +177,10 @@ function mergeState(base, saved) {
         ...base.settings.transitions,
         ...(saved.settings?.transitions ?? {}),
       },
+      intro: {
+        ...base.settings.intro,
+        ...(saved.settings?.intro ?? {}),
+      },
       viewMode: saved.settings?.viewMode ?? base.settings.viewMode,
     },
     purchased: {
@@ -83,6 +193,11 @@ function mergeState(base, saved) {
       ...(saved.travel ?? {}),
       farWatersUnlocked: Boolean(saved.travel?.farWatersUnlocked ?? saved.purchased?.bicycle ?? base.travel.farWatersUnlocked),
       greadaUnlocked: Boolean(saved.travel?.greadaUnlocked ?? saved.travel?.farWatersUnlocked ?? saved.purchased?.bicycle ?? base.travel.greadaUnlocked),
+      busStationUnlocked: Boolean(saved.travel?.busStationUnlocked ?? catfishCaught >= 5),
+      boughtTickets: {
+        ...base.travel.boughtTickets,
+        ...(saved.travel?.boughtTickets ?? {}),
+      },
       bicycleTier: saved.travel?.bicycleTier
         ?? (saved.purchased?.bestBicycle ? 'best' : saved.purchased?.betterBicycle ? 'better' : saved.purchased?.bicycle ? 'used' : base.travel.bicycleTier),
       bicycleTripsLeft: saved.travel?.bicycleTripsLeft
@@ -109,10 +224,25 @@ function mergeState(base, saved) {
     progress: {
       ...base.progress,
       ...(saved.progress ?? {}),
-      firstTackleReady: true,
+      profileSetupComplete,
+      firstTackleReady,
       firstCatchDone: Boolean(saved.progress?.firstCatchDone ?? saved.stats?.totalFishCaught > 0),
       firstCrucianCatchRewardShown: Boolean(saved.progress?.firstCrucianCatchRewardShown),
       uahEconomyStarted: true,
+      grandmaTrust: {
+        ...base.progress.grandmaTrust,
+        ...(saved.progress?.grandmaTrust ?? {}),
+        canadianCatfishCaught: catfishCaught,
+      },
+    },
+    tutorialState: {
+      ...base.tutorialState,
+      ...(saved.tutorialState ?? {}),
+      completed: Boolean(saved.tutorialState?.completed ?? firstTackleReady),
+    },
+    seenEvents: {
+      ...base.seenEvents,
+      ...(saved.seenEvents ?? {}),
     },
     stats: {
       ...base.stats,
@@ -163,6 +293,7 @@ function mergeState(base, saved) {
       },
       mapViewerZoom: clampNumber(saved.ui?.mapViewerZoom, 1, 2.4, base.ui.mapViewerZoom),
       locationTransition: null,
+      activeSubMap: null,
     },
     feedback: Array.isArray(saved.feedback) ? saved.feedback.slice(0, 4) : base.feedback,
     log: Array.isArray(saved.log) ? saved.log.slice(0, 6) : base.log,

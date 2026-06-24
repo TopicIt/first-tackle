@@ -12,7 +12,7 @@ export function canCraftPrimitiveTackle(state) {
 }
 
 export function craftPrimitiveTackle(state) {
-  pushLog(state, 'logStarterTackleReady');
+  pushLog(state, state.progress?.firstTackleReady ? 'logStarterTackleReady' : 'logNeedTutorialTackle');
 }
 
 export function canCraftStickRod(state) {
@@ -85,7 +85,8 @@ export function gatherGooseFeather(state) {
     pushLog(state, 'logAlreadyFoundFeather');
     return;
   }
-  if (Math.random() < 0.4) {
+  const tutorialActive = state.tutorialState?.started && !state.tutorialState?.completed;
+  if (tutorialActive || Math.random() < 0.4) {
     ownTackleComponent(state, 'goose_feather_float');
     pushFeedback(state, 'componentGooseFeatherFloat', {}, 'item');
     pushLog(state, 'logFoundGooseFeather');
@@ -206,6 +207,12 @@ export function waitUntilTomorrow(state) {
   }
 
   pushLog(state, 'logMorningAgain');
+}
+
+export function restSeveralHours(state) {
+  advanceTime(state, 4 * 60);
+  pushLog(state, 'logRestedFewHours');
+  queueSound(state, 'ui_click');
 }
 
 export function collectTaranka(state) {

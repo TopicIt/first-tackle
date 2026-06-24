@@ -64,9 +64,10 @@ export function createInitialTackleState() {
 export function ensureTackleState(state) {
   state.tackle ??= createInitialTackleState();
   state.progress ??= {};
-  if (state.progress.firstTackleReady !== false) {
-    state.progress.firstTackleReady = true;
-    state.inventory ??= {};
+  state.inventory ??= {};
+  const firstTackleReady = Boolean(state.progress.firstTackleReady || state.tutorialState?.completed || state.tutorialState?.skipped);
+  state.progress.firstTackleReady = firstTackleReady;
+  if (firstTackleReady) {
     state.inventory.primitiveTackle = Math.max(1, state.inventory.primitiveTackle ?? 0);
   }
   state.tackle.owned = {

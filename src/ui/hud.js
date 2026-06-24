@@ -6,7 +6,9 @@ import {
   keepnetMarkup,
   logMarkup,
   mapViewerMarkup,
+  profileMarkup,
   tackleMarkup,
+  avatarButtonMarkup,
 } from './panels.js';
 import { locationSceneMarkup } from './locationScene.js';
 import { locationTransitionMarkup } from './locationTransition.js';
@@ -14,6 +16,9 @@ import { mapOverlayMarkup } from './mapOverlay.js';
 import { syncFishingPrototype3d } from './fishingPrototype3d.js';
 import { getLanguage, t } from '../i18n/i18n.js';
 import { buildInfo } from '../buildInfo.js';
+import { DEFAULT_AVATAR, GAME_TITLE } from '../game/state.js';
+import { profileAvatars, tutorialSteps } from '../game/profile.js';
+import { assetPath } from '../utils/assetPath.js';
 
 export function createHud(root, handlers) {
   const shownFeedbackIds = new Set();
@@ -31,6 +36,15 @@ export function createHud(root, handlers) {
   });
 
   root.addEventListener('change', (event) => {
+    const importInput = event.target.closest('input[data-save-import]');
+    if (importInput?.files?.[0]) {
+      const reader = new FileReader();
+      reader.addEventListener('load', () => handlers.onImportSave?.(String(reader.result ?? '')));
+      reader.readAsText(importInput.files[0]);
+      importInput.value = '';
+      return;
+    }
+
     const viewModeInput = event.target.closest('[data-view-mode-setting]');
     if (viewModeInput) {
       handlers.onViewModeSetting(viewModeInput.value);
@@ -80,6 +94,16 @@ export function createHud(root, handlers) {
   }, true);
 
   root.addEventListener('submit', (event) => {
+    const profileForm = event.target.closest('[data-profile-form]');
+    if (profileForm) {
+      event.preventDefault();
+      const data = new FormData(profileForm);
+      handlers.onProfileSubmit?.({
+        name: data.get('name'),
+      });
+      return;
+    }
+
     const form = event.target.closest('[data-cheat-form]');
     if (!form) {
       return;
@@ -154,6 +178,7 @@ export function createHud(root, handlers) {
       const renderState = { ...state, feedback: visibleFeedback };
       const collapsedPanels = state.ui?.collapsedPanels ?? {};
       const statusCollapsed = collapsedPanels.status ? ' is-collapsed' : '';
+      const profileCollapsed = collapsedPanels.profile ? ' is-collapsed' : '';
       const inventoryCollapsed = collapsedPanels.inventory ? ' is-collapsed' : '';
       const keepnetCollapsed = collapsedPanels.keepnet ? ' is-collapsed' : '';
       const journalCollapsed = collapsedPanels.journal ? ' is-collapsed' : '';
@@ -187,6 +212,7 @@ export function createHud(root, handlers) {
               </summary>
               <div class="mobile-menu__sheet">
                 <nav class="mobile-menu__list">
+                  ${menuButton('profile', 'profile', collapsedPanels)}
                   ${menuButton('inventory', 'inventory', collapsedPanels)}
                   ${menuButton('keepnet', 'keepnet', collapsedPanels)}
                   ${menuButton('tackle', 'tackle', collapsedPanels)}
@@ -205,6 +231,7 @@ export function createHud(root, handlers) {
               </div>
             </details>
             <nav class="main-menu">
+              ${menuButton('profile', 'profile', collapsedPanels)}
               ${menuButton('inventory', 'inventory', collapsedPanels)}
               ${menuButton('keepnet', 'keepnet', collapsedPanels)}
               ${menuButton('tackle', 'tackle', collapsedPanels)}
@@ -220,6 +247,18 @@ export function createHud(root, handlers) {
               <button data-action="reset" type="button">${t('reset')}</button>
               <button data-language-toggle="true" type="button" aria-label="Switch language">${getLanguage().toUpperCase()} / ${t('languageToggle')}</button>
             </div>
+          </div>
+        </section>
+
+        <section class="panel glass-menu side-detail-panel profile-panel${profileCollapsed}">
+          <div class="panel-toggle-row">
+            <p class="section-label">${t('profile')}</p>
+            <button class="panel-toggle" data-action="panel:toggle:profile" type="button" aria-label="${panelToggleLabel(collapsedPanels.profile)}">
+              ${panelToggleIcon(collapsedPanels.profile)}
+            </button>
+          </div>
+          <div class="panel-collapsible">
+            ${profileMarkup(state)}
           </div>
         </section>
 
@@ -360,6 +399,27 @@ export function createHud(root, handlers) {
               </div>
             </section>
             <section class="settings-block">
+              <p class="section-label">${t('introSettings')}</p>
+              <div class="settings-action-row settings-action-row--stack">
+                <button data-action="intro:replay" type="button">${t('replayIntro')}</button>
+                <button data-action="intro:showOnStartup" type="button">
+                  ${state.settings?.intro?.showOnStartup ? t('introStartupOn') : t('introStartupOff')}
+                </button>
+              </div>
+            </section>
+            <section class="settings-block">
+              <p class="section-label">${t('saveManagement')}</p>
+              <div class="settings-action-row settings-action-row--stack">
+                <button data-action="save:now" type="button">${t('saveNow')}</button>
+                <button data-action="save:export" type="button">${t('exportSave')}</button>
+                <label class="file-import-button">
+                  <input data-save-import type="file" accept="application/json,.json" />
+                  <span>${t('importSave')}</span>
+                </label>
+                <button class="danger" data-action="save:reset" type="button">${t('resetProgress')}</button>
+              </div>
+            </section>
+            <section class="settings-block">
               <p class="section-label">${t('cheats')}</p>
               <form class="cheat-form" data-cheat-form>
                 <input data-cheat-input type="text" inputmode="text" placeholder="+1000" autocomplete="off" />
@@ -412,6 +472,8 @@ export function createHud(root, handlers) {
 
         ${locationSceneMarkup(renderState, context)}
         ${locationTransitionMarkup(state.ui?.locationTransition)}
+        ${tutorialPromptMarkup(state)}
+        ${startupOverlayMarkup(state)}
       `;
 
       restoreMobileMenu(root, mobileMenuOpen);
@@ -426,6 +488,7 @@ export function createHud(root, handlers) {
       }
 
       setupLocationTransition(root, state, handlers);
+      setupStartupVideo(root, handlers);
       syncFishingPrototype3d(root, state);
     },
   };
@@ -447,6 +510,128 @@ function capturePreservedScroll(root, action, rememberedEntries, actionElement) 
     .filter(Boolean);
 
   return entries.length ? entries : getRememberedScroll(rememberedEntries);
+}
+
+function startupOverlayMarkup(state) {
+  const step = state.ui?.startupStep;
+  if (!step) {
+    return '';
+  }
+
+  if (step === 'loading') {
+    return `
+      <section class="startup-flow" aria-label="${t('loading')}">
+        <div class="startup-flow__panel">
+          <img class="startup-flow__logo" src="${assetPath('/assets/logo/logo-mark.png')}" onerror="this.style.display='none'" alt="" />
+          <h1>${GAME_TITLE}</h1>
+          <span class="startup-flow__loader" aria-hidden="true"></span>
+        </div>
+      </section>
+    `;
+  }
+
+  if (step === 'introChoice') {
+    return `
+      <section class="startup-flow" aria-label="${t('introChoice')}">
+        <div class="startup-flow__panel startup-flow__panel--choice">
+          <img class="startup-flow__logo" src="${assetPath('/assets/logo/logo-mark.png')}" onerror="this.style.display='none'" alt="" />
+          <h1>${GAME_TITLE}</h1>
+          <div class="startup-flow__actions">
+            <button data-action="startup:intro:watch" type="button">${t('watchIntro')}</button>
+            <button data-action="startup:intro:skip" type="button">${t('skipIntro')}</button>
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  if (step === 'introVideo') {
+    const sources = [
+      `<source src="${assetPath('/assets/intro/intro-childhood-fishing.webm')}" type="video/webm" />`,
+      `<source src="${assetPath('/assets/intro/intro-childhood-fishing.mp4')}" type="video/mp4" />`,
+    ].join('');
+    return `
+      <section class="startup-flow startup-flow--video" aria-label="${t('watchIntro')}">
+        <video class="startup-flow__video" data-intro-video playsinline preload="metadata">
+          ${sources}
+        </video>
+        <div class="startup-flow__video-actions">
+          <button class="icon-toggle${state.settings?.transitions?.enabled === false ? '' : ' is-on'}" data-action="transitions:toggle" type="button" aria-label="${t('transitionAnimations')}">●</button>
+          <button data-action="startup:intro:done" type="button">${t('skipIntro')}</button>
+        </div>
+      </section>
+    `;
+  }
+
+  if (step === 'profile') {
+    const selectedAvatar = state.playerProfile?.avatar ?? DEFAULT_AVATAR;
+    return `
+      <section class="startup-flow" aria-label="${t('profile')}">
+        <form class="startup-flow__panel profile-form" data-profile-form>
+          <img class="startup-flow__logo" src="${assetPath('/assets/logo/logo-mark.png')}" onerror="this.style.display='none'" alt="" />
+          <h1>${GAME_TITLE}</h1>
+          <img class="profile-form__selected" src="${assetPath(selectedAvatar)}" onerror="this.src='${assetPath(DEFAULT_AVATAR)}'" alt="" />
+          <input name="name" type="text" autocomplete="name" placeholder="${t('defaultPlayerName')}" />
+          <div class="avatar-grid">
+            ${profileAvatars.map((avatar) => avatarButtonMarkup(avatar, selectedAvatar)).join('')}
+          </div>
+          <button type="submit">${t('next')}</button>
+        </form>
+      </section>
+    `;
+  }
+
+  return '';
+}
+
+function tutorialPromptMarkup(state) {
+  if (!state.playerProfile?.setupComplete || state.tutorialState?.completed || state.tutorialState?.skipped || state.ui?.startupStep) {
+    return '';
+  }
+
+  if (state.tutorialState?.started) {
+    const step = tutorialSteps[state.tutorialState.step ?? 0];
+    if (!step) {
+      return '';
+    }
+    return `
+      <aside class="tutorial-float">
+        <p class="section-label">${t('firstTackleTutorial')}</p>
+        <h2>${step.label}</h2>
+        <p>${t('tutorialCollectHint')}</p>
+        <button data-action="tutorial:step" type="button">${t('collectPart')}</button>
+      </aside>
+    `;
+  }
+
+  if (state.tutorialState?.promptDismissed) {
+    return '';
+  }
+
+  return `
+    <aside class="tutorial-float tutorial-float--prompt">
+      <button class="tutorial-float__close" data-action="tutorial:skip" type="button" aria-label="${t('close')}">&times;</button>
+      <button class="tutorial-float__start" data-action="tutorial:start" type="button">${t('startTutorial')}</button>
+    </aside>
+  `;
+}
+
+function setupStartupVideo(root, handlers) {
+  const video = root.querySelector('[data-intro-video]');
+  if (!video) {
+    return;
+  }
+
+  const done = () => handlers.onAction?.('startup:intro:done');
+  video.addEventListener('ended', done, { once: true });
+  video.addEventListener('error', done, { once: true });
+  const play = () => video.play().catch(() => {});
+  if (video.readyState >= 2) {
+    play();
+  } else {
+    video.addEventListener('loadeddata', play, { once: true });
+    video.load();
+  }
 }
 
 function scrollEntryForElement(el) {
@@ -516,7 +701,7 @@ function shouldPreserveScroll(action) {
     || action.startsWith('panel:toggle:marketSpecies:');
 }
 
-function setupLocationTransition(root, state, handlers) {
+  function setupLocationTransition(root, state, handlers) {
   if (!state.ui?.locationTransition) {
     return;
   }
