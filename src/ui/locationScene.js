@@ -1,5 +1,5 @@
 import './locationScene.css';
-import { logMarkup, marketMarkup } from './panels.js';
+import { cafeMarkup, logMarkup, marketMarkup } from './panels.js';
 import { fishingMinigameMarkup } from './fishingMinigame.js';
 import { getFishData } from '../game/fishData.js';
 import { getFishingLocation, isFishingLocation } from '../game/locations.js';
@@ -27,6 +27,13 @@ const sceneConfigs = {
   market: {
     titleKey: 'sceneMarketTitle',
     descriptionKey: 'sceneMarketDescription',
+    image: assetPath('/assets/locations/market_location_concept.png'),
+    bgClass: 'scene-bg--slow-pan',
+    effects: ['scene-road-dust', 'scene-light-sweep'],
+  },
+  cafe: {
+    titleKey: 'sceneCafeTitle',
+    descriptionKey: 'sceneCafeDescription',
     image: assetPath('/assets/locations/market_location_concept.png'),
     bgClass: 'scene-bg--slow-pan',
     effects: ['scene-road-dust', 'scene-light-sweep'],
@@ -97,7 +104,7 @@ export function locationSceneMarkup(state, context) {
         </header>
 
         <div class="scene-body">
-          ${sceneId === 'market' ? '' : `<section class="scene-actions">
+          ${sceneId === 'market' || sceneId === 'cafe' ? '' : `<section class="scene-actions">
             <div class="scene-action-grid">
               ${context.sceneActions.map((action) => actionButtonMarkup(action, state)).join('')}
             </div>
@@ -106,6 +113,12 @@ export function locationSceneMarkup(state, context) {
           ${sceneId === 'market' ? `
             <section class="scene-actions scene-market">
               ${marketMarkup(state)}
+            </section>
+          ` : ''}
+
+          ${sceneId === 'cafe' ? `
+            <section class="scene-actions scene-market scene-cafe">
+              ${cafeMarkup(state)}
             </section>
           ` : ''}
 

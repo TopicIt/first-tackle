@@ -123,6 +123,12 @@ export function createHud(root, handlers) {
   });
 
   root.addEventListener('click', (event) => {
+    if (event.target.closest('.illustrated-map') && !event.target.closest('button[data-action]')) {
+      root.querySelector('.mobile-menu[open]')?.removeAttribute('open');
+      mobileMenuOpen = false;
+      return;
+    }
+
     const closeButton = event.target.closest('button[data-scene-close]');
     if (closeButton) {
       handlers.onDismissStartupTitle?.();
@@ -634,6 +640,7 @@ function tutorialPromptMarkup(state) {
         ` : `
           <h2>${step.label}</h2>
           <p>${t(step.placeKey ?? 'tutorialCollectHint')}</p>
+          <small>${t('tutorialPressButton', { button: t(tutorialActionLabelKey(step.actionId)) })}</small>
           <button data-action="tutorial:step" type="button">${t('collectPart')}</button>
         `}
       </aside>
@@ -820,4 +827,14 @@ function escapeHtml(value) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function tutorialActionLabelKey(actionId) {
+  return {
+    'gather:rodStick': 'gatherRodStick',
+    'search:feather': 'searchGooseFeather',
+    'gather:thread': 'gatherGrandmaThread',
+    'gather:oldHook': 'gatherOldHook',
+    'gather:stones': 'gatherSmallStones',
+  }[actionId] ?? 'collectPart';
 }

@@ -13,6 +13,33 @@ export const questDefinitions = [
     getProgress: (state) => countFishWhere(state, (entry) => (entry.waterId ?? getCastSpot(entry.catchSpotId)?.waterId ?? 'canal') === 'canal'),
   },
   {
+    id: 'first_tackle_upgrade',
+    titleKey: 'questFirstTackleUpgradeTitle',
+    descriptionKey: 'questFirstTackleUpgradeDesc',
+    rewardKey: 'questRewardCoins100',
+    rewardCoins: 100,
+    required: 3,
+    getProgress: (state) => Math.min(3, state.stats?.totalFishCaught ?? countFishWhere(state, () => true)),
+  },
+  {
+    id: 'first_trophy',
+    titleKey: 'questFirstTrophyTitle',
+    descriptionKey: 'questFirstTrophyDesc',
+    rewardKey: 'questRewardCoins100',
+    rewardCoins: 100,
+    required: 1,
+    getProgress: (state) => (state.trophies ?? []).some((entry) => entry.tier) ? 1 : 0,
+  },
+  {
+    id: 'first_taranka',
+    titleKey: 'questFirstTarankaTitle',
+    descriptionKey: 'questFirstTarankaDesc',
+    rewardKey: 'questRewardCoins150',
+    rewardCoins: 150,
+    required: 1,
+    getProgress: (state) => countFishWhere(state, (entry) => entry.status === 'taranka'),
+  },
+  {
     id: 'grandma_trust',
     titleKey: 'questGrandmaTrustTitle',
     descriptionKey: 'questGrandmaTrustDesc',
@@ -44,10 +71,25 @@ export function ensureQuestState(state) {
 
 export function syncQuestProgress(state) {
   state.quests ??= {};
-  state.quests.progress = Object.fromEntries(questDefinitions.map((quest) => [
-    quest.id,
-    Math.min(quest.required, Math.max(state.quests.progress?.[quest.id] ?? 0, quest.getProgress(state))),
-  ]));
+  state.ui ??= {};
+  const previousProgress = state.quests.progress ?? {};
+  const updates = [];
+  state.quests.progress = Object.fromEntries(questDefinitions.map((quest) => {
+    const previous = previousProgress[quest.id];
+    const progress = Math.min(quest.required, Math.max(previous ?? 0, quest.getProgress(state)));
+    if (previous !== undefined && progress > previous) {
+      updates.push({
+        id: quest.id,
+        titleKey: quest.titleKey,
+        progress,
+        required: quest.required,
+      });
+    }
+    return [quest.id, progress];
+  }));
+  if (updates.length > 0) {
+    state.ui.questProgressUpdates = updates.slice(-3);
+  }
 }
 
 export function getQuestRows(state) {

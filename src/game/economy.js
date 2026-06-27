@@ -7,18 +7,18 @@ import { addItem } from './inventory.js';
 
 export function sellAllFish(state) {
   ensureMarketState(state);
-  completeSale(state, sellFishByStatus(state, 'fresh'), 'logNoFishToSell', 'logSoldFish');
+  completeSale(state, takeFishEntries(state, (entry) => ['fresh', 'cleaned'].includes(entry.status)), 'logNoFishToSell', 'logSoldFish');
 }
 
 export function sellSingleFish(state, fishEntryId) {
   ensureMarketState(state);
-  const entry = takeFishEntry(state, fishEntryId, (fish) => fish.status === 'fresh');
+  const entry = takeFishEntry(state, fishEntryId, (fish) => ['fresh', 'cleaned'].includes(fish.status));
   completeSale(state, entry ? [entry] : [], 'logNoFishToSell', 'logSoldFish');
 }
 
 export function sellFishSpecies(state, fishId) {
   ensureMarketState(state);
-  const soldEntries = takeFishEntries(state, (entry) => entry.status === 'fresh' && entry.fishId === fishId);
+  const soldEntries = takeFishEntries(state, (entry) => ['fresh', 'cleaned'].includes(entry.status) && entry.fishId === fishId);
   completeSale(state, soldEntries, 'logNoFishToSell', 'logSoldFish');
 }
 

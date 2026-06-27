@@ -788,6 +788,12 @@ button:disabled {
   font-size: 0.78rem;
 }
 
+.tutorial-float--helper small {
+  color: #ffe28a;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 .tutorial-float--helper.is-collapsed {
   width: min(164px, calc(100vw - 28px));
   padding: 7px;

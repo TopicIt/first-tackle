@@ -211,6 +211,7 @@ export function castLine(state, nowMs) {
   minigame.ambientEventAt = nowMs + randomBetween(5000, 11000);
   autoSelectFirstAvailableBait(state, minigame);
   state.ui.catchResult = null;
+  state.ui.questProgressUpdates = [];
   queueSound(state, 'cast_whoosh');
 }
 
@@ -688,6 +689,10 @@ function buildBiteChecks(state, minigame, startMs) {
   const tutorialBonus = state.progress?.firstCatchDone ? 0 : 0.2;
   const profile = minigame.fishCandidateId ? getBiteProfile(minigame.fishCandidateId) : null;
   const fishActivity = profile ? clamp(0.04 + (profile.activity ?? 0.5) * 0.08, 0, 0.12) : 0;
+  const spot = minigame.selectedSpot ? getCastSpot(minigame.selectedSpot) : null;
+  const spotActivity = spot?.zone === 'mid_water' ? 0.04 : spot?.zone === 'reed_edge' ? 0.025 : 0.015;
+  const baitActivity = minigame.fishCandidateId ? clamp((getBaitSuitability(minigame.fishCandidateId, minigame.selectedBait) - 0.28) * 0.08, -0.04, 0.08) : -0.02;
+  const waterActivity = normalizeWaterId(state.travel?.selectedWater) === 'canal' ? 0 : 0.025;
   const baseChances = [0.14, 0.24, 0.38, 0.54, 0.68];
   const canFastNibble = ['bleak', 'gudgeon', 'rotan'].includes(minigame.fishCandidateId) && Math.random() < 0.32;
   const firstCheck = canFastNibble ? 1700 : 2800;
@@ -695,7 +700,7 @@ function buildBiteChecks(state, minigame, startMs) {
 
   return baseChances.map((chance, index) => ({
     at: startMs + intervals[index] + randomBetween(-220, 260),
-    chance: clamp(chance + tutorialBonus + fishActivity, 0.04, 0.88),
+    chance: clamp(chance + tutorialBonus + fishActivity + spotActivity + baitActivity + waterActivity, 0.04, 0.88),
   }));
 }
 
@@ -1065,26 +1070,12 @@ function getTackleBonus(state, method) {
 }
 
 function canUseCastSpot(state, method, spot) {
-  const effects = getTackleEffects(state);
   const selectedWater = normalizeWaterId(state.travel?.selectedWater);
   if ((spot.waterId ?? 'canal') !== selectedWater) {
     return { allowed: false, reasonKey: 'wrongWater' };
   }
 
-  const needsBetterLine = spot.allowedMethods.includes('betterLine');
-  if (needsBetterLine && effects.reachBonus <= 0) {
-    return { allowed: false, reasonKey: 'requiresBetterRodOrLine' };
-  }
-
-  if (method === 'handline' && !spot.allowedMethods.includes('handline')) {
-    return { allowed: false, reasonKey: 'tooFarForHandline' };
-  }
-
-  const rodCanReach = spot.allowedMethods.includes('stickRod') || (needsBetterLine && effects.reachBonus > 0);
-  if ((method === 'stickRod' || method === 'liveBait') && !rodCanReach) {
-    return { allowed: false, reasonKey: 'requiresStickRod' };
-  }
-
+  void method;
   return { allowed: true, reasonKey: null };
 }
 

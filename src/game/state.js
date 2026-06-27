@@ -66,10 +66,10 @@ export const shopItems = [
     id: 'salt',
     label: 'Salt',
     price: 30,
-    description: 'Three pinches for preserving cleaned fish',
+    description: 'Ten pinches for preserving cleaned fish',
     type: 'consumable',
     itemId: 'salt',
-    amount: 3,
+    amount: 10,
     category: 'other',
   },
   {

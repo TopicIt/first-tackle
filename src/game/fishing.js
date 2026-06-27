@@ -2,6 +2,7 @@ import { addItem, countItem, hasItem, removeItem } from './inventory.js';
 import { advanceFishStatus, countFishByStatus, ensureFishState, takeFreshFish } from './fishInventory.js';
 import { advanceMarketDay, freshFishAtRisk } from './market.js';
 import { ownTackleComponent } from './tackle.js';
+import { syncQuestProgress } from './quests.js';
 import { advanceTime, getTimePhase, resetToMorning } from './time.js';
 import { nowSeconds, pushFeedback, pushLog, queueSound } from './state.js';
 
@@ -108,6 +109,22 @@ export function gatherRodStick(state) {
   ownTackleComponent(state, 'simple_stick_rod');
   pushFeedback(state, 'componentSimpleStickRod', {}, 'item');
   pushLog(state, 'logFoundRodStick');
+}
+
+export function gatherGrandmaThread(state) {
+  advanceTime(state, 5);
+  ownTackleComponent(state, 'grandma_thread');
+  pushFeedback(state, 'componentGrandmaThread', {}, 'item');
+  pushLog(state, 'logFoundGrandmaThread');
+  queueSound(state, 'gather_bait');
+}
+
+export function gatherOldHook(state) {
+  advanceTime(state, 5);
+  ownTackleComponent(state, 'old_dull_hook');
+  pushFeedback(state, 'componentOldDullHook', {}, 'item');
+  pushLog(state, 'logFoundOldHook');
+  queueSound(state, 'gather_bait');
 }
 
 export function gatherSmallStones(state) {
@@ -223,6 +240,7 @@ export function collectTaranka(state) {
   }
 
   advanceFishStatus(state, 'ready_taranka', 'taranka', ready);
+  syncQuestProgress(state);
   pushFeedback(state, 'feedbackTaranka', { count: ready }, 'fish');
   pushLog(state, 'logCollectedTaranka', { count: ready });
   queueSound(state, 'dry_fish');

@@ -22,18 +22,18 @@ const methodKeys = {
 
 const fishingLineAnchors = {
   handline: {
-    rodTipAnchor: { x: 18, y: 58 },
+    rodTipAnchor: { x: 18, y: 64 },
     sag: 5.2,
     tension: 0.3,
   },
   stickRod: {
-    rodTipAnchor: { x: 34, y: 38 },
-    sag: 6.8,
+    rodTipAnchor: { x: 38, y: 52 },
+    sag: 5.8,
     tension: 0.44,
   },
   liveBait: {
-    rodTipAnchor: { x: 34, y: 38 },
-    sag: 7.4,
+    rodTipAnchor: { x: 38, y: 52 },
+    sag: 6.2,
     tension: 0.42,
   },
 };
@@ -91,6 +91,7 @@ export function fishingMinigameMarkup(state) {
             <section class="fishing-panel fishing-panel__quick-nav">
               <button data-action="panel:toggle:tackle" type="button">${t('tackle')}</button>
               <button data-action="panel:toggle:keepnet" type="button">${t('keepnet')}</button>
+              <button data-action="panel:toggle:quests" type="button">${t('activeQuests')}</button>
               <button data-action="panel:toggle:guide" type="button">${t('fishermanGuide')}</button>
             </section>
 
@@ -228,6 +229,7 @@ function catchResultModalMarkup(state, fish, result, minigame) {
               <li>${t('value')}: <strong>${result.value} ${t('coins').toLowerCase()}</strong></li>
             </ul>
             <p>${t(fish.descriptionKey)}</p>
+            ${questProgressUpdateMarkup(state)}
           </div>
           <div class="fishing-result__actions">
             <button data-action="minigame:keep" type="button">${t('close')}</button>
@@ -239,6 +241,20 @@ function catchResultModalMarkup(state, fish, result, minigame) {
       </div>
     </section>
   `;
+}
+
+function questProgressUpdateMarkup(state) {
+  const updates = state.ui?.questProgressUpdates ?? [];
+  if (updates.length === 0) {
+    return '';
+  }
+
+  const update = updates[updates.length - 1];
+  return `<p class="fishing-result__quest-update">${t('questUpdated', {
+    quest: t(update.titleKey),
+    progress: update.progress,
+    required: update.required,
+  })}</p>`;
 }
 
 function sidePanelMarkup(state, minigame, collapsedPanels) {

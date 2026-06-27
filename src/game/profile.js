@@ -41,7 +41,7 @@ export const tutorialSteps = [
     component: 'grandma_thread',
     feedbackKey: 'componentGrandmaThread',
     placeKey: 'tutorialPlaceLine',
-    actionId: 'open:house',
+    actionId: 'gather:thread',
   },
   {
     id: 'hook',
@@ -49,7 +49,7 @@ export const tutorialSteps = [
     component: 'old_dull_hook',
     feedbackKey: 'componentOldDullHook',
     placeKey: 'tutorialPlaceHook',
-    actionId: 'open:house',
+    actionId: 'gather:oldHook',
   },
   {
     id: 'sinker',
@@ -131,7 +131,7 @@ export function startTutorial(state) {
     skipped: false,
     completed: false,
     step: state.tutorialState?.step ?? 0,
-    collapsed: true,
+    collapsed: false,
   };
   queueSound(state, 'ui_click');
 }
@@ -152,6 +152,21 @@ export function completeTutorialStep(state) {
   if (state.tutorialState.step >= tutorialSteps.length) {
     grantPrimitiveTackle(state, { skipped: false });
   }
+}
+
+export function advanceTutorialForAction(state, actionId) {
+  const tutorial = state.tutorialState;
+  if (!tutorial?.started || tutorial.completed || tutorial.skipped) {
+    return false;
+  }
+
+  const step = tutorialSteps[tutorial.step ?? 0];
+  if (!step || step.actionId !== actionId) {
+    return false;
+  }
+
+  completeTutorialStep(state);
+  return true;
 }
 
 export function skipTutorial(state) {

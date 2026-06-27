@@ -137,16 +137,16 @@
   left: 50%;
   top: 50%;
   min-width: 0;
-  max-width: 150px;
+  max-width: 190px;
   border: 1px solid rgb(255 255 255 / 24%);
   border-radius: 999px;
   background: rgb(18 27 24 / 38%);
   box-shadow: 0 8px 18px rgb(0 0 0 / 14%);
   color: #fff8df;
-  font-size: 0.72rem;
+  font-size: 0.95rem;
   font-weight: 850;
   line-height: 1.08;
-  padding: 4px 7px;
+  padding: 8px 12px;
   opacity: 0.72;
   transform: translate(-50%, -50%);
   backdrop-filter: blur(10px);
@@ -274,9 +274,9 @@
   }
 
   .map-hotspot__label {
-    max-width: min(34vw, 126px);
-    font-size: 0.63rem;
+    max-width: min(42vw, 154px);
+    font-size: 0.82rem;
     white-space: normal;
-    padding: 3px 6px;
+    padding: 7px 10px;
   }
 }

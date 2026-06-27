@@ -34,8 +34,10 @@ import { canOpenWaterFromMap, canSelectWaterForFishing, canUseBusStation, getFis
 import { getLocationTransition, markLocationTransitionVisit, shouldUseLocationTransitions } from './game/locationTransitions.js';
 import { arriveAtWater } from './game/travel.js';
 import { claimQuestReward, ensureQuestState, syncQuestProgress, unlockAllLocationsForDebug } from './game/quests.js';
+import { completeCafeOrder, ensureCafeOrders } from './game/cafeOrders.js';
 import {
   completeTutorialStep,
+  advanceTutorialForAction,
   ensureProfileState,
   grantPrimitiveTackle,
   selectAvatar,
@@ -66,6 +68,7 @@ ensureTackleState(gameState);
 ensureTimeState(gameState);
 ensureProfileState(gameState);
 ensureQuestState(gameState);
+ensureCafeOrders(gameState);
 syncGrandmaTrust(gameState);
 normalizeTransitionSettings(gameState);
 normalizeViewModeSettings(gameState);
@@ -382,6 +385,12 @@ const hud = createHud(hudRoot, {
       return;
     }
 
+    if (actionId.startsWith('cafe:complete:')) {
+      completeCafeOrder(gameState, actionId.replace('cafe:complete:', ''));
+      renderHud();
+      return;
+    }
+
     if (actionId.startsWith('select:water:')) {
       const waterId = actionId.replace('select:water:', '');
       if (!canSelectWaterForFishing(gameState, waterId)) {
@@ -503,6 +512,7 @@ const hud = createHud(hudRoot, {
     }
     const marketScrollTop = captureMarketScroll(actionId);
     runAction(actionId, gameState, context);
+    advanceTutorialForAction(gameState, actionId);
     syncPlayerToState();
     renderHud();
     restoreMarketScroll(marketScrollTop, actionId);
@@ -757,6 +767,7 @@ function lockedLogKey(waterId) {
 
 function renderHud() {
   syncQuestProgress(gameState);
+  ensureCafeOrders(gameState);
   const context = gameState.ui.activeScene
     ? getLocationSceneContext(gameState, gameState.ui.activeScene)
     : getInteractionContext(gameState, player.position);
@@ -807,6 +818,7 @@ function ensureRuntimeState(state) {
   ensureProfileState(state);
   syncGrandmaTrust(state);
   ensureQuestState(state);
+  ensureCafeOrders(state);
   normalizeTransitionSettings(state);
   normalizeViewModeSettings(state);
   applyViewModeToDocument(state);

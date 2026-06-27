@@ -10,6 +10,8 @@ import {
   craftPrimitiveTackle,
   craftStickRod,
   gatherGooseFeather,
+  gatherGrandmaThread,
+  gatherOldHook,
   gatherRodStick,
   gatherSmallStones,
   getWormSearchCooldown,
@@ -37,6 +39,7 @@ import { arriveAtWater, buyBusTicket, travelByBicycle } from './travel.js';
 import { interactionZones } from './world.js';
 import { getTimePhase } from './time.js';
 import { getTackleEffects } from './tackle.js';
+import { tutorialSteps } from './profile.js';
 import { t } from '../i18n/i18n.js';
 
 const idleContext = {
@@ -89,7 +92,7 @@ export function getInteractionContext(state, playerPosition) {
 
 export function getLocationSceneContext(state, zoneId) {
   const zone = interactionZones[zoneId];
-  if (!zone && !isFishingLocation(zoneId) && !['fishing_select', 'sluice_map', 'fire_ponds_map'].includes(zoneId)) {
+  if (!zone && !isFishingLocation(zoneId) && !['fishing_select', 'sluice_map', 'fire_ponds_map', 'cafe'].includes(zoneId)) {
     return {
       ...idleContext,
       zoneLabel: t('roadsideVillage'),
@@ -154,6 +157,16 @@ export function runAction(actionId, state, context = idleContext) {
   if (actionId === 'gather:rodStick') {
     if (!['garden', 'house'].includes(context.zoneId)) return;
     gatherRodStick(state);
+  }
+
+  if (actionId === 'gather:thread') {
+    if (context.zoneId !== 'house') return;
+    gatherGrandmaThread(state);
+  }
+
+  if (actionId === 'gather:oldHook') {
+    if (context.zoneId !== 'house') return;
+    gatherOldHook(state);
   }
 
   if (actionId === 'gather:stones') {
@@ -306,6 +319,10 @@ function getZoneHint(state, zoneId) {
     return t('hintMarket');
   }
 
+  if (zoneId === 'cafe') {
+    return t('hintCafe');
+  }
+
   if (zoneId === 'bus_station') {
     return canUseBusStation(state) ? t('hintBusStation') : t('hintBusStationLocked');
   }
@@ -336,6 +353,14 @@ function getSceneActions(state, zoneId) {
       ...(!state.tackle?.owned?.simple_stick_rod && !hasItem(state, 'stickRod') ? [{
         id: 'gather:rodStick',
         label: t('gatherRodStick'),
+      }] : []),
+      ...(!state.tackle?.owned?.grandma_thread || isTutorialAction(state, 'gather:thread') ? [{
+        id: 'gather:thread',
+        label: t('gatherGrandmaThread'),
+      }] : []),
+      ...(!state.tackle?.owned?.old_dull_hook || isTutorialAction(state, 'gather:oldHook') ? [{
+        id: 'gather:oldHook',
+        label: t('gatherOldHook'),
       }] : []),
       {
         id: 'clean:fish',
@@ -391,14 +416,18 @@ function getSceneActions(state, zoneId) {
         label: cooldown > 0 ? t('compostIn', { seconds: Math.ceil(cooldown) }) : t('searchCompost'),
         disabled: cooldown > 0,
       },
-      ...(!state.tackle?.owned?.goose_feather_float ? [{
+      ...(!state.tackle?.owned?.goose_feather_float || isTutorialAction(state, 'search:feather') ? [{
         id: 'search:feather',
         label: featherOnCooldown ? t('feathersTryLater') : t('searchGooseFeather'),
         disabled: featherOnCooldown,
       }] : []),
-      ...(!state.tackle?.owned?.simple_stick_rod && !hasItem(state, 'stickRod') ? [{
+      ...((!state.tackle?.owned?.simple_stick_rod && !hasItem(state, 'stickRod')) || isTutorialAction(state, 'gather:rodStick') ? [{
         id: 'gather:rodStick',
         label: t('gatherRodStick'),
+      }] : []),
+      ...(!state.tackle?.owned?.small_stone || isTutorialAction(state, 'gather:stones') ? [{
+        id: 'gather:stones',
+        label: t('gatherSmallStones'),
       }] : []),
     ];
   }
@@ -424,7 +453,7 @@ function getSceneActions(state, zoneId) {
       {
         id: 'submap:fish:sluice',
         label: t('fishAtSluice'),
-        variant: 'secondary',
+        variant: 'secondary scene-hotspot scene-hotspot--left',
       },
       {
         id: 'scene:map',
@@ -438,7 +467,7 @@ function getSceneActions(state, zoneId) {
       {
         id: 'submap:fish:fire_ponds',
         label: t('fishAtFirePonds'),
-        variant: 'secondary',
+        variant: 'secondary scene-hotspot scene-hotspot--right',
       },
       {
         id: 'scene:map',
@@ -532,6 +561,7 @@ function getZoneLabel(zoneId) {
     garden: 'zoneGarden',
     canal: 'zoneCanal',
     market: 'zoneMarket',
+    cafe: 'zoneCafe',
     bus_station: 'zoneBusStation',
     fishing_select: 'mapFishing',
     sluice_map: 'zoneSluice',
@@ -549,6 +579,7 @@ function getOpenSceneAction(zoneId) {
     garden: 'openGarden',
     canal: 'openPond',
     market: 'openMarket',
+    cafe: 'openCafe',
     bus_station: 'openBusStation',
     fishing_select: 'openFishingSelect',
     sluice_map: 'zoneSluice',
@@ -580,6 +611,15 @@ function bicycleRouteActions(state) {
       variant: available ? 'secondary' : 'future',
     };
   });
+}
+
+function isTutorialAction(state, actionId) {
+  const tutorial = state.tutorialState;
+  if (!tutorial?.started || tutorial.completed || tutorial.skipped) {
+    return false;
+  }
+  const stepIndex = tutorial.step ?? 0;
+  return tutorialSteps[stepIndex]?.actionId === actionId;
 }
 
 function lockedLogKey(state, waterId) {

@@ -7,6 +7,7 @@ import { getFishSaleValue, getFreshnessInfo, getMarketPriceInfo } from '../game/
 import { getCastSpot } from '../game/bitePatterns.js';
 import { shopItems } from '../game/state.js';
 import { getQuestRows } from '../game/quests.js';
+import { getCafeOrderRows } from '../game/cafeOrders.js';
 import { profileAvatars } from '../game/profile.js';
 import { componentDescriptions, componentLabels, tackleComponents } from '../game/tackle.js';
 import { countItem, itemLabels } from '../game/inventory.js';
@@ -183,6 +184,10 @@ export function profileMarkup(state) {
 export function marketMarkup(state) {
   const tab = state.ui?.marketTab ?? 'sell';
   return `
+    <details class="market-description">
+      <summary>${t('marketInfo')}</summary>
+      <p>${t('sceneMarketDescription')}</p>
+    </details>
     <div class="market-tabs">
       ${['sell', 'buy', 'prices'].map((id) => `
         <button class="${tab === id ? 'is-selected' : ''}" data-action="market:tab:${id}" type="button">${t(`marketTab${toPascalCase(id)}`)}</button>
@@ -190,6 +195,31 @@ export function marketMarkup(state) {
     </div>
     <div class="market-body" data-scroll-preserve="market-body">
       ${tab === 'buy' ? marketBuyMarkup(state) : tab === 'prices' ? marketPricesMarkup(state) : marketSellMarkup(state)}
+    </div>
+  `;
+}
+
+export function cafeMarkup(state) {
+  const rows = getCafeOrderRows(state);
+  return `
+    <div class="market-description cafe-description">
+      <p>${t('cafeOrderHint')}</p>
+    </div>
+    <div class="quest-list cafe-order-list">
+      ${rows.map((order) => `
+        <article class="quest-card cafe-order-card${order.complete ? ' is-complete' : ''}">
+          <div>
+            <p class="section-label">${t('cafeTimeLeft', { minutes: order.minutesLeft })}</p>
+            <h3>${t(order.titleKey)}</h3>
+            <p>${t(order.descriptionKey)}</p>
+            <strong>${order.progress}/${order.required} · ${t(order.fishNameKey)}${order.minWeight ? ` ${order.minWeight}g+` : ''}</strong>
+            <small>${t('reward')}: ${order.rewardCoins} ${t('coins').toLowerCase()}</small>
+          </div>
+          <button data-action="cafe:complete:${order.id}" type="button"${order.complete ? '' : ' disabled'}>
+            ${order.complete ? t('completeOrder') : t('inProgress')}
+          </button>
+        </article>
+      `).join('')}
     </div>
   `;
 }
@@ -545,7 +575,7 @@ function tackleComponentVisualMarkup(componentId) {
 }
 
 function marketSellMarkup(state) {
-  const freshEntries = getFishEntries(state, 'fresh');
+  const freshEntries = getMarketableFishEntries(state);
   const freshGroups = getFreshFishSaleGroups(state);
   const expanded = state.ui?.expandedMarketSpecies ?? {};
   const freshValue = freshEntries.reduce((total, entry) => total + getFishSaleValue(state, entry), 0);
@@ -558,7 +588,7 @@ function marketSellMarkup(state) {
     <div class="market-summary">
       <p>${t('marketSellHint')}</p>
       <button data-action="sell:fish" type="button"${freshEntries.length === 0 ? ' disabled' : ''}>${t('sellAllFish')}</button>
-      <strong>${t('freshFish')}: ${freshEntries.length} · ${freshValue} ${t('coins').toLowerCase()}</strong>
+      <strong>${t('marketableFish')}: ${freshEntries.length} · ${freshValue} ${t('coins').toLowerCase()}</strong>
     </div>
     <section class="market-keepnet-sell">
       <div class="market-keepnet-sell__head">
@@ -632,7 +662,7 @@ function marketBuyCardMarkup(state, item) {
     <article class="market-card">
       <img src="${itemImage(item.id)}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
       <div>
-        <h3>${getShopItemLabel(item.id)}</h3>
+        <h3>${getShopItemLabel(item.id)} ${item.amount ? `<span class="market-card__qty">×${item.amount}</span>` : ''}</h3>
         <p>${t(shopDescriptionKey(item.id))}</p>
         <strong>${owned ? t('owned') : `${item.price} ${t('coins').toLowerCase()}`}</strong>
       </div>
@@ -722,7 +752,7 @@ function marketFishEntryMarkup(state, entry) {
   return `
     <div class="market-fish-entry">
       <div>
-        <span>${entry.weightGrams}g · ${t('freshness')}: ${t(freshness.key)}</span>
+        <span>${entry.weightGrams}g · ${entry.status === 'cleaned' ? t('cleanedMarker') : t('freshness')}: ${entry.status === 'cleaned' ? '+5%' : t(freshness.key)}</span>
         <small>${price.currentPrice} ${t('uahPerKg')} В· ${entry.catchSpotId ? t(getCastSpot(entry.catchSpotId).labelKey) : t('unknownSpot')}</small>
       </div>
       <strong>${getFishSaleValue(state, entry)} ${t('coins').toLowerCase()}</strong>
@@ -733,7 +763,7 @@ function marketFishEntryMarkup(state, entry) {
 
 function getFreshFishSaleGroups(state) {
   const species = new Map();
-  for (const entry of getFishEntries(state, 'fresh')) {
+  for (const entry of getMarketableFishEntries(state)) {
     const group = species.get(entry.fishId) ?? {
       fishId: entry.fishId,
       count: 0,
@@ -754,6 +784,13 @@ function getFreshFishSaleGroups(state) {
       entries: [...group.entries].sort((a, b) => b.weightGrams - a.weightGrams),
     }))
     .sort((a, b) => b.totalValue - a.totalValue);
+}
+
+function getMarketableFishEntries(state) {
+  return [
+    ...getFishEntries(state, 'fresh'),
+    ...getFishEntries(state, 'cleaned'),
+  ];
 }
 
 function fishGuideMarkup(state) {

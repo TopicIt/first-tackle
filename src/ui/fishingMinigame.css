@@ -1020,6 +1020,15 @@
   color: #dbe8e3;
 }
 
+.fishing-result__quest-update {
+  border-radius: 8px;
+  background: rgb(243 196 95 / 15%);
+  color: #ffe28a;
+  font-size: 0.78rem;
+  font-weight: 850;
+  padding: 7px 9px;
+}
+
 .fishing-result__copy ul {
   display: grid;
   gap: 6px;
@@ -1589,6 +1598,7 @@
   .fishing-result-modal .fishing-result {
     width: min(92vw, 340px);
     max-height: 82dvh;
+    transform: translateY(-5vh);
   }
 
   .fishing-result__frame {
