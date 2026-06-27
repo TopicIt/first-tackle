@@ -36,7 +36,7 @@ import {
 import { arriveAtWater, buyBusTicket, travelByBicycle } from './travel.js';
 import { interactionZones } from './world.js';
 import { getTimePhase } from './time.js';
-import { getActiveRig, getTackleEffects } from './tackle.js';
+import { getTackleEffects } from './tackle.js';
 import { t } from '../i18n/i18n.js';
 
 const idleContext = {
@@ -72,8 +72,8 @@ export function getInteractionContext(state, playerPosition) {
 
   if (zone.id === 'canal') {
     actions.push({
-      id: 'minigame:start:handline',
-      label: t('startHandlineFishing'),
+      id: 'minigame:start:active',
+      label: t('startFishingWithTackle'),
     });
   }
 
@@ -448,25 +448,16 @@ function getSceneActions(state, zoneId) {
   }
 
   if (isFishingLocation(zoneId)) {
-    const activeRig = getActiveRig(state);
+    const effects = getTackleEffects(state);
     const waterActions = [
       {
         id: 'minigame:start:active',
-        label: t('startActiveTackleFishing', { rig: t(activeRig.labelKey) }),
-      },
-      {
-        id: 'minigame:start:handline',
-        label: t('startHandlineFishing'),
-      },
-      {
-        id: 'minigame:start:stickRod',
-        label: t('startStickRodFishing'),
-        disabled: !hasItem(state, 'stickRod') && !getTackleEffects(state).hasProperRod,
+        label: t('startFishingWithTackle'),
       },
       {
         id: 'minigame:start:liveBait',
         label: t('startLiveBaitFishing'),
-        disabled: (!hasItem(state, 'stickRod') && !getTackleEffects(state).hasProperRod) || getFishEntries(state, 'live_bait').length === 0,
+        disabled: !effects.hasRod || getFishEntries(state, 'live_bait').length === 0,
       },
     ];
 

@@ -19,7 +19,7 @@ export const fishingLocations = {
     order: 1,
     access: 'walk',
     labelKey: 'zoneCanal',
-    titleKey: 'sceneCanalTitle',
+    titleKey: 'waterCanal',
     descriptionKey: 'sceneCanalDescription',
     guideNameKey: 'waterCanal',
     guideDescriptionKey: 'waterCanalDesc',

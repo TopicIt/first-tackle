@@ -59,7 +59,8 @@ export function rollFishWeight(fishId, options = {}) {
   const base = randomInt(range[0], range[1]);
   const baitBonus = options.baitFits ? (baitSizeBonus[options.baitId] ?? 0) : 0;
   const waterBonus = waterQualitySizeBonus[options.waterId] ?? 0;
-  const multiplier = 1 + baitBonus + waterBonus;
+  const tackleBonus = options.tackleTrophyBonus ?? 0;
+  const multiplier = 1 + baitBonus + waterBonus + tackleBonus;
   return Math.min(sizeProfile.max, Math.max(sizeProfile.min, Math.round(base * multiplier)));
 }
 

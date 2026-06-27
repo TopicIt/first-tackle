@@ -30,7 +30,7 @@ import { createAudioManager } from './audio/audioManager.js';
 import { ensureMarketState, freshFishAtRisk } from './game/market.js';
 import { ensureTackleState, equipTackleComponent, getRigMethod, selectActiveRig } from './game/tackle.js';
 import { ensureTimeState, formatGameTime, getTimePhase } from './game/time.js';
-import { canOpenWaterFromMap, canUseBusStation, getFishingLocation, getLockedReasonKey, isFishingLocation } from './game/locations.js';
+import { canOpenWaterFromMap, canSelectWaterForFishing, canUseBusStation, getFishingLocation, getLockedReasonKey, isFishingLocation } from './game/locations.js';
 import { getLocationTransition, markLocationTransitionVisit, shouldUseLocationTransitions } from './game/locationTransitions.js';
 import { arriveAtWater } from './game/travel.js';
 import { claimQuestReward, ensureQuestState, syncQuestProgress, unlockAllLocationsForDebug } from './game/quests.js';
@@ -216,7 +216,7 @@ const hud = createHud(hudRoot, {
         if (startLocationTransition(sceneId)) {
           return;
         }
-        arriveAtWater(gameState, sceneId);
+        enterFishingWater(sceneId);
         renderHud();
         return;
       }
@@ -348,7 +348,7 @@ const hud = createHud(hudRoot, {
       if (startLocationTransition(waterId)) {
         return;
       }
-      arriveAtWater(gameState, waterId);
+      enterFishingWater(waterId);
       renderHud();
       return;
     }
@@ -378,6 +378,21 @@ const hud = createHud(hudRoot, {
 
     if (actionId.startsWith('quest:claim:')) {
       claimQuestReward(gameState, actionId.replace('quest:claim:', ''));
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('select:water:')) {
+      const waterId = actionId.replace('select:water:', '');
+      if (!canSelectWaterForFishing(gameState, waterId)) {
+        pushLog(gameState, lockedLogKey(waterId));
+        renderHud();
+        return;
+      }
+      if (startLocationTransition(waterId)) {
+        return;
+      }
+      enterFishingWater(waterId);
       renderHud();
       return;
     }
@@ -712,7 +727,7 @@ function finishLocationTransition() {
   }
 
   if (isFishingLocation(transition.targetScene)) {
-    arriveAtWater(gameState, transition.targetScene);
+    enterFishingWater(transition.targetScene);
     renderHud();
     return;
   }
@@ -721,6 +736,12 @@ function finishLocationTransition() {
   gameState.ui.selectedHotspot = transition.targetScene;
   gameState.audioQueue.push('open_scene');
   renderHud();
+}
+
+function enterFishingWater(waterId) {
+  arriveAtWater(gameState, waterId);
+  openFishingMinigame(gameState, getRigMethod(gameState));
+  gameState.ui.selectedHotspot = waterId;
 }
 
 function lockedLogKey(waterId) {

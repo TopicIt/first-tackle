@@ -286,6 +286,7 @@ export function strikeLine(state, nowMs) {
       baitId: minigame.consumedBait ?? minigame.selectedBait,
       baitFits,
       waterId: normalizeWaterId(state.travel?.selectedWater),
+      tackleTrophyBonus: effects.trophyBonus ?? 0,
     });
     adjustCatchForWater(state, catchResult);
     catchResult.value = getFreshFishValue(catchResult);
@@ -670,7 +671,7 @@ function canContextCast(minigame) {
 }
 
 function hasUsableRod(state) {
-  return hasItem(state, 'stickRod') || getTackleEffects(state).hasProperRod;
+  return getTackleEffects(state).hasRod || hasItem(state, 'stickRod');
 }
 
 function startBiteCycle(state, minigame, nowMs) {
@@ -1059,7 +1060,7 @@ function getBaitSuitability(fishId, baitId) {
 function getTackleBonus(state, method) {
   const effects = getTackleEffects(state);
   let bonus = method === 'stickRod' ? 0.18 : 0.08;
-  bonus += effects.hookBonus + effects.floatBonus + effects.stabilityBonus;
+  bonus += effects.hookBonus + effects.floatBonus + effects.stabilityBonus + effects.controlBonus + effects.escapeReduction;
   return bonus;
 }
 

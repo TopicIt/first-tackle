@@ -21,26 +21,35 @@ export const componentLabels = {
   proper_rod: 'componentProperRod',
 };
 
-export const tackleRigs = [
-  {
-    id: 'handline',
-    labelKey: 'rigPrimitiveHandline',
-    descriptionKey: 'rigPrimitiveHandlineDesc',
-    method: 'handline',
-  },
-  {
-    id: 'first_rod',
-    labelKey: 'rigFirstRod',
-    descriptionKey: 'rigFirstRodDesc',
-    method: 'stickRod',
-  },
-  {
-    id: 'proper_rod',
-    labelKey: 'rigProperRod',
-    descriptionKey: 'rigProperRodDesc',
-    method: 'stickRod',
-  },
-];
+export const componentDescriptions = {
+  none: 'componentNoneDesc',
+  grandma_thread: 'componentGrandmaThreadDesc',
+  better_line: 'componentBetterLineDesc',
+  old_dull_hook: 'componentOldDullHookDesc',
+  sharper_hook: 'componentSharperHookDesc',
+  small_stone: 'componentSmallStoneDesc',
+  proper_sinker: 'componentProperSinkerDesc',
+  goose_feather_float: 'componentGooseFeatherFloatDesc',
+  cheap_float: 'componentCheapFloatDesc',
+  proper_float: 'componentProperFloatDesc',
+  simple_stick_rod: 'componentSimpleStickRodDesc',
+  proper_rod: 'componentProperRodDesc',
+};
+
+export const componentEffects = {
+  grandma_thread: { breakPenalty: 0.12, trophyBonus: 0 },
+  better_line: { breakPenalty: -0.16, reachBonus: 1, trophyBonus: 0.015 },
+  old_dull_hook: { hookBonus: -0.08 },
+  sharper_hook: { hookBonus: 0.12, escapeReduction: 0.08 },
+  small_stone: { stabilityBonus: -0.04 },
+  proper_sinker: { stabilityBonus: 0.08, scatterBonus: -0.08 },
+  none: { floatBonus: -0.08 },
+  goose_feather_float: { floatBonus: 0.05 },
+  cheap_float: { floatBonus: 0.08, scatterBonus: -0.06 },
+  proper_float: { floatBonus: 0.12, scatterBonus: -0.1 },
+  simple_stick_rod: { controlBonus: 0.08, scatterBase: 0.82 },
+  proper_rod: { controlBonus: 0.16, reachBonus: 1, scatterBase: 0.62, escapeReduction: 0.08 },
+};
 
 export function createInitialTackleState() {
   return {
@@ -78,7 +87,7 @@ export function ensureTackleState(state) {
     ...createInitialTackleState().equipped,
     ...(state.tackle.equipped ?? {}),
   };
-  state.tackle.activeRig = getRigAvailable(state, state.tackle.activeRig) ? state.tackle.activeRig : getBestAvailableRig(state).id;
+  migrateOldRigSelection(state);
 
   if (state.inventory?.primitiveTackle > 0) {
     state.tackle.owned.grandma_thread = true;
@@ -106,7 +115,8 @@ export function ensureTackleState(state) {
   if (state.purchased?.properRod) {
     state.tackle.owned.proper_rod = true;
   }
-  state.tackle.activeRig = getRigAvailable(state, state.tackle.activeRig) ? state.tackle.activeRig : getBestAvailableRig(state).id;
+  repairEquippedComponents(state);
+  state.tackle.activeRig = getLegacyRigIdFromComponents(state);
 }
 
 export function ownTackleComponent(state, componentId) {
@@ -125,79 +135,73 @@ export function equipTackleComponent(state, slot, componentId) {
 
 export function selectActiveRig(state, rigId) {
   ensureTackleState(state);
-  if (!getRigAvailable(state, rigId)) {
-    return false;
-  }
-  state.tackle.activeRig = rigId;
-  return true;
+  return equipLegacyRig(state, rigId);
 }
 
 export function getActiveRig(state) {
   ensureTackleState(state);
-  return tackleRigs.find((rig) => rig.id === state.tackle.activeRig) ?? getBestAvailableRig(state);
+  const id = getLegacyRigIdFromComponents(state);
+  return {
+    id,
+    labelKey: id === 'handline' ? 'activeTackleHandline' : 'activeTackleComponents',
+    descriptionKey: 'activeTackleComponentsDesc',
+    method: getRigMethod(state),
+  };
 }
 
 export function getAvailableRigs(state) {
   ensureTackleState(state);
-  return tackleRigs.map((rig) => ({
-    ...rig,
-    available: getRigAvailable(state, rig.id),
-  }));
+  return [];
 }
 
-export function getRigMethod(state, rigId = state.tackle?.activeRig) {
-  const rig = tackleRigs.find((entry) => entry.id === rigId) ?? getActiveRig(state);
-  return rig.method;
+export function getRigMethod(state, rigId = null) {
+  ensureTackleState(state);
+  if (rigId === 'handline') {
+    return 'handline';
+  }
+  if (rigId === 'first_rod' || rigId === 'proper_rod') {
+    return 'stickRod';
+  }
+  return state.tackle.equipped?.rod && state.tackle.equipped.rod !== 'none' ? 'stickRod' : 'handline';
 }
 
 export function getTackleEffects(state) {
   ensureTackleState(state);
   const equipped = state.tackle.equipped;
-  const rig = getActiveRig(state);
-  const usesRod = rig.id === 'first_rod' || rig.id === 'proper_rod';
-  const usesProperRod = rig.id === 'proper_rod';
-  const usesFloat = usesRod && equipped.float !== 'none';
-  const line = usesProperRod ? equipped.line : rig.id === 'first_rod' ? equipped.line : 'grandma_thread';
-  const hook = usesRod ? equipped.hook : 'old_dull_hook';
-  const sinker = usesRod ? equipped.sinker : 'small_stone';
-  const float = usesFloat ? equipped.float : 'none';
+  const rod = equipped.rod ?? 'none';
+  const usesRod = rod !== 'none';
+  const usesProperRod = rod === 'proper_rod';
+  const line = equipped.line ?? 'grandma_thread';
+  const hook = equipped.hook ?? 'old_dull_hook';
+  const sinker = equipped.sinker ?? 'small_stone';
+  const float = equipped.float ?? 'none';
+  const lineEffects = componentEffects[line] ?? {};
+  const hookEffects = componentEffects[hook] ?? {};
+  const sinkerEffects = componentEffects[sinker] ?? {};
+  const floatEffects = componentEffects[float] ?? {};
+  const rodEffects = componentEffects[rod] ?? {};
   return {
-    activeRigId: rig.id,
-    reachBonus: line === 'better_line' || usesProperRod ? 1 : 0,
-    hookBonus: hook === 'sharper_hook' ? 0.12 : -0.08,
-    stabilityBonus: sinker === 'proper_sinker' ? 0.08 : -0.04,
-    floatBonus: float === 'proper_float' ? 0.12 : float === 'cheap_float' ? 0.08 : float === 'goose_feather_float' ? 0.05 : -0.08,
-    hasFloat: usesFloat,
+    activeRigId: getLegacyRigIdFromComponents(state),
+    reachBonus: Math.max(lineEffects.reachBonus ?? 0, rodEffects.reachBonus ?? 0),
+    hookBonus: hookEffects.hookBonus ?? 0,
+    stabilityBonus: sinkerEffects.stabilityBonus ?? 0,
+    floatBonus: floatEffects.floatBonus ?? 0,
+    controlBonus: rodEffects.controlBonus ?? 0,
+    escapeReduction: (hookEffects.escapeReduction ?? 0) + (rodEffects.escapeReduction ?? 0),
+    trophyBonus: lineEffects.trophyBonus ?? 0,
+    hasFloat: float !== 'none',
     hasRod: usesRod,
     hasProperRod: usesProperRod,
-    breakPenalty: line === 'grandma_thread' ? 0.12 : -0.16,
+    breakPenalty: lineEffects.breakPenalty ?? 0,
     scatterScale: getScatterScale({
       ...equipped,
       line,
       hook,
       sinker,
       float,
-      rod: usesProperRod ? 'proper_rod' : usesRod ? 'simple_stick_rod' : 'none',
+      rod,
     }),
   };
-}
-
-function getRigAvailable(state, rigId) {
-  const owned = state.tackle?.owned ?? {};
-  if (rigId === 'handline') {
-    return (state.inventory?.primitiveTackle ?? 0) > 0;
-  }
-  if (rigId === 'first_rod') {
-    return (state.inventory?.stickRod ?? 0) > 0 || owned.simple_stick_rod;
-  }
-  if (rigId === 'proper_rod') {
-    return Boolean(owned.proper_rod || state.purchased?.properRod);
-  }
-  return false;
-}
-
-function getBestAvailableRig(state) {
-  return [...tackleRigs].reverse().find((rig) => getRigAvailable(state, rig.id)) ?? tackleRigs[0];
 }
 
 function getScatterScale(equipped) {
@@ -207,4 +211,56 @@ function getScatterScale(equipped) {
   else if (equipped.float === 'cheap_float') scale -= 0.06;
   if (equipped.sinker === 'proper_sinker') scale -= 0.08;
   return Math.max(0.48, scale);
+}
+
+function migrateOldRigSelection(state) {
+  const rigId = state.tackle?.activeRig;
+  if (rigId === 'proper_rod' && (state.tackle.owned?.proper_rod || state.purchased?.properRod)) {
+    state.tackle.equipped.rod = 'proper_rod';
+  } else if (rigId === 'first_rod' && (state.tackle.owned?.simple_stick_rod || (state.inventory?.stickRod ?? 0) > 0)) {
+    state.tackle.equipped.rod = 'simple_stick_rod';
+  }
+}
+
+function repairEquippedComponents(state) {
+  for (const [slot, components] of Object.entries(tackleComponents)) {
+    const selected = state.tackle.equipped[slot];
+    if (!components.includes(selected) || !state.tackle.owned[selected]) {
+      state.tackle.equipped[slot] = components.find((component) => state.tackle.owned[component]) ?? components[0];
+    }
+  }
+}
+
+function equipLegacyRig(state, rigId) {
+  if (rigId === 'handline') {
+    state.tackle.equipped.rod = 'none';
+    state.tackle.equipped.float = 'none';
+    state.tackle.activeRig = 'handline';
+    return true;
+  }
+  if (rigId === 'first_rod' && state.tackle.owned.simple_stick_rod) {
+    state.tackle.equipped.rod = 'simple_stick_rod';
+    if (state.tackle.equipped.float === 'none' && state.tackle.owned.goose_feather_float) {
+      state.tackle.equipped.float = 'goose_feather_float';
+    }
+    state.tackle.activeRig = 'first_rod';
+    return true;
+  }
+  if (rigId === 'proper_rod' && state.tackle.owned.proper_rod) {
+    state.tackle.equipped.rod = 'proper_rod';
+    state.tackle.activeRig = 'proper_rod';
+    return true;
+  }
+  return false;
+}
+
+function getLegacyRigIdFromComponents(state) {
+  const rod = state.tackle?.equipped?.rod;
+  if (rod === 'proper_rod') {
+    return 'proper_rod';
+  }
+  if (rod === 'simple_stick_rod') {
+    return 'first_rod';
+  }
+  return 'handline';
 }

@@ -8,7 +8,7 @@ import { getCastSpot } from '../game/bitePatterns.js';
 import { shopItems } from '../game/state.js';
 import { getQuestRows } from '../game/quests.js';
 import { profileAvatars } from '../game/profile.js';
-import { componentLabels, getActiveRig, getAvailableRigs, tackleComponents } from '../game/tackle.js';
+import { componentDescriptions, componentLabels, tackleComponents } from '../game/tackle.js';
 import { countItem, itemLabels } from '../game/inventory.js';
 import { t, translateEntry } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
@@ -300,28 +300,11 @@ export function mapViewerMarkup(state) {
 export function tackleMarkup(state) {
   const equipped = state.tackle?.equipped ?? {};
   const owned = state.tackle?.owned ?? {};
-  const activeRig = getActiveRig(state);
-  const rigs = getAvailableRigs(state);
   return `
     <section class="active-tackle">
       <p class="section-label">${t('activeTackle')}</p>
-      <strong>${t('activeTackleValue', { rig: t(activeRig.labelKey) })}</strong>
-      <div class="rig-grid">
-        ${rigs.map((rig) => `
-          <article class="rig-card${activeRig.id === rig.id ? ' is-selected' : ''}${rig.available ? '' : ' is-disabled'}">
-            <div class="rig-card__copy">
-              ${rigVisualMarkup(rig.id)}
-              <div>
-                <h3>${t(rig.labelKey)}</h3>
-                <p>${t(rig.descriptionKey)}</p>
-              </div>
-            </div>
-            <button data-action="tackle:rig:${rig.id}" type="button"${rig.available ? '' : ' disabled'}>
-              ${activeRig.id === rig.id ? t('selected') : t('useThisTackle')}
-            </button>
-          </article>
-        `).join('')}
-      </div>
+      <strong>${t('activeTackleComponents')}</strong>
+      <p>${t('activeTackleComponentsDesc')}</p>
     </section>
     <div class="tackle-grid">
       ${Object.entries(tackleComponents).map(([slot, options]) => `
@@ -331,11 +314,15 @@ export function tackleMarkup(state) {
             ${tackleComponentVisualMarkup(equipped[slot])}
             <span>${t(componentLabels[equipped[slot]] ?? equipped[slot] ?? 'componentNone')}</span>
           </strong>
+          <small>${t(componentDescriptions[equipped[slot]] ?? componentDescriptions.none)}</small>
           <div class="tackle-options">
             ${options.filter((id) => owned[id]).map((id) => `
               <button class="${equipped[slot] === id ? 'is-selected' : ''}" data-action="tackle:equip:${slot}:${id}" type="button">
                 ${tackleComponentVisualMarkup(id)}
-                <span>${t(componentLabels[id] ?? id)}</span>
+                <span>
+                  <strong>${t(componentLabels[id] ?? id)}</strong>
+                  <small>${t(componentDescriptions[id] ?? componentDescriptions.none)}</small>
+                </span>
               </button>
             `).join('')}
           </div>
@@ -555,18 +542,6 @@ function tackleComponentVisualMarkup(componentId) {
   };
 
   return `<img class="item-chip__icon" src="${itemImage(componentImageIds[componentId] ?? componentId)}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />`;
-}
-
-function rigVisualMarkup(rigId) {
-  const imageId = {
-    handline: 'grandma_thread',
-    first_rod: 'simple_stick_rod',
-    proper_rod: 'proper_rod',
-  }[rigId];
-
-  return imageId
-    ? `<img class="item-chip__icon item-chip__icon--large" src="${itemImage(imageId)}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />`
-    : '';
 }
 
 function marketSellMarkup(state) {
