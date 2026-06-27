@@ -7,6 +7,7 @@ import {
   logMarkup,
   mapViewerMarkup,
   profileMarkup,
+  questsMarkup,
   tackleMarkup,
   avatarButtonMarkup,
 } from './panels.js';
@@ -28,11 +29,15 @@ export function createHud(root, handlers) {
 
   root.addEventListener('input', (event) => {
     const input = event.target.closest('[data-audio-setting]');
-    if (!input) {
+    if (input) {
+      handlers.onAudioSetting(input.dataset.audioSetting, input.value);
       return;
     }
 
-    handlers.onAudioSetting(input.dataset.audioSetting, input.value);
+    const profileName = event.target.closest('[data-profile-name-input]');
+    if (profileName) {
+      handlers.onProfileNameDraft?.(profileName.value);
+    }
   });
 
   root.addEventListener('change', (event) => {
@@ -186,6 +191,7 @@ export function createHud(root, handlers) {
       const guideCollapsed = collapsedPanels.guide ? ' is-collapsed' : '';
       const settingsCollapsed = collapsedPanels.settings ? ' is-collapsed' : '';
       const achievementsCollapsed = collapsedPanels.achievements ? ' is-collapsed' : '';
+      const questsCollapsed = collapsedPanels.quests ? ' is-collapsed' : '';
       const mapViewerCollapsed = collapsedPanels.mapViewer ? ' is-collapsed' : '';
 
       root.innerHTML = `
@@ -218,6 +224,7 @@ export function createHud(root, handlers) {
                   ${menuButton('tackle', 'tackle', collapsedPanels)}
                   ${menuButton('guide', 'fishermanGuide', collapsedPanels)}
                   ${menuButton('journal', 'catchJournal', collapsedPanels)}
+                  ${menuButton('quests', 'activeQuests', collapsedPanels)}
                   ${menuButton('achievements', 'achievements', collapsedPanels)}
                   ${menuButton('mapViewer', 'map', collapsedPanels)}
                   ${menuButton('settings', 'settings', collapsedPanels)}
@@ -237,6 +244,7 @@ export function createHud(root, handlers) {
               ${menuButton('tackle', 'tackle', collapsedPanels)}
               ${menuButton('guide', 'fishermanGuide', collapsedPanels)}
               ${menuButton('journal', 'catchJournal', collapsedPanels)}
+              ${menuButton('quests', 'activeQuests', collapsedPanels)}
               ${menuButton('achievements', 'achievements', collapsedPanels)}
               ${menuButton('mapViewer', 'map', collapsedPanels)}
               ${menuButton('settings', 'settings', collapsedPanels)}
@@ -319,6 +327,18 @@ export function createHud(root, handlers) {
           </div>
           <div class="panel-collapsible">
             ${achievementsMarkup(state)}
+          </div>
+        </section>
+
+        <section class="panel glass-menu side-detail-panel journal-panel quests-panel${questsCollapsed}">
+          <div class="panel-toggle-row">
+            <p class="section-label">${t('activeQuests')}</p>
+            <button class="panel-toggle" data-action="panel:toggle:quests" type="button" aria-label="${panelToggleLabel(collapsedPanels.quests)}">
+              ${panelToggleIcon(collapsedPanels.quests)}
+            </button>
+          </div>
+          <div class="panel-collapsible">
+            ${questsMarkup(state)}
           </div>
         </section>
 
@@ -421,6 +441,9 @@ export function createHud(root, handlers) {
             </section>
             <section class="settings-block">
               <p class="section-label">${t('cheats')}</p>
+              <div class="settings-action-row settings-action-row--stack">
+                <button data-action="debug:unlockAllLocations" type="button">${t('unlockAllLocations')}</button>
+              </div>
               <form class="cheat-form" data-cheat-form>
                 <input data-cheat-input type="text" inputmode="text" placeholder="+1000" autocomplete="off" />
                 <button type="submit">${t('apply')}</button>
@@ -571,7 +594,7 @@ function startupOverlayMarkup(state) {
           <img class="startup-flow__logo" src="${assetPath('/assets/logo/logo-mark.png')}" onerror="this.style.display='none'" alt="" />
           <h1>${GAME_TITLE}</h1>
           <img class="profile-form__selected" src="${assetPath(selectedAvatar)}" onerror="this.src='${assetPath(DEFAULT_AVATAR)}'" alt="" />
-          <input name="name" type="text" autocomplete="name" placeholder="${t('defaultPlayerName')}" />
+          <input data-profile-name-input name="name" type="text" autocomplete="name" value="${escapeHtml(state.playerProfile?.name ?? '')}" placeholder="${t('defaultPlayerName')}" />
           <div class="avatar-grid">
             ${profileAvatars.map((avatar) => avatarButtonMarkup(avatar, selectedAvatar)).join('')}
           </div>
@@ -594,12 +617,25 @@ function tutorialPromptMarkup(state) {
     if (!step) {
       return '';
     }
+    const collapsed = state.tutorialState?.collapsed;
     return `
-      <aside class="tutorial-float">
-        <p class="section-label">${t('firstTackleTutorial')}</p>
-        <h2>${step.label}</h2>
-        <p>${t('tutorialCollectHint')}</p>
-        <button data-action="tutorial:step" type="button">${t('collectPart')}</button>
+      <aside class="tutorial-float tutorial-float--helper${collapsed ? ' is-collapsed' : ''}">
+        <div class="tutorial-float__row">
+          <p class="section-label">${t('firstTackleTutorial')}</p>
+          <div>
+            <button class="tutorial-float__tiny" data-action="tutorial:toggle" type="button" aria-label="${collapsed ? t('show') : t('hide')}">${collapsed ? '&#9656;' : '&#9662;'}</button>
+            <button class="tutorial-float__tiny" data-action="tutorial:skip" type="button" aria-label="${t('close')}">&times;</button>
+          </div>
+        </div>
+        ${collapsed ? `
+          <button class="tutorial-float__mini" data-action="tutorial:toggle" type="button">
+            ${step.label}
+          </button>
+        ` : `
+          <h2>${step.label}</h2>
+          <p>${t(step.placeKey ?? 'tutorialCollectHint')}</p>
+          <button data-action="tutorial:step" type="button">${t('collectPart')}</button>
+        `}
       </aside>
     `;
   }
@@ -776,4 +812,12 @@ function panelToggleLabel(isCollapsed) {
 
 function toPascalCase(value) {
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }

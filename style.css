@@ -347,12 +347,12 @@ button:disabled {
 
 .main-menu button {
   flex: 1 1 82px;
-  min-height: 32px;
+  min-height: 38px;
   border: 1px solid rgb(255 255 255 / 14%);
   background: rgb(238 241 232 / 88%);
   color: #1a2b25;
-  font-size: 0.76rem;
-  padding: 6px 8px;
+  font-size: 0.82rem;
+  padding: 8px 9px;
 }
 
 .main-menu button.is-active {
@@ -540,6 +540,35 @@ button:disabled {
 .profile-form {
   display: grid;
   gap: 10px;
+}
+
+.profile-edit-button,
+.profile-form__actions button,
+.avatar-selector summary {
+  min-height: 38px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 8px;
+  background: rgb(238 241 232 / 88%);
+  color: #17211c;
+  font-weight: 850;
+  padding: 8px 10px;
+}
+
+.profile-form__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.avatar-selector {
+  display: grid;
+  gap: 8px;
+}
+
+.avatar-selector summary {
+  cursor: pointer;
+  list-style: none;
+  text-align: center;
 }
 
 .profile-form input {
@@ -737,6 +766,55 @@ button:disabled {
   text-align: center;
   transform: translateX(-50%);
   backdrop-filter: blur(8px);
+}
+
+.tutorial-float--helper {
+  left: auto;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(94px, calc(74px + env(safe-area-inset-bottom)));
+  width: min(190px, calc(100vw - 28px));
+  gap: 6px;
+  padding: 9px;
+  text-align: left;
+  transform: none;
+}
+
+.tutorial-float--helper h2 {
+  font-size: 0.95rem;
+}
+
+.tutorial-float--helper p {
+  color: #dbe8e3;
+  font-size: 0.78rem;
+}
+
+.tutorial-float--helper.is-collapsed {
+  width: min(164px, calc(100vw - 28px));
+  padding: 7px;
+}
+
+.tutorial-float__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.tutorial-float__tiny {
+  width: 28px;
+  min-height: 28px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 14%);
+  color: #fff8df;
+  padding: 0;
+}
+
+.tutorial-float__mini {
+  width: 100%;
+  min-height: 34px;
+  font-size: 0.72rem;
+  line-height: 1.15;
+  padding: 7px 8px;
 }
 
 .tutorial-float h2,
@@ -1368,6 +1446,13 @@ button:disabled {
   padding: 9px;
 }
 
+.achievement-card small {
+  display: block;
+  margin-top: 5px;
+  color: #bdd6ce;
+  font-size: 0.7rem;
+}
+
 .achievement-card img {
   width: 42px;
   height: 42px;
@@ -1410,6 +1495,61 @@ button:disabled {
 
 .trophy-badge--rarest {
   background: #6c3bb0;
+}
+
+.trophy-badge.is-locked {
+  border-style: dashed;
+  background: rgb(255 255 255 / 8%);
+  color: #bdd6ce;
+}
+
+.quest-list {
+  display: grid;
+  gap: 8px;
+}
+
+.quest-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 7%);
+  padding: 10px;
+}
+
+.quest-card h3,
+.quest-card p {
+  margin: 0;
+}
+
+.quest-card h3 {
+  color: #fff8df;
+  font-size: 0.98rem;
+}
+
+.quest-card p,
+.quest-card small {
+  color: #cfe1dc;
+  font-size: 0.78rem;
+}
+
+.quest-card strong {
+  display: inline-block;
+  margin-top: 6px;
+  color: #ffe28a;
+}
+
+.quest-card button {
+  min-width: 104px;
+  min-height: 38px;
+  background: #f3c45f;
+  padding: 8px 10px;
+}
+
+.quest-card.is-claimed button {
+  background: rgb(255 255 255 / 16%);
+  color: #fff8df;
 }
 
 .map-viewer-tools {
@@ -1847,6 +1987,7 @@ button:disabled {
   .inventory-panel,
   .keepnet-panel,
   .journal-panel,
+  .quests-panel,
   .tackle-panel,
   .guide-panel,
   .settings-panel {
@@ -1870,6 +2011,7 @@ button:disabled {
   .inventory-panel .panel-collapsible,
   .keepnet-panel .panel-collapsible,
   .journal-panel .panel-collapsible,
+  .quests-panel .panel-collapsible,
   .tackle-panel .panel-collapsible,
   .guide-panel .panel-collapsible,
   .settings-panel .panel-collapsible {
@@ -1882,6 +2024,7 @@ button:disabled {
   .inventory-panel:not(.is-collapsed),
   .keepnet-panel:not(.is-collapsed),
   .journal-panel:not(.is-collapsed),
+  .quests-panel:not(.is-collapsed),
   .tackle-panel:not(.is-collapsed),
   .guide-panel:not(.is-collapsed),
   .settings-panel:not(.is-collapsed) {
@@ -2145,6 +2288,7 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet * {
 :root[data-view-mode="mobile"] .inventory-panel,
 :root[data-view-mode="mobile"] .keepnet-panel,
 :root[data-view-mode="mobile"] .journal-panel,
+:root[data-view-mode="mobile"] .quests-panel,
 :root[data-view-mode="mobile"] .tackle-panel,
 :root[data-view-mode="mobile"] .guide-panel,
 :root[data-view-mode="mobile"] .settings-panel {
@@ -2168,6 +2312,7 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet * {
 :root[data-view-mode="mobile"] .inventory-panel .panel-collapsible,
 :root[data-view-mode="mobile"] .keepnet-panel .panel-collapsible,
 :root[data-view-mode="mobile"] .journal-panel .panel-collapsible,
+:root[data-view-mode="mobile"] .quests-panel .panel-collapsible,
 :root[data-view-mode="mobile"] .tackle-panel .panel-collapsible,
 :root[data-view-mode="mobile"] .guide-panel .panel-collapsible,
 :root[data-view-mode="mobile"] .settings-panel .panel-collapsible {
@@ -2180,6 +2325,7 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet * {
 :root[data-view-mode="mobile"] .inventory-panel:not(.is-collapsed),
 :root[data-view-mode="mobile"] .keepnet-panel:not(.is-collapsed),
 :root[data-view-mode="mobile"] .journal-panel:not(.is-collapsed),
+:root[data-view-mode="mobile"] .quests-panel:not(.is-collapsed),
 :root[data-view-mode="mobile"] .tackle-panel:not(.is-collapsed),
 :root[data-view-mode="mobile"] .guide-panel:not(.is-collapsed),
 :root[data-view-mode="mobile"] .settings-panel:not(.is-collapsed) {

@@ -24,32 +24,58 @@ export const tutorialSteps = [
     label: '\u0412\u0443\u0434\u0438\u043b\u0438\u0449\u0435 \u0437 \u043b\u0456\u0449\u0438\u043d\u0438',
     component: 'simple_stick_rod',
     feedbackKey: 'componentSimpleStickRod',
+    placeKey: 'tutorialPlaceRod',
+    actionId: 'gather:rodStick',
   },
   {
     id: 'float',
     label: '\u041f\u043e\u043f\u043b\u0430\u0432\u043e\u043a \u0437 \u0433\u0443\u0441\u044f\u0447\u043e\u0433\u043e \u043f\u0435\u0440\u0430',
     component: 'goose_feather_float',
     feedbackKey: 'componentGooseFeatherFloat',
+    placeKey: 'tutorialPlaceFloat',
+    actionId: 'search:feather',
   },
   {
     id: 'line',
     label: '\u041d\u0438\u0442\u043a\u0430 \u0434\u043b\u044f \u0432\u0438\u0448\u0438\u0432\u0430\u043d\u043d\u044f',
     component: 'grandma_thread',
     feedbackKey: 'componentGrandmaThread',
+    placeKey: 'tutorialPlaceLine',
+    actionId: 'open:house',
   },
   {
     id: 'hook',
     label: '\u0421\u0442\u0430\u0440\u0438\u0439 \u0433\u0430\u0447\u043e\u043a',
     component: 'old_dull_hook',
     feedbackKey: 'componentOldDullHook',
+    placeKey: 'tutorialPlaceHook',
+    actionId: 'open:house',
   },
   {
     id: 'sinker',
     label: '\u041a\u0430\u043c\u0456\u043d\u0447\u0438\u043a',
     component: 'small_stone',
     feedbackKey: 'componentSmallStone',
+    placeKey: 'tutorialPlaceSinker',
+    actionId: 'gather:stones',
   },
 ];
+
+export const defaultNameByAvatar = {
+  '/assets/profile/granddaughter-1.png': '\u041c\u0430\u0440\u0456\u0447\u043a\u0430',
+  '/assets/profile/granddaughter-2.png': '\u041c\u0430\u0440\u0456\u0447\u043a\u0430',
+  '/assets/profile/girl-1.png': '\u041c\u0430\u0440\u0456\u0447\u043a\u0430',
+  '/assets/profile/girl-2.png': '\u041c\u0430\u0440\u0456\u0447\u043a\u0430',
+  '/assets/profile/grandmother-1.png': '\u041d\u0430\u0434\u0456\u044f',
+  '/assets/profile/grandmother-2.png': '\u041d\u0430\u0434\u0456\u044f',
+  '/assets/profile/grandmother.png': '\u041d\u0430\u0434\u0456\u044f',
+  '/assets/profile/grandfather-1.png': '\u0410\u043d\u0430\u0442\u043e\u043b\u0456\u0439',
+  '/assets/profile/grandfather-2.png': '\u0410\u043d\u0430\u0442\u043e\u043b\u0456\u0439',
+  '/assets/profile/boy-1.png': '\u0414\u0456\u043c\u0430',
+  '/assets/profile/boy-2.png': '\u0414\u0456\u043c\u0430',
+  '/assets/profile/Grandson-1.png': '\u0406\u0432\u0430\u0441\u0438\u043a \u0422\u0435\u043b\u0435\u0441\u0438\u043a',
+  '/assets/profile/Grandson-2.png': '\u0414\u0456\u043c\u0430',
+};
 
 export function ensureProfileState(state) {
   state.playerProfile ??= {};
@@ -72,6 +98,7 @@ export function updateProfile(state, profile) {
     updatedAt: new Date().toISOString(),
     createdAt: state.playerProfile.createdAt ?? new Date().toISOString(),
   };
+  state.playerProfile.nameCustom = Boolean(profile.nameCustom ?? true);
   state.progress.profileSetupComplete = true;
   pushLog(state, 'logProfileSaved');
   queueSound(state, 'ui_click');
@@ -83,7 +110,17 @@ export function selectAvatar(state, avatar) {
     return;
   }
   state.playerProfile.avatar = avatar;
+  if (!state.playerProfile.nameCustom) {
+    state.playerProfile.name = defaultNameByAvatar[avatar] ?? DEFAULT_PLAYER_NAME;
+  }
   queueSound(state, 'ui_click');
+}
+
+export function updateProfileDraftName(state, name) {
+  ensureProfileState(state);
+  const normalized = normalizePlayerName(name);
+  state.playerProfile.name = normalized;
+  state.playerProfile.nameCustom = normalized !== (defaultNameByAvatar[state.playerProfile.avatar] ?? DEFAULT_PLAYER_NAME);
 }
 
 export function startTutorial(state) {
@@ -94,6 +131,7 @@ export function startTutorial(state) {
     skipped: false,
     completed: false,
     step: state.tutorialState?.step ?? 0,
+    collapsed: true,
   };
   queueSound(state, 'ui_click');
 }
@@ -136,6 +174,10 @@ export function grantPrimitiveTackle(state, options = {}) {
   };
   selectActiveRig(state, 'first_rod');
   state.progress.firstTackleReady = true;
+  if (!options.skipped && !state.tutorialState?.rewardGranted) {
+    state.money = (state.money ?? 0) + 100;
+    pushFeedback(state, 'feedbackCoins', { coins: 100 }, 'coins');
+  }
   state.tutorialState = {
     ...(state.tutorialState ?? {}),
     promptDismissed: true,
@@ -143,6 +185,8 @@ export function grantPrimitiveTackle(state, options = {}) {
     completed: true,
     skipped: Boolean(options.skipped),
     step: tutorialSteps.length,
+    collapsed: false,
+    rewardGranted: Boolean(state.tutorialState?.rewardGranted || !options.skipped),
   };
   pushFeedback(state, 'feedbackTackle', {}, 'item');
   pushLog(state, options.skipped ? 'logTutorialSkipped' : 'logTutorialCompleted');

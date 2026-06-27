@@ -1,4 +1,5 @@
 import { MAP_HOTSPOTS, MAP_HOTSPOT_DEBUG } from '../game/mapHotspots.js';
+import { tutorialSteps } from '../game/profile.js';
 import { canOpenWaterFromMap, canUseBusStation, getLockedReasonKey, isFishingLocation } from '../game/locations.js';
 import { t } from '../i18n/i18n.js';
 import { getWorldMapAsset } from '../utils/worldMapAsset.js';
@@ -32,13 +33,14 @@ function hotspotMarkup(hotspot, state) {
   const locked = isHotspotLocked(hotspot, state);
   const lockedReason = locked ? getHotspotLockedReason(hotspot, state) : null;
   const shapeClass = ` map-hotspot--${hotspot.type ?? 'ellipse'}`;
+  const tutorialTarget = isTutorialTarget(state, hotspot.action ?? `open:${hotspot.scene}`) ? ' is-tutorial-target' : '';
   const style = hotspotStyle(hotspot);
   const ariaLabel = locked ? `${t(hotspot.labelKey)} - ${t(lockedReason)}` : t(hotspot.actionKey);
-  const label = `${t(hotspot.labelKey)}${locked ? ` / ${t(lockedReason)}` : ''}`;
+  const label = `${hotspot.direction === 'left' ? '← ' : ''}${t(hotspot.labelKey)}${hotspot.direction === 'right' ? ' →' : ''}${locked ? ` / ${t(lockedReason)}` : ''}`;
 
   return `
     <button
-      class="map-hotspot${shapeClass}${selected}${locked ? ' is-locked' : ''}"
+      class="map-hotspot${shapeClass}${selected}${tutorialTarget}${locked ? ' is-locked' : ''}"
       data-action="${hotspot.action ?? `open:${hotspot.scene}`}"
       style="${style}"
       type="button"
@@ -48,6 +50,14 @@ function hotspotMarkup(hotspot, state) {
       <span class="map-hotspot__label">${label}</span>
     </button>
   `;
+}
+
+function isTutorialTarget(state, actionId) {
+  const tutorial = state.tutorialState;
+  if (!tutorial?.started || tutorial.completed || tutorial.skipped || tutorial.collapsed) {
+    return false;
+  }
+  return actionId === tutorialSteps[tutorial.step ?? 0]?.actionId;
 }
 
 function isHotspotLocked(hotspot, state) {

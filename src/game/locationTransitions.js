@@ -30,6 +30,30 @@ export const locationTransitions = {
       ],
     ],
   },
+  sluice: {
+    id: 'sluice_flyin',
+    targetScene: 'sluice',
+    fallbackImage: assetPath('/assets/locations/shluz-transition-06-final.png'),
+    fallbackImageAlt: assetPath('/assets/locations/shluz.png'),
+    videos: [
+      [
+        { src: assetPath('/assets/transitions/shluz/shluz-flyin.webm'), type: 'video/webm' },
+        { src: assetPath('/assets/transitions/shluz/shluz-flyin.mp4'), type: 'video/mp4' },
+      ],
+    ],
+  },
+  fire_ponds: {
+    id: 'fire_ponds_flyin',
+    targetScene: 'fire_ponds',
+    fallbackImage: assetPath('/assets/locations/stavok-pozhara-05-final-fishing-view.png.png'),
+    fallbackImageAlt: assetPath('/assets/locations/stavok.png'),
+    videos: [
+      [
+        { src: assetPath('/assets/transitions/stavok-pozhara/stavok-pozhara-flyin.webm'), type: 'video/webm' },
+        { src: assetPath('/assets/transitions/stavok-pozhara/stavok-pozhara-flyin.mp4'), type: 'video/mp4' },
+      ],
+    ],
+  },
   garden: {
     id: 'garden',
     targetScene: 'garden',

@@ -1,4 +1,4 @@
-import { biteProfiles, castSpots, getBiteProfile, getCastSpot, stateDurationsMs } from './bitePatterns.js';
+import { biteProfiles, biteTuning, castSpots, getBiteProfile, getCastSpot, stateDurationsMs } from './bitePatterns.js';
 import { getFishData, getFreshFishValue, rollFishById } from './fishData.js';
 import {
   addCaughtFish,
@@ -306,6 +306,7 @@ export function strikeLine(state, nowMs) {
       catchSpotId: minigame.selectedSpot,
       method: minigame.method,
       bait: minigame.consumedBait ?? minigame.selectedBait,
+      waterId: normalizeWaterId(state.travel?.selectedWater),
     });
     if (entry?.trophyTier) {
       queueSound(state, 'trophy_fanfare');
@@ -705,7 +706,7 @@ function runBiteCheck(state, minigame, nowMs) {
     return false;
   }
 
-  const lateBoost = minigame.biteCheckIndex >= minigame.biteChecks.length ? 0.04 : 0;
+  const lateBoost = minigame.biteCheckIndex >= minigame.biteChecks.length ? biteTuning.lateBiteBoost : 0;
   if (Math.random() <= clamp(check.chance + lateBoost, 0, 0.9)) {
     return true;
   }
@@ -821,7 +822,7 @@ function resolveMinigameResult(state, result) {
 
 function tickWaitingAmbience(state, minigame, nowMs) {
   if (nowMs >= minigame.idleEventAt) {
-    const falseActivity = Math.random() < 0.42 && minigame.falseActivityCount < 2;
+    const falseActivity = Math.random() < biteTuning.falseActivityChance && minigame.falseActivityCount < 2;
     if (falseActivity) {
       minigame.bobberState = Math.random() < 0.55 ? 'tiny_nibble' : 'idle';
       minigame.statusKey = getWaitingStatusKey(state);
@@ -872,6 +873,10 @@ function consumeBait(state, baitId) {
 
 function chooseFishCandidate(state, minigame) {
   if (!state.progress?.firstCatchDone) {
+    if (normalizeWaterId(state.travel?.selectedWater) !== 'canal') {
+      const spot = getCastSpot(minigame.selectedSpot);
+      return Object.entries(spot.weights).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'crucian';
+    }
     return Math.random() < 0.65 ? 'rotan' : 'crucian';
   }
 
@@ -881,7 +886,10 @@ function chooseFishCandidate(state, minigame) {
     weight: getFishWeight(state, minigame, fishId, profile, spot),
   })).filter((entry) => entry.weight > 0);
 
-  const noBiteWeight = weights.length === 0 ? 1 : 2.35;
+  const baitSuitability = weights.reduce((best, entry) => Math.max(best, getBaitSuitability(entry.fishId, minigame.selectedBait)), 0);
+  const noBiteWeight = weights.length === 0
+    ? 1
+    : biteTuning.noBiteWeight + (baitSuitability < 1 ? biteTuning.calmNoBiteWeight : 0) + (spot.zone === 'near_bank' ? -0.25 : 0.2);
   const totalWeight = weights.reduce((total, entry) => total + entry.weight, noBiteWeight);
   const roll = Math.random() * totalWeight;
 
@@ -939,10 +947,10 @@ function getFishWeight(state, minigame, fishId, profile, spot) {
   }
 
   if (fishId === 'pike') {
-    if (minigame.selectedBait !== 'live_bait' || getTackleEffects(state).reachBonus <= 0) {
+    if (minigame.selectedBait !== 'live_bait') {
       return 0;
     }
-    score *= 1.35;
+    score *= spot.zone === 'reed_edge' ? 1.85 : 1.45;
   }
 
   if (fishId === 'sudak') {
@@ -997,7 +1005,11 @@ function buildCyclePattern(fishId, cycle, total) {
     gudgeon: ['tiny_nibble', 'hard_dip', 'strike_window'],
     eel: cycle === total ? ['idle', 'slow_dip', 'submerged', 'strike_window'] : ['idle', 'sideways_pull', 'strike_window'],
   };
-  return profiles[fishId] ?? ['tiny_nibble', 'strike_window'];
+  const profile = profiles[fishId] ?? ['tiny_nibble', 'strike_window'];
+  if (cycle < total && Math.random() < biteTuning.weakBiteChance) {
+    return Math.random() < 0.5 ? ['tiny_nibble', 'idle'] : ['lift', 'idle'];
+  }
+  return profile;
 }
 
 function getBiteCycleTotal(fishId) {
@@ -1233,7 +1245,7 @@ function resetAfterResult(state, minigame) {
   state.ui.catchResult = null;
   state.ui.collapsedPanels = {
     ...(state.ui.collapsedPanels ?? {}),
-    fishingControls: false,
+    fishingControls: true,
   };
   autoSelectFirstAvailableBait(state, minigame);
   autoSelectFirstAvailableSpot(state, minigame);

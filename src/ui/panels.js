@@ -6,6 +6,7 @@ import { fishSizeProfiles } from '../game/fishSizeProfiles.js';
 import { getFishSaleValue, getFreshnessInfo, getMarketPriceInfo } from '../game/market.js';
 import { getCastSpot } from '../game/bitePatterns.js';
 import { shopItems } from '../game/state.js';
+import { getQuestRows } from '../game/quests.js';
 import { profileAvatars } from '../game/profile.js';
 import { componentLabels, getActiveRig, getAvailableRigs, tackleComponents } from '../game/tackle.js';
 import { countItem, itemLabels } from '../game/inventory.js';
@@ -18,6 +19,7 @@ const inventoryOrder = [
   'simpleHook',
   'primitiveTackle',
   'stickRod',
+  'scooter',
   'bicycle',
   'worms',
   'larvae',
@@ -69,6 +71,7 @@ const itemImages = {
   sharper_hook: '/assets/items/sharp-hook.png',
   hooksPack: '/assets/items/hooks_box.png',
   salt: '/assets/items/salt_bag.png',
+  scooter: '/assets/items/scooter.jpg',
   bicycle: '/assets/items/bicycle.png',
   betterBicycle: '/assets/items/bicycle-better.png',
   bestBicycle: '/assets/items/bicycle-best.png',
@@ -151,13 +154,21 @@ export function profileMarkup(state) {
         <p>${t('coins')}: <strong>${state.money}</strong></p>
       </div>
     </div>
-    <form class="profile-form profile-form--inline" data-profile-form>
-      <input name="name" type="text" autocomplete="name" value="${escapeHtml(profile.name ?? '')}" placeholder="${t('defaultPlayerName')}" />
-      <div class="avatar-grid avatar-grid--small">
-        ${profileAvatars.map((avatar) => avatarButtonMarkup(avatar, profile.avatar)).join('')}
-      </div>
-      <button type="submit">${t('saveProfile')}</button>
-    </form>
+    ${state.ui?.editingProfile ? `
+      <form class="profile-form profile-form--inline" data-profile-form>
+        <input data-profile-name-input name="name" type="text" autocomplete="name" value="${escapeHtml(profile.name ?? '')}" placeholder="${t('defaultPlayerName')}" />
+        <details class="avatar-selector">
+          <summary>${t('changeAvatar')}</summary>
+          <div class="avatar-grid avatar-grid--small">
+            ${profileAvatars.map((avatar) => avatarButtonMarkup(avatar, profile.avatar)).join('')}
+          </div>
+        </details>
+        <div class="profile-form__actions">
+          <button type="submit">${t('saveProfile')}</button>
+          <button data-action="profile:cancelEdit" type="button">${t('close')}</button>
+        </div>
+      </form>
+    ` : `<button class="profile-edit-button" data-action="profile:edit" type="button">${t('editProfile')}</button>`}
     <dl class="profile-stats">
       <div><dt>${t('daysFishing')}</dt><dd>${state.day ?? 1}</dd></div>
       <div><dt>${t('totalFishCaught')}</dt><dd>${state.stats?.totalFishCaught ?? 0}</dd></div>
@@ -225,10 +236,6 @@ export function achievementsMarkup(state) {
   const trophyBySpecies = state.achievements?.trophyBySpecies ?? {};
   const rows = fishData.map((fish) => {
     const tiers = trophyBySpecies[fish.id] ?? {};
-    const achieved = ['normal', 'very_rare', 'rarest'].filter((tier) => tiers[tier]);
-    if (achieved.length === 0) {
-      return '';
-    }
 
     return `
       <article class="achievement-card">
@@ -236,14 +243,37 @@ export function achievementsMarkup(state) {
         <div>
           <h3>${t(fish.nameKey)}</h3>
           <div class="trophy-badge-row">
-            ${achieved.map((tier) => trophyBadgeMarkup(tier, tiers[tier].weightGrams)).join('')}
+            ${['normal', 'very_rare', 'rarest'].map((tier) => trophyBadgeMarkup(tier, tiers[tier]?.weightGrams, !tiers[tier])).join('')}
           </div>
+          <small>${t('achievementTrophyGoal')}</small>
         </div>
       </article>
     `;
   }).join('');
 
   return rows || `<p class="empty-panel">${t('achievementsEmpty')}</p>`;
+}
+
+export function questsMarkup(state) {
+  const rows = getQuestRows(state);
+  return `
+    <div class="quest-list">
+      ${rows.map((quest) => `
+        <article class="quest-card${quest.complete ? ' is-complete' : ''}${quest.claimed ? ' is-claimed' : ''}">
+          <div>
+            <p class="section-label">${quest.waterId ? t(getWaterNameKey(quest.waterId)) : t('activeQuests')}</p>
+            <h3>${t(quest.titleKey)}</h3>
+            <p>${t(quest.descriptionKey)}</p>
+            <strong>${quest.progress}/${quest.required}</strong>
+            <small>${t('reward')}: ${t(quest.rewardKey)}</small>
+          </div>
+          <button data-action="quest:claim:${quest.id}" type="button"${quest.complete && !quest.claimed ? '' : ' disabled'}>
+            ${quest.claimed ? t('claimed') : quest.complete ? t('claimReward') : t('inProgress')}
+          </button>
+        </article>
+      `).join('')}
+    </div>
+  `;
 }
 
 export function mapViewerMarkup(state) {
@@ -357,6 +387,7 @@ export function getShopItemLabel(itemId) {
     sharperHook: 'componentSharperHook',
     properRod: 'componentProperRod',
     bicycle: 'itemBicycle',
+    scooter: 'itemScooter',
     betterBicycle: 'itemBetterBicycle',
     bestBicycle: 'itemBestBicycle',
     salt: 'itemSalt',
@@ -442,10 +473,10 @@ function trophyMarkup(trophy) {
   `;
 }
 
-export function trophyBadgeMarkup(tier, weightGrams = null) {
+export function trophyBadgeMarkup(tier, weightGrams = null, locked = false) {
   const stars = { normal: '*', very_rare: '**', rarest: '***' }[tier] ?? '*';
   const weight = weightGrams ? ` ${weightGrams}g` : '';
-  return `<span class="trophy-badge trophy-badge--${tier}" title="${t(trophyKeyForTier(tier))}">${stars}${weight}</span>`;
+  return `<span class="trophy-badge trophy-badge--${tier}${locked ? ' is-locked' : ''}" title="${t(trophyKeyForTier(tier))}">${locked ? '□' : stars}${weight || (locked ? ` ${t('locked')}` : '')}</span>`;
 }
 
 function trophyCardMarkup(trophy) {
@@ -479,6 +510,17 @@ function speciesImage(fishId) {
   }
 
   return assetPath(`/assets/fish/species/${fishId}.png`);
+}
+
+function getWaterNameKey(waterId) {
+  return {
+    canal: 'waterCanal',
+    sluice: 'waterSluice',
+    fire_ponds: 'waterFirePonds',
+    greada: 'waterGreada',
+    lake_tur: 'waterLakeTur',
+    mining_lake: 'waterMiningLake',
+  }[waterId] ?? 'location';
 }
 
 function itemImage(itemId) {
@@ -654,6 +696,7 @@ function shopDescriptionKey(itemId) {
     sharperHook: 'shopDescSharperHook',
     properRod: 'shopDescProperRod',
     bicycle: 'shopDescBicycle',
+    scooter: 'shopDescScooter',
     betterBicycle: 'shopDescBetterBicycle',
     bestBicycle: 'shopDescBestBicycle',
     salt: 'shopDescSalt',

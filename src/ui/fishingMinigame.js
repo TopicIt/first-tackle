@@ -374,7 +374,8 @@ function getCatchImage(fishId) {
 
 function getFishingWaterImage(state) {
   const waterId = state.travel?.selectedWater ?? 'canal';
-  const imageId = getFishingLocation(waterId)?.imageId ?? 'canal';
+  const location = getFishingLocation(waterId);
+  const imageId = location?.fishingImageId ?? location?.imageId ?? 'canal';
   return {
     src: getLocationImage(imageId),
     fallback: getLocationImageFallback(imageId) ?? assetPath('/assets/locations/pond_location_concept.png'),

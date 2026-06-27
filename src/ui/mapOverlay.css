@@ -152,6 +152,13 @@
   backdrop-filter: blur(10px);
 }
 
+.map-hotspot[data-action="mapWater:sluice"] .map-hotspot__label,
+.map-hotspot[data-action="mapWater:fire_ponds"] .map-hotspot__label {
+  border-color: rgb(243 196 95 / 44%);
+  background: rgb(18 27 24 / 56%);
+  opacity: 0.9;
+}
+
 .map-hotspot:hover .map-hotspot__area,
 .map-hotspot:focus-visible .map-hotspot__area,
 .map-hotspot.is-selected .map-hotspot__area {
@@ -185,6 +192,22 @@
   border-style: dashed;
   border-color: rgb(255 255 255 / 36%);
   background: rgb(255 255 255 / 8%);
+}
+
+.map-hotspot.is-tutorial-target .map-hotspot__label,
+.is-tutorial-target {
+  animation: tutorialPulse 1.05s ease-in-out infinite;
+}
+
+@keyframes tutorialPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(243 196 95 / 0%);
+  }
+
+  50% {
+    box-shadow: 0 0 0 5px rgb(243 196 95 / 24%), 0 0 24px rgb(243 196 95 / 30%);
+  }
 }
 
 @keyframes mapSlowBreath {

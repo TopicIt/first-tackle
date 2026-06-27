@@ -153,6 +153,14 @@ export const shopItems = [
     category: 'tackle',
   },
   {
+    id: 'scooter',
+    label: 'Scooter',
+    price: 700,
+    description: 'Unlocks rides to the sluice',
+    type: 'tool',
+    category: 'other',
+  },
+  {
     id: 'bicycle',
     label: 'Used bicycle',
     price: 2000,
@@ -185,6 +193,7 @@ export function createInitialState() {
       setupComplete: false,
       name: DEFAULT_PLAYER_NAME,
       avatar: DEFAULT_AVATAR,
+      nameCustom: false,
       createdAt: null,
       updatedAt: null,
     },
@@ -192,7 +201,7 @@ export function createInitialState() {
     inventory: {
       thread: 1,
       simpleHook: 1,
-      worms: 2,
+      worms: 5,
       larvae: 0,
       bread: 0,
       mastyrka: 0,
@@ -286,8 +295,12 @@ export function createInitialState() {
     },
     catchJournal: {},
     trophies: [],
-    achievements: {
-      trophyBySpecies: {},
+      achievements: {
+        trophyBySpecies: {},
+        claimedTrophyRewards: {},
+      },
+    quests: {
+      claimed: {},
     },
     tackle: {
       activeRig: 'handline',
@@ -340,6 +353,7 @@ export function createInitialState() {
         tackle: true,
         guide: true,
         achievements: true,
+        quests: true,
         mapViewer: true,
         settings: true,
         fishingControls: true,

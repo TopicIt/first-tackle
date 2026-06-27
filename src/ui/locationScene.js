@@ -3,6 +3,7 @@ import { logMarkup, marketMarkup } from './panels.js';
 import { fishingMinigameMarkup } from './fishingMinigame.js';
 import { getFishData } from '../game/fishData.js';
 import { getFishingLocation, isFishingLocation } from '../game/locations.js';
+import { tutorialSteps } from '../game/profile.js';
 import { t, translateEntry } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
 import { getLocationImage, getLocationImageFallback } from '../utils/locationAsset.js';
@@ -96,11 +97,11 @@ export function locationSceneMarkup(state, context) {
         </header>
 
         <div class="scene-body">
-          <section class="scene-actions">
+          ${sceneId === 'market' ? '' : `<section class="scene-actions">
             <div class="scene-action-grid">
-              ${context.sceneActions.map(actionButtonMarkup).join('')}
+              ${context.sceneActions.map((action) => actionButtonMarkup(action, state)).join('')}
             </div>
-          </section>
+          </section>`}
 
           ${sceneId === 'market' ? `
             <section class="scene-actions scene-market">
@@ -147,15 +148,24 @@ function effectMarkup(effectClass) {
   return `<div class="${effectClass}" aria-hidden="true"></div>`;
 }
 
-function actionButtonMarkup(action) {
+function actionButtonMarkup(action, state) {
   const variant = action.variant ? ` ${action.variant}` : '';
+  const tutorialTarget = isTutorialTarget(state, action.id) ? ' is-tutorial-target' : '';
   const disabled = action.disabled ? ' disabled' : '';
   return `
-    <button class="${variant.trim()}" data-action="${action.id}" type="button"${disabled}>
+    <button class="${`${variant}${tutorialTarget}`.trim()}" data-action="${action.id}" type="button"${disabled}>
       ${action.label}
       ${action.reason ? `<small>${action.reason}</small>` : ''}
     </button>
   `;
+}
+
+function isTutorialTarget(state, actionId) {
+  const tutorial = state.tutorialState;
+  if (!tutorial?.started || tutorial.completed || tutorial.skipped || tutorial.collapsed) {
+    return false;
+  }
+  return actionId === tutorialSteps[tutorial.step ?? 0]?.actionId;
 }
 
 function feedbackMarkup(feedback) {
@@ -205,8 +215,8 @@ function fishingSceneConfig(sceneId) {
   return {
     titleKey: location.titleKey,
     descriptionKey: location.descriptionKey,
-    image: getLocationImage(location.imageId),
-    fallbackImage: getLocationImageFallback(location.imageId),
+    image: getLocationImage(location.fishingImageId ?? location.imageId),
+    fallbackImage: getLocationImageFallback(location.fishingImageId ?? location.imageId),
     bgClass: 'scene-bg--slow-zoom',
     effects: ['scene-water-ripples', 'scene-bobber', 'scene-cloud-shadow'],
   };

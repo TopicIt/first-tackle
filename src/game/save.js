@@ -210,6 +210,14 @@ function mergeState(base, saved) {
         ...(saved.travel?.selectedWater ? { [normalizeWaterId(saved.travel.selectedWater)]: true } : {}),
       },
     },
+    quests: {
+      ...base.quests,
+      ...(saved.quests ?? {}),
+      claimed: {
+        ...base.quests.claimed,
+        ...(saved.quests?.claimed ?? {}),
+      },
+    },
     market: mergeMarketState(saved.market, base.day),
     time: {
       ...base.time,
@@ -263,6 +271,10 @@ function mergeState(base, saved) {
       trophyBySpecies: {
         ...base.achievements.trophyBySpecies,
         ...(saved.achievements?.trophyBySpecies ?? {}),
+      },
+      claimedTrophyRewards: {
+        ...base.achievements.claimedTrophyRewards,
+        ...(saved.achievements?.claimedTrophyRewards ?? {}),
       },
     },
     tackle: {

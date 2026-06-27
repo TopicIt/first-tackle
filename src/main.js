@@ -30,9 +30,10 @@ import { createAudioManager } from './audio/audioManager.js';
 import { ensureMarketState, freshFishAtRisk } from './game/market.js';
 import { ensureTackleState, equipTackleComponent, getRigMethod, selectActiveRig } from './game/tackle.js';
 import { ensureTimeState, formatGameTime, getTimePhase } from './game/time.js';
-import { canOpenWaterFromMap, canUseBusStation, getFishingLocation, getLockedReasonKey, hasUsableBicycle, isFishingLocation } from './game/locations.js';
+import { canOpenWaterFromMap, canUseBusStation, getFishingLocation, getLockedReasonKey, isFishingLocation } from './game/locations.js';
 import { getLocationTransition, markLocationTransitionVisit, shouldUseLocationTransitions } from './game/locationTransitions.js';
 import { arriveAtWater } from './game/travel.js';
+import { claimQuestReward, ensureQuestState, syncQuestProgress, unlockAllLocationsForDebug } from './game/quests.js';
 import {
   completeTutorialStep,
   ensureProfileState,
@@ -41,6 +42,7 @@ import {
   skipTutorial,
   startTutorial,
   syncGrandmaTrust,
+  updateProfileDraftName,
   updateProfile,
 } from './game/profile.js';
 import { createHud } from './ui/hud.js';
@@ -63,6 +65,7 @@ ensureMarketState(gameState);
 ensureTackleState(gameState);
 ensureTimeState(gameState);
 ensureProfileState(gameState);
+ensureQuestState(gameState);
 syncGrandmaTrust(gameState);
 normalizeTransitionSettings(gameState);
 normalizeViewModeSettings(gameState);
@@ -111,6 +114,12 @@ const hud = createHud(hudRoot, {
       return;
     }
 
+    if (actionId === 'profile:cancelEdit') {
+      gameState.ui.editingProfile = false;
+      renderHud();
+      return;
+    }
+
     if (actionId === 'tutorial:start') {
       startTutorial(gameState);
       renderHud();
@@ -123,6 +132,16 @@ const hud = createHud(hudRoot, {
       return;
     }
 
+    if (actionId === 'tutorial:toggle') {
+      gameState.tutorialState = {
+        ...(gameState.tutorialState ?? {}),
+        collapsed: !gameState.tutorialState?.collapsed,
+      };
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
     if (actionId === 'tutorial:step') {
       completeTutorialStep(gameState);
       renderHud();
@@ -131,8 +150,8 @@ const hud = createHud(hudRoot, {
 
     if (actionId.startsWith('mapWater:')) {
       const waterId = actionId.replace('mapWater:', '');
-      if (!hasUsableBicycle(gameState)) {
-        pushLog(gameState, 'logNeedBicycleForTravel');
+      if (!canOpenWaterFromMap(gameState, waterId)) {
+        pushLog(gameState, lockedLogKey(waterId));
         renderHud();
         return;
       }
@@ -190,8 +209,11 @@ const hud = createHud(hudRoot, {
       }
       if (isFishingLocation(sceneId)) {
         if (!canOpenWaterFromMap(gameState, sceneId)) {
-          pushLog(gameState, getLockedReasonKey(gameState, sceneId) === 'requiresBusTicket' ? 'logNeedBusTicket' : 'logNeedBicycleForTravel');
+          pushLog(gameState, lockedLogKey(sceneId));
           renderHud();
+          return;
+        }
+        if (startLocationTransition(sceneId)) {
           return;
         }
         arriveAtWater(gameState, sceneId);
@@ -321,6 +343,16 @@ const hud = createHud(hudRoot, {
       return;
     }
 
+    if (actionId.startsWith('submap:fish:')) {
+      const waterId = actionId.replace('submap:fish:', '');
+      if (startLocationTransition(waterId)) {
+        return;
+      }
+      arriveAtWater(gameState, waterId);
+      renderHud();
+      return;
+    }
+
     if (actionId.startsWith('biteHints:')) {
       setBiteHintMode(gameState, actionId.replace('biteHints:', ''));
       renderHud();
@@ -334,6 +366,18 @@ const hud = createHud(hudRoot, {
         explicit: true,
       };
       gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'debug:unlockAllLocations') {
+      unlockAllLocationsForDebug(gameState);
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('quest:claim:')) {
+      claimQuestReward(gameState, actionId.replace('quest:claim:', ''));
       renderHud();
       return;
     }
@@ -542,10 +586,14 @@ const hud = createHud(hudRoot, {
     updateProfile(gameState, {
       name: profile.name,
       avatar: gameState.playerProfile?.avatar || DEFAULT_AVATAR,
+      nameCustom: true,
     });
     gameState.ui.editingProfile = false;
     advanceStartupAfterProfile();
     renderHud();
+  },
+  onProfileNameDraft(name) {
+    updateProfileDraftName(gameState, name);
   },
   onImportSave(rawText) {
     try {
@@ -568,7 +616,7 @@ function syncPlayerToState() {
 }
 
 function closeSiblingPanels(state, openedPanelId) {
-  const exclusivePanels = ['profile', 'inventory', 'keepnet', 'tackle', 'guide', 'journal', 'achievements', 'mapViewer', 'settings'];
+  const exclusivePanels = ['profile', 'inventory', 'keepnet', 'tackle', 'guide', 'journal', 'quests', 'achievements', 'mapViewer', 'settings'];
   if (!exclusivePanels.includes(openedPanelId)) {
     return;
   }
@@ -593,7 +641,7 @@ function normalizePanelStateForViewport(state) {
 
   state.ui.collapsedPanels.status = false;
 
-  for (const panelId of ['profile', 'inventory', 'keepnet', 'tackle', 'guide', 'journal', 'achievements', 'mapViewer', 'settings']) {
+  for (const panelId of ['profile', 'inventory', 'keepnet', 'tackle', 'guide', 'journal', 'quests', 'achievements', 'mapViewer', 'settings']) {
     state.ui.collapsedPanels[panelId] = true;
   }
 }
@@ -663,13 +711,31 @@ function finishLocationTransition() {
     return;
   }
 
+  if (isFishingLocation(transition.targetScene)) {
+    arriveAtWater(gameState, transition.targetScene);
+    renderHud();
+    return;
+  }
+
   gameState.ui.activeScene = transition.targetScene;
   gameState.ui.selectedHotspot = transition.targetScene;
   gameState.audioQueue.push('open_scene');
   renderHud();
 }
 
+function lockedLogKey(waterId) {
+  const reasonKey = getLockedReasonKey(gameState, waterId);
+  if (reasonKey === 'requiresScooterOrBicycle') {
+    return 'logNeedScooterOrBicycle';
+  }
+  if (reasonKey === 'requiresBusTicket') {
+    return 'logNeedBusTicket';
+  }
+  return 'logNeedBicycleForTravel';
+}
+
 function renderHud() {
+  syncQuestProgress(gameState);
   const context = gameState.ui.activeScene
     ? getLocationSceneContext(gameState, gameState.ui.activeScene)
     : getInteractionContext(gameState, player.position);
@@ -719,6 +785,7 @@ function ensureRuntimeState(state) {
   ensureTimeState(state);
   ensureProfileState(state);
   syncGrandmaTrust(state);
+  ensureQuestState(state);
   normalizeTransitionSettings(state);
   normalizeViewModeSettings(state);
   applyViewModeToDocument(state);
@@ -853,6 +920,8 @@ function queueAutosave() {
     seenEvents: gameState.seenEvents,
     tutorialState: gameState.tutorialState,
     progress: gameState.progress,
+    quests: gameState.quests,
+    achievements: gameState.achievements,
   });
   if (signature === lastAutosaveSignature) {
     return;

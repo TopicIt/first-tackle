@@ -1,4 +1,4 @@
-import { BUS_WATER_IDS, canUseBusStation, getFishingLocation, hasUsableBicycle, normalizeWaterId } from './locations.js';
+import { BUS_WATER_IDS, canUseBusStation, getFishingLocation, hasMobilityForSluice, hasScooter, hasUsableBicycle, normalizeWaterId } from './locations.js';
 import { pushFeedback, pushLog, queueSound } from './state.js';
 
 export function arriveAtWater(state, locationId, logKey = 'logArrivedAtWater') {
@@ -29,18 +29,24 @@ export function arriveAtWater(state, locationId, logKey = 'logArrivedAtWater') {
 
 export function travelByBicycle(state, locationId) {
   const location = getFishingLocation(locationId);
-  if (!location || !['bicycle', 'bicycle_or_bus'].includes(location.access)) {
+  if (!location || !['bicycle', 'bicycle_or_bus', 'scooter_or_bicycle'].includes(location.access)) {
     return false;
   }
 
-  if (!hasUsableBicycle(state)) {
-    pushLog(state, 'logNeedBicycleForTravel');
+  if (location.access === 'scooter_or_bicycle' && !hasMobilityForSluice(state)) {
+    pushLog(state, 'logNeedScooterOrBicycle');
+    return false;
+  }
+
+  const usingScooterForSluice = location.access === 'scooter_or_bicycle' && hasScooter(state);
+  if (!usingScooterForSluice && !hasUsableBicycle(state)) {
+    pushLog(state, location.access === 'scooter_or_bicycle' ? 'logNeedScooterOrBicycle' : 'logNeedBicycleForTravel');
     return false;
   }
 
   state.travel ??= {};
   state.travel.farWatersUnlocked = true;
-  if (!state.purchased?.bestBicycle) {
+  if (!usingScooterForSluice && !state.purchased?.bestBicycle) {
     state.travel.bicycleTripsLeft = Math.max(0, (state.travel.bicycleTripsLeft ?? 0) - 1);
     if (state.travel.bicycleTripsLeft === 0) {
       pushLog(state, 'logBicycleBroken');

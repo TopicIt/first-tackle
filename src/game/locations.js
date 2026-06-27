@@ -9,7 +9,8 @@ export const FISHING_LOCATION_IDS = [
   'mining_lake',
 ];
 
-export const BICYCLE_WATER_IDS = ['sluice', 'fire_ponds', 'greada'];
+export const BICYCLE_WATER_IDS = ['fire_ponds', 'greada'];
+export const MOBILITY_WATER_IDS = ['sluice', 'fire_ponds', 'greada'];
 export const BUS_WATER_IDS = ['greada', 'lake_tur', 'mining_lake'];
 
 export const fishingLocations = {
@@ -32,18 +33,19 @@ export const fishingLocations = {
   sluice: {
     id: 'sluice',
     order: 2,
-    access: 'bicycle',
     labelKey: 'zoneSluice',
     titleKey: 'sceneSluiceTitle',
     descriptionKey: 'sceneSluiceDescription',
     guideNameKey: 'waterSluice',
     guideDescriptionKey: 'waterSluiceDesc',
+    access: 'scooter_or_bicycle',
     imageId: 'sluice',
+    fishingImageId: 'sluiceFishing',
     fishIds: getWaterFishIds('sluice'),
     bestTimeKey: 'timeMorningEvening',
     tackleKey: 'guideSluiceTackle',
     baitKey: 'guideWormLarvaeLive',
-    unlockKey: 'buyBicycleToReachWaters',
+    unlockKey: 'requiresScooterOrBicycle',
   },
   fire_ponds: {
     id: 'fire_ponds',
@@ -55,6 +57,7 @@ export const fishingLocations = {
     guideNameKey: 'waterFirePonds',
     guideDescriptionKey: 'waterFirePondsDesc',
     imageId: 'firePonds',
+    fishingImageId: 'firePondsFishing',
     fishIds: getWaterFishIds('fire_ponds'),
     bestTimeKey: 'timeMorningEvening',
     tackleKey: 'guideRodFloat',
@@ -153,6 +156,10 @@ export function canOpenWaterFromMap(state, locationId) {
     return hasUsableBicycle(state);
   }
 
+  if (location.access === 'scooter_or_bicycle') {
+    return hasMobilityForSluice(state);
+  }
+
   if (location.access === 'bicycle_or_bus') {
     return hasUsableBicycle(state) || state.travel?.selectedWater === location.id;
   }
@@ -178,6 +185,10 @@ export function canSelectWaterForFishing(state, locationId) {
     return hasUsableBicycle(state);
   }
 
+  if (location.access === 'scooter_or_bicycle') {
+    return hasMobilityForSluice(state);
+  }
+
   if (location.access === 'bicycle_or_bus') {
     return hasUsableBicycle(state) || state.travel?.selectedWater === location.id;
   }
@@ -195,6 +206,10 @@ export function getLockedReasonKey(state, locationId) {
     return 'requiresBusTicket';
   }
 
+  if (location.access === 'scooter_or_bicycle' && !hasMobilityForSluice(state)) {
+    return 'requiresScooterOrBicycle';
+  }
+
   if ((location.access === 'bicycle' || location.access === 'bicycle_or_bus') && !hasUsableBicycle(state)) {
     return 'requiresBicycle';
   }
@@ -205,6 +220,14 @@ export function getLockedReasonKey(state, locationId) {
 export function hasUsableBicycle(state) {
   return Boolean(state.purchased?.bestBicycle)
     || Boolean((state.travel?.bicycleTripsLeft ?? 0) > 0);
+}
+
+export function hasScooter(state) {
+  return Boolean(state.purchased?.scooter);
+}
+
+export function hasMobilityForSluice(state) {
+  return hasScooter(state) || hasUsableBicycle(state);
 }
 
 export function getGrandmaTrustProgress(state) {

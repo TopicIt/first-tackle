@@ -21,13 +21,15 @@ import {
 } from './fishing.js';
 import { hasItem } from './inventory.js';
 import {
-  BICYCLE_WATER_IDS,
   BUS_WATER_IDS,
+  MOBILITY_WATER_IDS,
   canSelectWaterForFishing,
   canUseBusStation,
   getFishingLocation,
   getFishingLocationList,
   getGrandmaTrustProgress,
+  getLockedReasonKey,
+  hasMobilityForSluice,
   hasUsableBicycle,
   isFishingLocation,
 } from './locations.js';
@@ -263,8 +265,7 @@ export function runAction(actionId, state, context = idleContext) {
     if (canSelectWaterForFishing(state, waterId)) {
       arriveAtWater(state, waterId);
     } else {
-      const location = getFishingLocation(waterId);
-      pushActionLog(state, location?.access === 'bus' ? 'logNeedBusTicket' : 'logNeedBicycleForTravel');
+      pushActionLog(state, lockedLogKey(state, waterId));
     }
   }
 
@@ -413,7 +414,7 @@ function getSceneActions(state, zoneId) {
           : t('selectWaterAction', { destination: t(location.labelKey) }),
         disabled: !available,
         variant: available ? 'secondary' : 'future',
-        reason: available ? '' : t(location.access === 'bus' ? 'requiresBusTicket' : 'requiresBicycle'),
+        reason: available ? '' : t(getLockedReasonKey(state, location.id)),
       };
     });
   }
@@ -576,15 +577,27 @@ function pushActionLog(state, key) {
 
 function bicycleRouteActions(state) {
   const usableBicycle = hasUsableBicycle(state);
-  return BICYCLE_WATER_IDS.map((waterId) => {
+  return MOBILITY_WATER_IDS.map((waterId) => {
     const location = getFishingLocation(waterId);
+    const available = location.access === 'scooter_or_bicycle' ? hasMobilityForSluice(state) : usableBicycle;
     return {
       id: `travel:water:${waterId}`,
-      label: usableBicycle
+      label: available
         ? t('travelToWater', { destination: t(location.labelKey) })
-        : t('requiresBicycle'),
-      disabled: !usableBicycle,
-      variant: usableBicycle ? 'secondary' : 'future',
+        : t(getLockedReasonKey(state, waterId)),
+      disabled: !available,
+      variant: available ? 'secondary' : 'future',
     };
   });
+}
+
+function lockedLogKey(state, waterId) {
+  const reasonKey = getLockedReasonKey(state, waterId);
+  if (reasonKey === 'requiresScooterOrBicycle') {
+    return 'logNeedScooterOrBicycle';
+  }
+  if (reasonKey === 'requiresBusTicket') {
+    return 'logNeedBusTicket';
+  }
+  return 'logNeedBicycleForTravel';
 }

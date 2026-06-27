@@ -161,7 +161,7 @@
 .hint-mode,
 .fishing-panel__actions button,
 .fishing-result__actions button {
-  min-height: 42px;
+  min-height: 44px;
   border: 0;
   border-radius: 8px;
   font: inherit;
@@ -955,7 +955,9 @@
   inset: 0;
   z-index: 50;
   display: grid;
-  place-items: center;
+  align-items: start;
+  justify-items: center;
+  padding-top: max(52px, env(safe-area-inset-top));
 }
 
 .fishing-result-modal__backdrop {
@@ -969,10 +971,10 @@
 .fishing-result-modal .fishing-result {
   position: relative;
   z-index: 1;
-  width: min(460px, calc(100vw - 32px));
-  max-height: calc(100vh - 64px);
+  width: min(420px, calc(100vw - 28px));
+  max-height: calc(100vh - 104px);
   overflow: auto;
-  border-radius: 18px;
+  border-radius: 8px;
   background: rgb(15 25 24 / 90%);
 }
 
@@ -1038,11 +1040,16 @@
 .fishing-result__actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 7px;
 }
 
 .fishing-result__actions button {
+  min-height: 36px;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 999px;
   background: #f0eee5;
+  font-size: 0.78rem;
+  padding: 7px 10px;
 }
 
 .fishing-result--compact {

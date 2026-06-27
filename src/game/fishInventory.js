@@ -1,8 +1,10 @@
 import { fishIds } from './inventory.js';
+import { biteProfiles } from './bitePatterns.js';
 import { getFishData } from './fishData.js';
 import { pushFeedback, pushLog } from './state.js';
 import { classifyCatchSize, trophyTierForCategory } from './fishSizeProfiles.js';
 import { syncGrandmaTrust } from './profile.js';
+import { syncQuestProgress } from './quests.js';
 
 const trackedStatuses = ['fresh', 'cleaned', 'salted', 'drying', 'ready_taranka', 'taranka', 'smoked', 'live_bait'];
 const liveBaitSpecies = ['gudgeon', 'crucian', 'plotytsia', 'loach'];
@@ -16,6 +18,7 @@ export function createFishEntry(catchResult, caughtAtDay, context = {}) {
     catchSpotId: context.catchSpotId ?? null,
     method: context.method ?? null,
     bait: context.bait ?? null,
+    waterId: context.waterId ?? null,
     value: catchResult.value,
     status: 'fresh',
     isLiveBaitEligible: isLiveBaitEligible(catchResult.id, catchResult.weightGrams),
@@ -62,6 +65,7 @@ export function addCaughtFish(state, catchResult, context = {}) {
   }
   updateCatchJournal(state, entry);
   syncGrandmaTrust(state);
+  syncQuestProgress(state);
   syncInventoryFromFishBasket(state);
   return entry;
 }
@@ -338,6 +342,7 @@ function normalizeFishEntry(entry, day) {
     catchSpotId: entry.catchSpotId ?? null,
     method: entry.method ?? null,
     bait: entry.bait ?? null,
+    waterId: entry.waterId ?? null,
     status: trackedStatuses.includes(entry.status) ? entry.status : 'fresh',
     isLiveBaitEligible: entry.isLiveBaitEligible ?? isLiveBaitEligible(entry.fishId, entry.weightGrams),
     catchCategory: entry.catchCategory ?? classifyCatchSize(entry.fishId, entry.weightGrams),
@@ -380,6 +385,7 @@ function updateCatchJournal(state, entry) {
     state.achievements ??= {};
     state.achievements.trophyBySpecies ??= {};
     state.achievements.trophyBySpecies[entry.fishId] ??= {};
+    const wasCaught = Boolean(state.achievements.trophyBySpecies[entry.fishId][entry.trophyTier]);
     state.achievements.trophyBySpecies[entry.fishId][entry.trophyTier] = {
       weightGrams: Math.max(
         entry.weightGrams,
@@ -387,6 +393,7 @@ function updateCatchJournal(state, entry) {
       ),
       caughtAtDay: entry.caughtAtDay,
     };
+    awardTrophyReward(state, entry, wasCaught);
   }
 
   for (const trophyKey of trophies) {
@@ -406,6 +413,10 @@ function updateCatchJournal(state, entry) {
 
 export function classifyTrophyCatch(entry, fish = getFishData(entry?.fishId)) {
   void fish;
+  const favoriteBaits = biteProfiles[entry?.fishId]?.preferred?.baits ?? [];
+  if (!favoriteBaits.includes(entry?.bait)) {
+    return null;
+  }
   return trophyTierForCategory(entry?.catchCategory ?? classifyCatchSize(entry?.fishId, entry?.weightGrams ?? 0));
 }
 
@@ -415,6 +426,33 @@ export function trophyKeyForTier(tier) {
     very_rare: 'trophyTierVeryRare',
     rarest: 'trophyTierRarest',
   }[tier] ?? 'trophyLargeFish';
+}
+
+function awardTrophyReward(state, entry, wasCaught) {
+  if (wasCaught || !entry?.trophyTier) {
+    return;
+  }
+
+  const reward = {
+    normal: 50,
+    very_rare: 100,
+    rarest: 200,
+  }[entry.trophyTier] ?? 0;
+  if (!reward) {
+    return;
+  }
+
+  state.achievements ??= {};
+  state.achievements.claimedTrophyRewards ??= {};
+  const key = `${entry.fishId}:${entry.trophyTier}`;
+  if (state.achievements.claimedTrophyRewards[key]) {
+    return;
+  }
+
+  state.achievements.claimedTrophyRewards[key] = true;
+  state.money = (state.money ?? 0) + reward;
+  pushFeedback(state, 'feedbackCoins', { coins: reward }, 'coins');
+  pushLog(state, 'logTrophyReward', { coins: reward });
 }
 
 export function isLiveBaitEligible(fishId, weightGrams) {

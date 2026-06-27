@@ -369,6 +369,10 @@
   overflow: hidden;
 }
 
+.location-scene--market .scene-shell {
+  width: min(1280px, calc(100vw - 28px));
+}
+
 .scene-market .market-card {
   grid-template-columns: 54px 1fr auto;
 }
@@ -429,9 +433,11 @@
 }
 
 .market-buy-category h3 {
-  margin: 0;
-  color: #fff8df;
-  font-size: 0.95rem;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
 }
 
 .market-card-grid,
