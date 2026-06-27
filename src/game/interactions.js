@@ -40,6 +40,7 @@ import { interactionZones } from './world.js';
 import { getTimePhase } from './time.js';
 import { getTackleEffects } from './tackle.js';
 import { tutorialSteps } from './profile.js';
+import { hasStarterTackleDrawerCompleted } from './starterTackleDrawer.js';
 import { t } from '../i18n/i18n.js';
 
 const idleContext = {
@@ -345,6 +346,11 @@ function getZoneHint(state, zoneId) {
 function getSceneActions(state, zoneId) {
   if (zoneId === 'house') {
     return [
+      {
+        id: hasStarterTackleDrawerCompleted(state) ? 'drawer:done' : 'drawer:open',
+        label: hasStarterTackleDrawerCompleted(state) ? t('drawerCollectedAction') : t('drawerCollectAction'),
+        disabled: hasStarterTackleDrawerCompleted(state),
+      },
       {
         id: 'craft:stickRod',
         label: t('craftStickRod'),

@@ -47,6 +47,11 @@ import {
   updateProfileDraftName,
   updateProfile,
 } from './game/profile.js';
+import {
+  ensureStarterTackleDrawerState,
+  findDrawerItem,
+  hasStarterTackleDrawerCompleted,
+} from './game/starterTackleDrawer.js';
 import { createHud } from './ui/hud.js';
 import { updateMapOverlayMotion } from './ui/mapOverlay.js';
 import {
@@ -65,6 +70,7 @@ let gameState = loadGame() ?? createInitialState();
 ensureFishState(gameState);
 ensureMarketState(gameState);
 ensureTackleState(gameState);
+ensureStarterTackleDrawerState(gameState);
 ensureTimeState(gameState);
 ensureProfileState(gameState);
 ensureQuestState(gameState);
@@ -135,6 +141,17 @@ const hud = createHud(hudRoot, {
       return;
     }
 
+    if (actionId === 'tutorial:close') {
+      gameState.tutorialState = {
+        ...(gameState.tutorialState ?? {}),
+        promptDismissed: true,
+        closed: true,
+      };
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
     if (actionId === 'tutorial:toggle') {
       gameState.tutorialState = {
         ...(gameState.tutorialState ?? {}),
@@ -147,6 +164,50 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'tutorial:step') {
       completeTutorialStep(gameState);
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'drawer:open') {
+      if (!hasStarterTackleDrawerCompleted(gameState)) {
+        gameState.ui.starterTackleDrawerOpen = true;
+        gameState.ui.starterTackleDrawerMessage = 'drawerHint';
+      }
+      advanceTutorialForAction(gameState, actionId);
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'drawer:close') {
+      gameState.ui.starterTackleDrawerOpen = false;
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'drawer:goCanal') {
+      gameState.ui.starterTackleDrawerOpen = false;
+      enterFishingWater('canal');
+      advanceTutorialForAction(gameState, 'open:canal');
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('drawer:find:')) {
+      const itemId = actionId.replace('drawer:find:', '');
+      findDrawerItem(gameState, itemId);
+      gameState.ui.starterTackleDrawerMessage = gameState.progress?.starterTackleDrawerCompleted
+        ? 'drawerCompletedMessage'
+        : `drawerFound${itemId.charAt(0).toUpperCase()}${itemId.slice(1)}`;
+      if (gameState.progress?.starterTackleDrawerCompleted) {
+        advanceTutorialForAction(gameState, 'drawer:complete');
+      }
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('drawer:junk:')) {
+      gameState.ui.starterTackleDrawerMessage = 'drawerJunkMessage';
+      gameState.audioQueue.push('ui_click');
       renderHud();
       return;
     }
@@ -224,11 +285,13 @@ const hud = createHud(hudRoot, {
         return;
       }
       if (startLocationTransition(sceneId)) {
+        advanceTutorialForAction(gameState, actionId);
         return;
       }
       gameState.ui.activeScene = sceneId;
       gameState.ui.selectedHotspot = sceneId;
       gameState.audioQueue.push('open_scene');
+      advanceTutorialForAction(gameState, actionId);
       renderHud();
       return;
     }
@@ -323,6 +386,7 @@ const hud = createHud(hudRoot, {
         selectActiveRig(gameState, 'first_rod') || selectActiveRig(gameState, 'proper_rod');
       }
       openFishingMinigame(gameState, normalizedMethod);
+      advanceTutorialForAction(gameState, actionId);
       gameState.audioQueue.push('ui_click');
       renderHud();
       return;
@@ -554,6 +618,13 @@ const hud = createHud(hudRoot, {
     normalizePanelStateForViewport(gameState);
     gameState.audioQueue.push('ui_click');
     lastHudSnapshot = '';
+    renderHud();
+  },
+  onTutorialPosition(position) {
+    gameState.tutorialState = {
+      ...(gameState.tutorialState ?? {}),
+      position,
+    };
     renderHud();
   },
   onCheat(value) {
@@ -814,6 +885,7 @@ function ensureRuntimeState(state) {
   ensureFishState(state);
   ensureMarketState(state);
   ensureTackleState(state);
+  ensureStarterTackleDrawerState(state);
   ensureTimeState(state);
   ensureProfileState(state);
   syncGrandmaTrust(state);

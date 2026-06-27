@@ -10,6 +10,7 @@ import { getQuestRows } from '../game/quests.js';
 import { getCafeOrderRows } from '../game/cafeOrders.js';
 import { profileAvatars } from '../game/profile.js';
 import { componentDescriptions, componentLabels, tackleComponents } from '../game/tackle.js';
+import { resolveFishCatchCardImage } from '../game/fishCardImages.js';
 import { countItem, itemLabels } from '../game/inventory.js';
 import { t, translateEntry } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
@@ -450,6 +451,7 @@ function keepnetEntryMarkup(state, entry) {
   const freshness = getFreshnessInfo(state, entry);
   return `
     <div class="keepnet-entry">
+      <img class="keepnet-entry__image" src="${entry.selectedCardImage ?? resolveFishCatchCardImage(entry.fishId, entry)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
       <span>${entry.weightGrams}g · ${t(statusKey(entry.status))}</span>
       ${catchCategoryBadgeMarkup(entry.catchCategory, entry.weightGrams)}
       <small>${entry.catchSpotId ? t(getCastSpot(entry.catchSpotId).labelKey) : t('unknownSpot')}</small>

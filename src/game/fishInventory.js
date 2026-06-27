@@ -3,6 +3,7 @@ import { biteProfiles } from './bitePatterns.js';
 import { getFishData } from './fishData.js';
 import { pushFeedback, pushLog } from './state.js';
 import { classifyCatchSize, trophyTierForCategory } from './fishSizeProfiles.js';
+import { persistCatchCardImage } from './fishCardImages.js';
 import { syncGrandmaTrust } from './profile.js';
 import { syncQuestProgress } from './quests.js';
 
@@ -36,7 +37,7 @@ export function ensureFishState(state) {
   state.day ??= 1;
   state.progress ??= {};
   state.stats ??= {};
-  state.progress.firstTackleReady = true;
+  state.progress.firstTackleReady = Boolean(state.progress.firstTackleReady);
   state.progress.firstCatchDone = Boolean(state.progress.firstCatchDone ?? state.stats.totalFishCaught > 0);
   state.stats.totalFishCaught ??= 0;
   if (state.fishBasket.length === 0) {
@@ -57,6 +58,7 @@ export function addCaughtFish(state, catchResult, context = {}) {
   const fish = getFishData(entry.fishId);
   entry.catchCategory = classifyCatchSize(entry.fishId, entry.weightGrams);
   entry.trophyTier = classifyTrophyCatch(entry, fish);
+  persistCatchCardImage(entry);
   state.fishBasket.push(entry);
   state.stats.totalFishCaught = (state.stats.totalFishCaught ?? 0) + 1;
   if (!state.progress.firstCatchDone) {
@@ -333,7 +335,7 @@ function createLegacyEntry(fishId, status, day) {
 
 function normalizeFishEntry(entry, day) {
   const fish = getFishData(entry.fishId) ?? getFishData('crucian');
-  return {
+  const normalized = {
     id: entry.id ?? `fish-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     fishId: entry.fishId ?? fish.id,
     weightGrams: entry.weightGrams ?? Math.round((fish.minWeight + fish.maxWeight) / 2),
@@ -347,7 +349,10 @@ function normalizeFishEntry(entry, day) {
     isLiveBaitEligible: entry.isLiveBaitEligible ?? isLiveBaitEligible(entry.fishId, entry.weightGrams),
     catchCategory: entry.catchCategory ?? classifyCatchSize(entry.fishId, entry.weightGrams),
     trophyTier: entry.trophyTier ?? null,
+    selectedCardImage: entry.selectedCardImage ?? null,
   };
+  persistCatchCardImage(normalized);
+  return normalized;
 }
 
 function rebuildJournalFromBasket(state) {

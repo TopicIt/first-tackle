@@ -56,7 +56,7 @@ export function createFishingMinigameState(method) {
 
 export function openFishingMinigame(state, method) {
   if (!hasItem(state, 'primitiveTackle')) {
-    pushLog(state, 'logStarterTackleReady');
+    pushLog(state, 'logNeedTutorialTackle');
     return;
   }
 

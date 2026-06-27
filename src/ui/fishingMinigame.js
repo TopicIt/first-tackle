@@ -3,6 +3,7 @@ import { getFishData } from '../game/fishData.js';
 import { getAvailableBaits, getAvailableCastSpots, getFishingContextAction } from '../game/fishingMinigameLogic.js';
 import { getCastSpot } from '../game/bitePatterns.js';
 import { catchCategoryBadgeMarkup, catchJournalMarkup, keepnetMarkup } from './panels.js';
+import { resolveFishCatchCardImage } from '../game/fishCardImages.js';
 import { t } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
 import { getFishingLocation } from '../game/locations.js';
@@ -22,17 +23,17 @@ const methodKeys = {
 
 const fishingLineAnchors = {
   handline: {
-    rodTipAnchor: { x: 18, y: 64 },
+    rodTipAnchor: { x: 24, y: 65 },
     sag: 5.2,
     tension: 0.3,
   },
   stickRod: {
-    rodTipAnchor: { x: 38, y: 52 },
+    rodTipAnchor: { x: 43, y: 42 },
     sag: 5.8,
     tension: 0.44,
   },
   liveBait: {
-    rodTipAnchor: { x: 38, y: 52 },
+    rodTipAnchor: { x: 43, y: 42 },
     sag: 6.2,
     tension: 0.42,
   },
@@ -205,8 +206,12 @@ function isActiveFishingPhase(phase) {
 }
 
 function catchResultModalMarkup(state, fish, result, minigame) {
-  const image = getCatchImage(result.id);
   const entry = state.fishBasket?.find((item) => item.id === minigame.currentCatchEntryId);
+  const image = entry?.selectedCardImage ?? resolveFishCatchCardImage(result.id, {
+    ...result,
+    trophyTier: entry?.trophyTier,
+    catchCategory: entry?.catchCategory ?? result.catchCategory,
+  });
 
   return `
     <section class="fishing-result-modal">
@@ -363,29 +368,6 @@ function getBobberHintKey(minigame, hintMode) {
   }
 
   return minigame.statusKey;
-}
-
-function getCatchImage(fishId) {
-  if (fishId === 'rotan') {
-    return assetPath('/assets/fish/catch_rotan_card.png');
-  }
-
-  if (fishId === 'crucian') {
-    return assetPath('/assets/fish/catch_crucian_card.png');
-  }
-
-  const directImages = {
-    okun: '/assets/fish/okun.png',
-    lynok: '/assets/fish/lynok.png',
-    som: '/assets/fish/som.png',
-    sudak: '/assets/fish/sudak.png',
-  };
-
-  if (directImages[fishId]) {
-    return assetPath(directImages[fishId]);
-  }
-
-  return assetPath(`/assets/fish/species/${fishId}.png`);
 }
 
 function getFishingWaterImage(state) {

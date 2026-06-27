@@ -1,6 +1,5 @@
-import { DEFAULT_AVATAR, DEFAULT_PLAYER_NAME, pushFeedback, pushLog, queueSound } from './state.js';
-import { addItem } from './inventory.js';
-import { ensureTackleState, ownTackleComponent, selectActiveRig } from './tackle.js';
+import { DEFAULT_AVATAR, DEFAULT_PLAYER_NAME, pushLog, queueSound } from './state.js';
+import { completeStarterTackleDrawer } from './starterTackleDrawer.js';
 
 export const profileAvatars = [
   '/assets/profile/Grandson-1.png',
@@ -20,44 +19,34 @@ export const profileAvatars = [
 
 export const tutorialSteps = [
   {
-    id: 'rod',
-    label: '\u0412\u0443\u0434\u0438\u043b\u0438\u0449\u0435 \u0437 \u043b\u0456\u0449\u0438\u043d\u0438',
-    component: 'simple_stick_rod',
-    feedbackKey: 'componentSimpleStickRod',
-    placeKey: 'tutorialPlaceRod',
-    actionId: 'gather:rodStick',
+    id: 'house',
+    labelKey: 'tutorialStepHouse',
+    placeKey: 'tutorialPlaceDrawerHouse',
+    actionId: 'open:house',
   },
   {
-    id: 'float',
-    label: '\u041f\u043e\u043f\u043b\u0430\u0432\u043e\u043a \u0437 \u0433\u0443\u0441\u044f\u0447\u043e\u0433\u043e \u043f\u0435\u0440\u0430',
-    component: 'goose_feather_float',
-    feedbackKey: 'componentGooseFeatherFloat',
-    placeKey: 'tutorialPlaceFloat',
-    actionId: 'search:feather',
+    id: 'drawer',
+    labelKey: 'tutorialStepDrawerButton',
+    placeKey: 'tutorialPlaceDrawerButton',
+    actionId: 'drawer:open',
   },
   {
-    id: 'line',
-    label: '\u041d\u0438\u0442\u043a\u0430 \u0434\u043b\u044f \u0432\u0438\u0448\u0438\u0432\u0430\u043d\u043d\u044f',
-    component: 'grandma_thread',
-    feedbackKey: 'componentGrandmaThread',
-    placeKey: 'tutorialPlaceLine',
-    actionId: 'gather:thread',
+    id: 'search',
+    labelKey: 'tutorialStepDrawerSearch',
+    placeKey: 'tutorialPlaceDrawerSearch',
+    actionId: 'drawer:complete',
   },
   {
-    id: 'hook',
-    label: '\u0421\u0442\u0430\u0440\u0438\u0439 \u0433\u0430\u0447\u043e\u043a',
-    component: 'old_dull_hook',
-    feedbackKey: 'componentOldDullHook',
-    placeKey: 'tutorialPlaceHook',
-    actionId: 'gather:oldHook',
+    id: 'canal',
+    labelKey: 'tutorialStepGoCanal',
+    placeKey: 'tutorialPlaceGoCanal',
+    actionId: 'open:canal',
   },
   {
-    id: 'sinker',
-    label: '\u041a\u0430\u043c\u0456\u043d\u0447\u0438\u043a',
-    component: 'small_stone',
-    feedbackKey: 'componentSmallStone',
-    placeKey: 'tutorialPlaceSinker',
-    actionId: 'gather:stones',
+    id: 'firstTrophy',
+    labelKey: 'questFirstTrophyTitle',
+    placeKey: 'questFirstTrophyDesc',
+    actionId: 'minigame:start:active',
   },
 ];
 
@@ -132,6 +121,7 @@ export function startTutorial(state) {
     completed: false,
     step: state.tutorialState?.step ?? 0,
     collapsed: false,
+    closed: false,
   };
   queueSound(state, 'ui_click');
 }
@@ -140,17 +130,14 @@ export function completeTutorialStep(state) {
   const stepIndex = state.tutorialState?.step ?? 0;
   const step = tutorialSteps[stepIndex];
   if (!step) {
-    grantPrimitiveTackle(state, { skipped: false });
+    state.tutorialState.completed = true;
     return;
   }
 
-  ownTackleComponent(state, step.component);
-  pushFeedback(state, step.feedbackKey, {}, 'item');
-  pushLog(state, 'logTutorialFoundPart', { item: step.label });
   state.tutorialState.step = stepIndex + 1;
 
   if (state.tutorialState.step >= tutorialSteps.length) {
-    grantPrimitiveTackle(state, { skipped: false });
+    state.tutorialState.completed = true;
   }
 }
 
@@ -170,42 +157,18 @@ export function advanceTutorialForAction(state, actionId) {
 }
 
 export function skipTutorial(state) {
-  grantPrimitiveTackle(state, { skipped: true });
-}
-
-export function grantPrimitiveTackle(state, options = {}) {
-  ensureTackleState(state);
-  addItem(state, 'primitiveTackle', Math.max(0, 1 - (state.inventory?.primitiveTackle ?? 0)));
-  addItem(state, 'stickRod', Math.max(0, 1 - (state.inventory?.stickRod ?? 0)));
-  for (const step of tutorialSteps) {
-    ownTackleComponent(state, step.component);
-  }
-  state.tackle.equipped = {
-    line: 'grandma_thread',
-    hook: 'old_dull_hook',
-    sinker: 'small_stone',
-    float: 'goose_feather_float',
-    rod: 'simple_stick_rod',
-  };
-  selectActiveRig(state, 'first_rod');
-  state.progress.firstTackleReady = true;
-  if (!options.skipped && !state.tutorialState?.rewardGranted) {
-    state.money = (state.money ?? 0) + 100;
-    pushFeedback(state, 'feedbackCoins', { coins: 100 }, 'coins');
-  }
   state.tutorialState = {
     ...(state.tutorialState ?? {}),
     promptDismissed: true,
-    started: true,
-    completed: true,
-    skipped: Boolean(options.skipped),
-    step: tutorialSteps.length,
-    collapsed: false,
-    rewardGranted: Boolean(state.tutorialState?.rewardGranted || !options.skipped),
+    skipped: true,
+    closed: true,
   };
-  pushFeedback(state, 'feedbackTackle', {}, 'item');
-  pushLog(state, options.skipped ? 'logTutorialSkipped' : 'logTutorialCompleted');
-  queueSound(state, 'craft_item');
+  queueSound(state, 'ui_click');
+}
+
+export function grantPrimitiveTackle(state, options = {}) {
+  void options;
+  completeStarterTackleDrawer(state);
 }
 
 export function syncGrandmaTrust(state) {

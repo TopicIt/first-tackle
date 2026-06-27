@@ -804,6 +804,12 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 6px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.tutorial-float__row:active {
+  cursor: grabbing;
 }
 
 .tutorial-float__tiny {
@@ -1372,11 +1378,20 @@ button:disabled {
 
 .keepnet-entry {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 44px 1fr auto;
   gap: 2px 8px;
+  align-items: center;
   border-radius: 6px;
   background: rgb(7 14 14 / 24%);
   padding: 7px;
+}
+
+.keepnet-entry__image {
+  grid-row: span 4;
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  object-fit: cover;
 }
 
 .keepnet-entry small {
@@ -1914,7 +1929,7 @@ button:disabled {
     right: auto;
     top: calc(max(8px, env(safe-area-inset-top)) + 52px);
     max-height: calc(100dvh - 68px - env(safe-area-inset-bottom));
-    width: min(220px, calc(100vw - 16px));
+    width: min(300px, calc(100vw - 16px));
     z-index: 310;
     display: grid;
     align-content: start;
@@ -1970,8 +1985,8 @@ button:disabled {
     position: fixed;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
-    left: 8px;
-    right: 8px;
+    left: max(8px, calc((100vw - min(680px, calc(100vw - 16px))) / 2));
+    right: max(8px, calc((100vw - min(680px, calc(100vw - 16px))) / 2));
     top: 72px;
     bottom: 12px;
     z-index: 60;
@@ -2208,7 +2223,7 @@ button:disabled {
   position: fixed;
   left: 8px;
   top: calc(max(8px, env(safe-area-inset-top)) + 52px);
-  width: min(220px, calc(100vw - 16px));
+  width: min(300px, calc(100vw - 16px));
   max-height: calc(100dvh - 68px - env(safe-area-inset-bottom));
   z-index: 310;
   display: grid;
@@ -2271,8 +2286,8 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet * {
   position: fixed;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  left: 8px;
-  right: 8px;
+  left: max(8px, calc((100vw - min(680px, calc(100vw - 16px))) / 2));
+  right: max(8px, calc((100vw - min(680px, calc(100vw - 16px))) / 2));
   top: 72px;
   bottom: 12px;
   z-index: 60;
@@ -2345,7 +2360,7 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet * {
 
 @media (min-width: 560px) {
   :root[data-view-mode="mobile"] body:has(.mobile-menu[open]) .side-detail-panel:not(.is-collapsed) {
-    left: 236px;
+    left: min(316px, 42vw);
     right: 8px;
     top: calc(max(8px, env(safe-area-inset-top)) + 52px);
     bottom: 12px;
@@ -2357,15 +2372,15 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet * {
 
 @media (max-width: 559px) {
   :root[data-view-mode="mobile"] .mobile-menu[open] .mobile-menu__sheet {
-    width: min(220px, calc(100vw - 16px));
-    max-height: 214px;
+    width: min(300px, calc(100vw - 16px));
+    max-height: 248px;
   }
 
   :root[data-view-mode="mobile"] body:has(.mobile-menu[open]) .side-detail-panel:not(.is-collapsed) {
-    top: calc(max(8px, env(safe-area-inset-top)) + 282px);
+    top: calc(max(8px, env(safe-area-inset-top)) + 314px);
     bottom: 12px;
     z-index: 250;
-    max-height: calc(100dvh - 296px - env(safe-area-inset-bottom));
+    max-height: calc(100dvh - 328px - env(safe-area-inset-bottom));
   }
 }
 

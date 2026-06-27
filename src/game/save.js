@@ -8,6 +8,7 @@ import {
 import { ensureFishState } from './fishInventory.js';
 import { ensureMarketState } from './market.js';
 import { ensureTackleState } from './tackle.js';
+import { ensureStarterTackleDrawerState } from './starterTackleDrawer.js';
 import { normalizeWaterId } from './locations.js';
 
 export function saveGame(state) {
@@ -69,6 +70,8 @@ function cleanForSave(state) {
       activeScene: null,
       catchResult: null,
       fishingMinigame: null,
+      starterTackleDrawerOpen: false,
+      starterTackleDrawerMessage: null,
       locationTransition: null,
       activeSubMap: null,
     },
@@ -80,6 +83,7 @@ function normalizeLoadedState(saved) {
   ensureFishState(merged);
   ensureMarketState(merged);
   ensureTackleState(merged);
+  ensureStarterTackleDrawerState(merged);
   return merged;
 }
 
@@ -135,7 +139,8 @@ function migrateV1ToV2(saved) {
 
 function mergeState(base, saved) {
   const profileSetupComplete = Boolean(saved.playerProfile?.setupComplete ?? saved.progress?.profileSetupComplete);
-  const firstTackleReady = Boolean(saved.progress?.firstTackleReady ?? saved.tutorialState?.completed ?? saved.tutorialState?.skipped);
+  const drawerCompleted = Boolean(saved.progress?.starterTackleDrawerCompleted);
+  const firstTackleReady = Boolean(saved.progress?.firstTackleReady ?? drawerCompleted);
   const catfishCaught = Math.max(
     saved.progress?.grandmaTrust?.canadianCatfishCaught ?? 0,
     saved.catchJournal?.canadian_catfish?.totalCaught ?? 0,
@@ -234,6 +239,11 @@ function mergeState(base, saved) {
       ...(saved.progress ?? {}),
       profileSetupComplete,
       firstTackleReady,
+      starterTackleDrawerCompleted: drawerCompleted,
+      starterTackleDrawerFoundItems: {
+        ...base.progress.starterTackleDrawerFoundItems,
+        ...(saved.progress?.starterTackleDrawerFoundItems ?? {}),
+      },
       firstCatchDone: Boolean(saved.progress?.firstCatchDone ?? saved.stats?.totalFishCaught > 0),
       firstCrucianCatchRewardShown: Boolean(saved.progress?.firstCrucianCatchRewardShown),
       uahEconomyStarted: true,

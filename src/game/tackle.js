@@ -1,7 +1,7 @@
 export const tackleComponents = {
-  line: ['grandma_thread', 'better_line'],
-  hook: ['old_dull_hook', 'sharper_hook'],
-  sinker: ['small_stone', 'proper_sinker'],
+  line: ['none', 'grandma_thread', 'better_line'],
+  hook: ['none', 'old_dull_hook', 'sharper_hook'],
+  sinker: ['none', 'small_stone', 'proper_sinker'],
   float: ['none', 'goose_feather_float', 'cheap_float', 'proper_float'],
   rod: ['none', 'simple_stick_rod', 'proper_rod'],
 };
@@ -53,17 +53,14 @@ export const componentEffects = {
 
 export function createInitialTackleState() {
   return {
-    activeRig: 'handline',
+    activeRig: null,
     owned: {
-      grandma_thread: true,
-      old_dull_hook: true,
-      small_stone: true,
       none: true,
     },
     equipped: {
-      line: 'grandma_thread',
-      hook: 'old_dull_hook',
-      sinker: 'small_stone',
+      line: 'none',
+      hook: 'none',
+      sinker: 'none',
       float: 'none',
       rod: 'none',
     },
@@ -74,7 +71,7 @@ export function ensureTackleState(state) {
   state.tackle ??= createInitialTackleState();
   state.progress ??= {};
   state.inventory ??= {};
-  const firstTackleReady = Boolean(state.progress.firstTackleReady || state.tutorialState?.completed || state.tutorialState?.skipped);
+  const firstTackleReady = Boolean(state.progress.firstTackleReady || state.progress.starterTackleDrawerCompleted);
   state.progress.firstTackleReady = firstTackleReady;
   if (firstTackleReady) {
     state.inventory.primitiveTackle = Math.max(1, state.inventory.primitiveTackle ?? 0);
@@ -93,6 +90,10 @@ export function ensureTackleState(state) {
     state.tackle.owned.grandma_thread = true;
     state.tackle.owned.old_dull_hook = true;
     state.tackle.owned.small_stone = true;
+  }
+  if (state.progress?.starterTackleDrawerCompleted) {
+    state.tackle.owned.goose_feather_float = true;
+    state.tackle.owned.simple_stick_rod = true;
   }
   if (state.inventory?.stickRod > 0) {
     state.tackle.owned.simple_stick_rod = true;
@@ -171,9 +172,9 @@ export function getTackleEffects(state) {
   const rod = equipped.rod ?? 'none';
   const usesRod = rod !== 'none';
   const usesProperRod = rod === 'proper_rod';
-  const line = equipped.line ?? 'grandma_thread';
-  const hook = equipped.hook ?? 'old_dull_hook';
-  const sinker = equipped.sinker ?? 'small_stone';
+  const line = equipped.line ?? 'none';
+  const hook = equipped.hook ?? 'none';
+  const sinker = equipped.sinker ?? 'none';
   const float = equipped.float ?? 'none';
   const lineEffects = componentEffects[line] ?? {};
   const hookEffects = componentEffects[hook] ?? {};
@@ -189,6 +190,7 @@ export function getTackleEffects(state) {
     controlBonus: rodEffects.controlBonus ?? 0,
     escapeReduction: (hookEffects.escapeReduction ?? 0) + (rodEffects.escapeReduction ?? 0),
     trophyBonus: lineEffects.trophyBonus ?? 0,
+    hasCompleteStarterSet: Boolean(line !== 'none' && hook !== 'none' && sinker !== 'none'),
     hasFloat: float !== 'none',
     hasRod: usesRod,
     hasProperRod: usesProperRod,
@@ -226,7 +228,8 @@ function repairEquippedComponents(state) {
   for (const [slot, components] of Object.entries(tackleComponents)) {
     const selected = state.tackle.equipped[slot];
     if (!components.includes(selected) || !state.tackle.owned[selected]) {
-      state.tackle.equipped[slot] = components.find((component) => state.tackle.owned[component]) ?? components[0];
+      state.tackle.equipped[slot] = components.find((component) => component !== 'none' && state.tackle.owned[component])
+        ?? 'none';
     }
   }
 }

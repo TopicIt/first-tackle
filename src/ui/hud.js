@@ -88,6 +88,12 @@ export function createHud(root, handlers) {
   }, true);
 
   root.addEventListener('pointerdown', (event) => {
+    const dragHandle = event.target.closest('[data-tutorial-drag]');
+    if (dragHandle) {
+      startTutorialDrag(event, root, handlers);
+      return;
+    }
+
     const button = event.target.closest('button[data-action]');
     if (!button || button.disabled) {
       return;
@@ -614,7 +620,7 @@ function startupOverlayMarkup(state) {
 }
 
 function tutorialPromptMarkup(state) {
-  if (!state.playerProfile?.setupComplete || state.tutorialState?.completed || state.tutorialState?.skipped || state.ui?.startupStep) {
+  if (!state.playerProfile?.setupComplete || state.tutorialState?.completed || state.tutorialState?.skipped || state.tutorialState?.closed || state.ui?.startupStep) {
     return '';
   }
 
@@ -624,24 +630,28 @@ function tutorialPromptMarkup(state) {
       return '';
     }
     const collapsed = state.tutorialState?.collapsed;
+    const position = state.tutorialState?.position ?? {};
+    const style = position.x != null && position.y != null
+      ? ` style="left:${position.x}px;top:${position.y}px;right:auto;bottom:auto;transform:none;"`
+      : '';
+    const label = t(step.labelKey ?? 'firstTackleTutorial');
     return `
-      <aside class="tutorial-float tutorial-float--helper${collapsed ? ' is-collapsed' : ''}">
-        <div class="tutorial-float__row">
+      <aside class="tutorial-float tutorial-float--helper${collapsed ? ' is-collapsed' : ''}" data-tutorial-panel${style}>
+        <div class="tutorial-float__row" data-tutorial-drag>
           <p class="section-label">${t('firstTackleTutorial')}</p>
           <div>
             <button class="tutorial-float__tiny" data-action="tutorial:toggle" type="button" aria-label="${collapsed ? t('show') : t('hide')}">${collapsed ? '&#9656;' : '&#9662;'}</button>
-            <button class="tutorial-float__tiny" data-action="tutorial:skip" type="button" aria-label="${t('close')}">&times;</button>
+            <button class="tutorial-float__tiny" data-action="tutorial:close" type="button" aria-label="${t('close')}">&times;</button>
           </div>
         </div>
         ${collapsed ? `
           <button class="tutorial-float__mini" data-action="tutorial:toggle" type="button">
-            ${step.label}
+            ${label}
           </button>
         ` : `
-          <h2>${step.label}</h2>
+          <h2>${label}</h2>
           <p>${t(step.placeKey ?? 'tutorialCollectHint')}</p>
           <small>${t('tutorialPressButton', { button: t(tutorialActionLabelKey(step.actionId)) })}</small>
-          <button data-action="tutorial:step" type="button">${t('collectPart')}</button>
         `}
       </aside>
     `;
@@ -653,10 +663,50 @@ function tutorialPromptMarkup(state) {
 
   return `
     <aside class="tutorial-float tutorial-float--prompt">
-      <button class="tutorial-float__close" data-action="tutorial:skip" type="button" aria-label="${t('close')}">&times;</button>
+      <button class="tutorial-float__close" data-action="tutorial:close" type="button" aria-label="${t('close')}">&times;</button>
+      <p>${t('tutorialDrawerImmediateHint')}</p>
       <button class="tutorial-float__start" data-action="tutorial:start" type="button">${t('startTutorial')}</button>
     </aside>
   `;
+}
+
+function startTutorialDrag(event, root, handlers) {
+  const panel = event.target.closest('[data-tutorial-panel]');
+  if (!panel || event.target.closest('button')) {
+    return;
+  }
+
+  event.preventDefault();
+  panel.setPointerCapture?.(event.pointerId);
+  const startRect = panel.getBoundingClientRect();
+  const offsetX = event.clientX - startRect.left;
+  const offsetY = event.clientY - startRect.top;
+
+  const move = (moveEvent) => {
+    const width = panel.offsetWidth;
+    const height = panel.offsetHeight;
+    const x = Math.min(window.innerWidth - width - 8, Math.max(8, moveEvent.clientX - offsetX));
+    const y = Math.min(window.innerHeight - height - 8, Math.max(8, moveEvent.clientY - offsetY));
+    panel.style.left = `${x}px`;
+    panel.style.top = `${y}px`;
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
+    panel.style.transform = 'none';
+  };
+
+  const stop = () => {
+    root.removeEventListener('pointermove', move, true);
+    root.removeEventListener('pointerup', stop, true);
+    root.removeEventListener('pointercancel', stop, true);
+    handlers.onTutorialPosition?.({
+      x: Math.round(panel.getBoundingClientRect().left),
+      y: Math.round(panel.getBoundingClientRect().top),
+    });
+  };
+
+  root.addEventListener('pointermove', move, true);
+  root.addEventListener('pointerup', stop, true);
+  root.addEventListener('pointercancel', stop, true);
 }
 
 function setupStartupVideo(root, handlers) {
@@ -831,10 +881,10 @@ function escapeHtml(value) {
 
 function tutorialActionLabelKey(actionId) {
   return {
-    'gather:rodStick': 'gatherRodStick',
-    'search:feather': 'searchGooseFeather',
-    'gather:thread': 'gatherGrandmaThread',
-    'gather:oldHook': 'gatherOldHook',
-    'gather:stones': 'gatherSmallStones',
+    'open:house': 'openHouse',
+    'drawer:open': 'drawerCollectAction',
+    'drawer:complete': 'drawerSearchAction',
+    'open:canal': 'openPond',
+    'minigame:start:active': 'startFishingWithTackle',
   }[actionId] ?? 'collectPart';
 }

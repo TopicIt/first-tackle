@@ -268,6 +268,13 @@ export function createInitialState() {
     fishBasket: [],
     progress: {
       firstTackleReady: false,
+      starterTackleDrawerCompleted: false,
+      starterTackleDrawerFoundItems: {
+        oldHook: false,
+        embroideryThread: false,
+        stoneSinker: false,
+        gooseFeatherFloat: false,
+      },
       firstCatchDone: false,
       firstCrucianCatchRewardShown: false,
       uahEconomyStarted: true,
@@ -303,17 +310,14 @@ export function createInitialState() {
       claimed: {},
     },
     tackle: {
-      activeRig: 'handline',
+      activeRig: null,
       owned: {
-        grandma_thread: true,
-        old_dull_hook: true,
-        small_stone: true,
         none: true,
       },
       equipped: {
-        line: 'grandma_thread',
-        hook: 'old_dull_hook',
-        sinker: 'small_stone',
+        line: 'none',
+        hook: 'none',
+        sinker: 'none',
         float: 'none',
         rod: 'none',
       },

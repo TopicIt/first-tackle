@@ -16,7 +16,7 @@ export const MAP_HOTSPOTS = [
   {
     id: 'garden',
     type: 'rect',
-    x: 60,
+    x: 72,
     y: 78,
     width: 34,
     height: 22,
@@ -54,7 +54,7 @@ export const MAP_HOTSPOTS = [
     id: 'greada',
     type: 'ellipse',
     x: 10,
-    y: 18,
+    y: 10,
     width: 18,
     height: 14,
     scene: 'greada',
