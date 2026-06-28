@@ -1,6 +1,6 @@
 export const tackleComponents = {
   line: ['none', 'grandma_thread', 'better_line'],
-  hook: ['none', 'old_dull_hook', 'sharper_hook'],
+  hook: ['none', 'old_dull_hook', 'small_hook', 'medium_hook', 'large_hook', 'sharper_hook'],
   sinker: ['none', 'small_stone', 'proper_sinker'],
   float: ['none', 'goose_feather_float', 'cheap_float', 'proper_float'],
   rod: ['none', 'simple_stick_rod', 'proper_rod'],
@@ -12,6 +12,9 @@ export const componentLabels = {
   grandma_thread: 'componentGrandmaThread',
   better_line: 'componentBetterLine',
   old_dull_hook: 'componentOldDullHook',
+  small_hook: 'componentSmallHook',
+  medium_hook: 'componentMediumHook',
+  large_hook: 'componentLargeHook',
   sharper_hook: 'componentSharperHook',
   small_stone: 'componentSmallStone',
   proper_sinker: 'componentProperSinker',
@@ -28,6 +31,9 @@ export const componentDescriptions = {
   grandma_thread: 'componentGrandmaThreadDesc',
   better_line: 'componentBetterLineDesc',
   old_dull_hook: 'componentOldDullHookDesc',
+  small_hook: 'componentSmallHookDesc',
+  medium_hook: 'componentMediumHookDesc',
+  large_hook: 'componentLargeHookDesc',
   sharper_hook: 'componentSharperHookDesc',
   small_stone: 'componentSmallStoneDesc',
   proper_sinker: 'componentProperSinkerDesc',
@@ -42,6 +48,9 @@ export const componentEffects = {
   grandma_thread: { breakPenalty: 0.12, trophyBonus: 0 },
   better_line: { breakPenalty: -0.16, reachBonus: 1, trophyBonus: 0.015 },
   old_dull_hook: { hookBonus: -0.08 },
+  small_hook: { hookBonus: 0.03, escapeReduction: 0.01 },
+  medium_hook: { hookBonus: 0.07, escapeReduction: 0.03 },
+  large_hook: { hookBonus: 0.09, escapeReduction: 0.05, trophyBonus: 0.01 },
   sharper_hook: { hookBonus: 0.12, escapeReduction: 0.08 },
   small_stone: { stabilityBonus: -0.04 },
   proper_sinker: { stabilityBonus: 0.08, scatterBonus: -0.08 },
@@ -112,6 +121,15 @@ export function ensureTackleState(state) {
   }
   if (state.purchased?.properSinker) {
     state.tackle.owned.proper_sinker = true;
+  }
+  if (state.purchased?.smallHook) {
+    state.tackle.owned.small_hook = true;
+  }
+  if (state.purchased?.mediumHook) {
+    state.tackle.owned.medium_hook = true;
+  }
+  if (state.purchased?.largeHook) {
+    state.tackle.owned.large_hook = true;
   }
   if (state.purchased?.sharperHook) {
     state.tackle.owned.sharper_hook = true;
@@ -191,7 +209,7 @@ export function getTackleEffects(state) {
     floatBonus: floatEffects.floatBonus ?? 0,
     controlBonus: rodEffects.controlBonus ?? 0,
     escapeReduction: (hookEffects.escapeReduction ?? 0) + (rodEffects.escapeReduction ?? 0),
-    trophyBonus: lineEffects.trophyBonus ?? 0,
+    trophyBonus: (lineEffects.trophyBonus ?? 0) + (hookEffects.trophyBonus ?? 0),
     hasCompleteStarterSet: Boolean(line !== 'none' && hook !== 'none' && sinker !== 'none'),
     hasFloat: float !== 'none',
     hasRod: usesRod,

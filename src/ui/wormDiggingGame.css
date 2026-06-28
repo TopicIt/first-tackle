@@ -56,6 +56,8 @@
   border: 1px solid rgb(255 255 255 / 12%);
   border-radius: 8px;
   background:
+    linear-gradient(rgb(31 44 25 / 14%), rgb(31 44 25 / 14%)),
+    url('/assets/minigames/worm-search/worm-search-bg.png') center / cover no-repeat,
     radial-gradient(circle at 18% 26%, rgb(172 130 79 / 48%), transparent 18%),
     radial-gradient(circle at 70% 72%, rgb(72 96 44 / 44%), transparent 22%),
     radial-gradient(circle at 86% 18%, rgb(32 70 32 / 72%), transparent 17%),

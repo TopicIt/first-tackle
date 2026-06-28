@@ -70,6 +70,12 @@ const itemImages = {
   proper_float: '/assets/items/float-proper.png',
   properSinker: '/assets/items/proper_sinker.png',
   proper_sinker: '/assets/items/proper_sinker.png',
+  smallHook: '/assets/items/hooks_box.png',
+  mediumHook: '/assets/items/hooks_box.png',
+  largeHook: '/assets/items/sharp-hook.png',
+  small_hook: '/assets/items/hooks_box.png',
+  medium_hook: '/assets/items/hooks_box.png',
+  large_hook: '/assets/items/sharp-hook.png',
   sharperHook: '/assets/items/sharp-hook.png',
   sharper_hook: '/assets/items/sharp-hook.png',
   hooksPack: '/assets/items/hooks_box.png',
@@ -408,6 +414,9 @@ export function getShopItemLabel(itemId) {
     simpleFloat: 'itemSimpleFloat',
     properFloat: 'componentProperFloat',
     properSinker: 'componentProperSinker',
+    smallHook: 'componentSmallHook',
+    mediumHook: 'componentMediumHook',
+    largeHook: 'componentLargeHook',
     sharperHook: 'componentSharperHook',
     properRod: 'componentProperRod',
     bicycle: 'itemBicycle',
@@ -538,6 +547,14 @@ function speciesImage(fishId) {
   return assetPath(`/assets/fish/species/${fishId}.png`);
 }
 
+function guideSpeciesImage(fishId) {
+  if (fishId === 'crucian') {
+    return assetPath('/assets/guide/fish/karas.png');
+  }
+
+  return speciesImage(fishId);
+}
+
 function getWaterNameKey(waterId) {
   return {
     canal: 'waterCanal',
@@ -571,6 +588,9 @@ function tackleComponentVisualMarkup(componentId) {
     grandma_thread: 'grandma_thread',
     better_line: 'betterLine',
     old_dull_hook: 'hooksPack',
+    small_hook: 'small_hook',
+    medium_hook: 'medium_hook',
+    large_hook: 'large_hook',
     sharper_hook: 'sharper_hook',
     proper_sinker: 'proper_sinker',
     goose_feather_float: 'gooseFeatherFloat',
@@ -674,7 +694,7 @@ function marketBuyCardMarkup(state, item) {
         ${item.amount && item.amount > 1 ? `<span class="market-card__qty-badge">x${item.amount}</span>` : ''}
       </span>
       <div>
-        <h3>${getShopItemLabel(item.id)} ${item.amount ? `<span class="market-card__qty">×${item.amount}</span>` : ''}</h3>
+        <h3>${getShopItemLabel(item.id)} ${item.amount ? `<span class="market-card__qty">x${item.amount}</span>` : ''}</h3>
         <p>${t(shopDescriptionKey(item.id))}</p>
         <strong>${owned ? t('owned') : `${item.price} ${t('coins').toLowerCase()}`}</strong>
       </div>
@@ -710,6 +730,9 @@ function shopDescriptionKey(itemId) {
     simpleFloat: 'shopDescFloat',
     properFloat: 'shopDescProperFloat',
     properSinker: 'shopDescProperSinker',
+    smallHook: 'shopDescSmallHook',
+    mediumHook: 'shopDescMediumHook',
+    largeHook: 'shopDescLargeHook',
     sharperHook: 'shopDescSharperHook',
     properRod: 'shopDescProperRod',
     bicycle: 'shopDescBicycle',
@@ -812,9 +835,9 @@ function fishGuideAccordionMarkup(state) {
   return getFishGuideEntries().map((entry) => `
     <article class="guide-card guide-card--accordion${expanded[`fish:${entry.fishId}`] ? ' is-open' : ''}">
       <button class="guide-card__summary" data-action="guide:toggle:fish:${entry.fishId}" type="button">
-        <img src="${speciesImage(entry.fishId)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
+        <img src="${guideSpeciesImage(entry.fishId)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
         <span>
-          <h3>${t(entry.nameKey)} ${journal[entry.fishId]?.discovered ? '' : `- ${t('undiscoveredFish')}`}</h3>
+          <h3>${t(entry.nameKey)}${journal[entry.fishId]?.discovered ? '' : ` - ${t('undiscoveredFish')}`}</h3>
           <small>${t(entry.livesKey)}</small>
         </span>
         <strong class="guide-card__expand">${expanded[`fish:${entry.fishId}`] ? '-' : '+'}</strong>

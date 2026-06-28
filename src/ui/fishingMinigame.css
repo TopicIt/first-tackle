@@ -175,8 +175,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgb(255 255 255 / 10%);
+  border: 1px solid rgb(255 255 255 / 14%);
+  background: linear-gradient(180deg, rgb(48 61 35 / 72%), rgb(9 17 15 / 54%));
   color: #f3f3ea;
+  text-shadow: 0 1px 8px rgb(0 0 0 / 52%);
 }
 
 .zone-button {
@@ -198,7 +200,10 @@
 .bait-button.is-selected,
 .zone-button.is-selected,
 .hint-mode.is-selected {
-  background: #2d7b7e;
+  border-color: rgb(243 196 95 / 54%);
+  background: linear-gradient(180deg, #f3c45f, #9c7d34);
+  color: #1b160a;
+  text-shadow: none;
 }
 
 .fishing-panel__actions {
@@ -207,7 +212,8 @@
 }
 
 .fishing-panel__actions button {
-  background: #f3c45f;
+  border: 1px solid rgb(255 255 255 / 18%);
+  background: linear-gradient(180deg, #f3c45f, #b28a36);
 }
 
 .fishing-panel__actions .strike {

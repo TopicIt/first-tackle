@@ -426,7 +426,6 @@ function fishingStageMarkup(state, minigame, options) {
       <span class="fishing-figure__arm"></span>
       <span class="fishing-figure__rod"></span>
     </div>
-    ${fishingLineMarkup(minigame)}
     <div class="cast-spot-layer">
       ${getAvailableCastSpots(state, minigame.method).map((spot) => castSpotMarkup(spot, minigame.selectedSpot)).join('')}
       ${selectedScatterMarkup(state, minigame)}
@@ -463,24 +462,6 @@ function fishingStageMarkup(state, minigame, options) {
       </div>
       <button class="fishing-keepnet-shortcut" data-action="panel:toggle:keepnet" type="button">${t('keepnet')}</button>
     </div>
-  `;
-}
-
-function fishingLineMarkup(minigame) {
-  return `
-    <svg
-      class="fishing-line-overlay fishing-line-overlay--${minigame.method} fishing-line-overlay--${minigame.bobberState}"
-      data-fishing-line-overlay
-      data-fishing-method="${minigame.method}"
-      data-bobber-state="${minigame.bobberState}"
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path class="fishing-line-overlay__shadow" data-fishing-line-shadow></path>
-      <path class="fishing-line-overlay__line" data-fishing-line-path></path>
-    </svg>
   `;
 }
 
