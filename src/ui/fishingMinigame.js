@@ -8,6 +8,7 @@ import { t } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
 import { getFishingLocation } from '../game/locations.js';
 import { getLocationImage, getLocationImageFallback } from '../utils/locationAsset.js';
+import { getTimeOfDayBackground } from '../utils/timeOfDayBackgrounds.js';
 
 const castZoneKeys = {
   near_bank: 'castZoneNearBank',
@@ -378,10 +379,19 @@ function getFishingWaterImage(state) {
   const waterId = state.travel?.selectedWater ?? 'canal';
   const location = getFishingLocation(waterId);
   const imageId = location?.fishingImageId ?? location?.imageId ?? 'canal';
+  const fallback = getLocationImageFallback(imageId) ?? assetPath('/assets/locations/pond_location_concept.png');
+  const timeBackground = getTimeOfDayBackground(fishingBackgroundKey(waterId), state, getLocationImage(imageId));
   return {
-    src: getLocationImage(imageId),
-    fallback: getLocationImageFallback(imageId) ?? assetPath('/assets/locations/pond_location_concept.png'),
+    src: timeBackground.primary ?? getLocationImage(imageId),
+    fallback: timeBackground.fallbacks[0] ?? fallback,
   };
+}
+
+function fishingBackgroundKey(waterId) {
+  return {
+    canal: 'canal_view',
+    sluice: 'shluz_view',
+  }[waterId] ?? null;
 }
 
 function toPascalCase(value) {

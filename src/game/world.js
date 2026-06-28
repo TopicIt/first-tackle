@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { assetPath } from '../utils/assetPath.js';
-import { worldMapAsset } from '../utils/worldMapAsset.js';
+import { getWorldMapAsset } from '../utils/worldMapAsset.js';
 
 const zoneColors = {
   house: 0xe3c173,
@@ -83,6 +83,7 @@ export function createWorld() {
 
   const windObjects = addReeds(scene);
   const animatedMapObjects = addMapLife(scene);
+  let loadedMapTexturePath = null;
   const bounds = {
     minX: -12.5,
     maxX: 12.5,
@@ -106,6 +107,13 @@ export function createWorld() {
       }
       animatedMapObjects.waterShimmer.scale.setScalar(1 + Math.sin(time * 2.2) * 0.04);
       animatedMapObjects.waterShimmer.material.opacity = 0.18 + Math.sin(time * 2.5) * 0.07;
+    },
+    updateMapTexture(mapAsset) {
+      if (!mapAsset?.primary || mapAsset.primary === loadedMapTexturePath) {
+        return;
+      }
+      loadedMapTexturePath = mapAsset.primary;
+      loadMapTexture(animatedMapObjects.mapPlaneMaterial, mapAsset.primary, mapAsset.fallback);
     },
   };
 }
@@ -470,7 +478,8 @@ function addMapLife(scene) {
   mapPlane.rotation.x = -Math.PI / 2;
   mapPlane.position.set(0, 0.065, -0.7);
   scene.add(mapPlane);
-  loadMapTexture(mapPlaneMaterial, worldMapAsset.primary, worldMapAsset.fallback);
+  const initialMapAsset = getWorldMapAsset('mobile');
+  loadMapTexture(mapPlaneMaterial, initialMapAsset.primary, initialMapAsset.fallback);
 
   const waterShimmer = new THREE.Mesh(
     new THREE.RingGeometry(1.15, 1.34, 32),
@@ -486,25 +495,30 @@ function addMapLife(scene) {
   waterShimmer.position.set(5.2, 0.18, -1.8);
   scene.add(waterShimmer);
 
-  return { waterShimmer };
+  return { mapPlaneMaterial, waterShimmer };
 }
 
 function loadMapTexture(material, primaryPath, fallbackPath) {
   const loader = new THREE.TextureLoader();
+  const applyTexture = (texture) => {
+    if (material.map) {
+      material.map.dispose();
+    }
+    texture.colorSpace = THREE.SRGBColorSpace;
+    material.map = texture;
+    material.needsUpdate = true;
+  };
   loader.load(
     primaryPath,
-    (texture) => {
-      texture.colorSpace = THREE.SRGBColorSpace;
-      material.map = texture;
-      material.needsUpdate = true;
-    },
+    applyTexture,
     undefined,
     () => {
-      loader.load(fallbackPath, (texture) => {
-        texture.colorSpace = THREE.SRGBColorSpace;
-        material.map = texture;
-        material.needsUpdate = true;
-      });
+      if (fallbackPath) {
+        if (import.meta.env.DEV) {
+          console.warn(`Map background failed to load: ${primaryPath}. Falling back to ${fallbackPath}.`);
+        }
+        loader.load(fallbackPath, applyTexture);
+      }
     },
   );
 }

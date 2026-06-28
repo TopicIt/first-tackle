@@ -29,8 +29,9 @@ import { getInteractionContext, getLocationSceneContext, runAction } from './gam
 import { exportSave, importSave, loadGame, resetGame, saveGame } from './game/save.js';
 import { createAudioManager } from './audio/audioManager.js';
 import { ensureMarketState, freshFishAtRisk } from './game/market.js';
+import { addItem } from './game/inventory.js';
 import { ensureTackleState, equipTackleComponent, getRigMethod } from './game/tackle.js';
-import { ensureTimeState, formatGameTime, getTimePhase } from './game/time.js';
+import { ensureTimeState, formatGameTime, getTimeOfDayBucket, getTimePhase } from './game/time.js';
 import { canOpenWaterFromMap, canSelectWaterForFishing, canUseBusStation, getFishingLocation, getLockedReasonKey, isFishingLocation } from './game/locations.js';
 import { getLocationTransition, markLocationTransitionVisit, shouldUseLocationTransitions } from './game/locationTransitions.js';
 import { arriveAtWater } from './game/travel.js';
@@ -70,6 +71,7 @@ import {
 } from './ui/viewMode.js';
 import { getLanguage, t, toggleLanguage } from './i18n/i18n.js';
 import { assetPath } from './utils/assetPath.js';
+import { getWorldMapAsset } from './utils/worldMapAsset.js';
 
 const canvas = document.querySelector('#game');
 const hudRoot = document.querySelector('#hud');
@@ -512,6 +514,62 @@ const hud = createHud(hudRoot, {
       return;
     }
 
+    if (actionId === 'debug:readyFishingKit') {
+      gameState.progress = {
+        ...(gameState.progress ?? {}),
+        firstTackleReady: true,
+        starterTackleDrawerCompleted: true,
+      };
+      addItem(gameState, 'primitiveTackle', Math.max(0, 1 - (gameState.inventory?.primitiveTackle ?? 0)));
+      addItem(gameState, 'worms', Math.max(0, 25 - (gameState.inventory?.worms ?? 0)));
+      gameState.tackle ??= {};
+      gameState.tackle.owned = {
+        ...(gameState.tackle?.owned ?? {}),
+        grandma_thread: true,
+        old_dull_hook: true,
+        small_stone: true,
+        goose_feather_float: true,
+        simple_stick_rod: true,
+      };
+      gameState.tackle.equipped = {
+        ...(gameState.tackle?.equipped ?? {}),
+        line: 'grandma_thread',
+        hook: 'old_dull_hook',
+        sinker: 'small_stone',
+        float: 'goose_feather_float',
+        rod: 'simple_stick_rod',
+      };
+      unlockAllLocationsForDebug(gameState);
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('debug:timeOfDay:')) {
+      const bucket = actionId.replace('debug:timeOfDay:', '');
+      gameState.settings.debug = {
+        ...(gameState.settings.debug ?? {}),
+        timeOfDayBucket: ['dawn_dusk', 'day', 'night'].includes(bucket) ? bucket : null,
+      };
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('debug:setTime:')) {
+      const [hour, minute] = actionId.replace('debug:setTime:', '').split(':').map(Number);
+      if (Number.isInteger(hour) && Number.isInteger(minute)) {
+        gameState.settings.debug = {
+          ...(gameState.settings.debug ?? {}),
+          timeOfDayBucket: null,
+        };
+        gameState.time.minutes = (hour * 60) + minute;
+        gameState.audioQueue.push('ui_click');
+      }
+      renderHud();
+      return;
+    }
+
     if (actionId.startsWith('quest:claim:')) {
       gameState.ui.collapsedPanels = {
         ...(gameState.ui.collapsedPanels ?? {}),
@@ -946,12 +1004,15 @@ function lockedLogKey(waterId) {
 function renderHud() {
   syncQuestProgress(gameState);
   ensureCafeOrders(gameState);
+  const timeOfDayBucket = getTimeOfDayBucket(gameState);
   const context = gameState.ui.activeScene
     ? getLocationSceneContext(gameState, gameState.ui.activeScene)
     : getInteractionContext(gameState, player.position);
   context.clock = formatGameTime(gameState);
   context.timePhase = getTimePhase(gameState);
+  context.timeOfDayBucket = timeOfDayBucket;
   const hudSnapshot = JSON.stringify({
+    timeOfDayBucket,
     money: gameState.money,
     language: getLanguage(),
     inventory: gameState.inventory,
@@ -959,6 +1020,7 @@ function renderHud() {
     tackle: gameState.tackle,
     audio: gameState.settings.audio,
     fishingSettings: gameState.settings.fishing,
+    debugSettings: gameState.settings.debug,
     transitionSettings: gameState.settings.transitions,
     performanceSettings: gameState.settings.performance,
     viewMode: gameState.settings.viewMode,
@@ -984,6 +1046,7 @@ function renderHud() {
 
   if (hudSnapshot !== lastHudSnapshot) {
     lastHudSnapshot = hudSnapshot;
+    world.updateMapTexture(getWorldMapAsset(gameState.ui.resolvedViewMode ?? 'mobile', gameState));
     hud.render(gameState, context);
     updateMapOverlayMotion(performance.now());
     queueAutosave();

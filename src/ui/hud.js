@@ -490,6 +490,21 @@ export function createHud(root, handlers) {
               <p class="section-label">${t('cheats')}</p>
               <div class="settings-action-row settings-action-row--stack">
                 <button data-action="debug:unlockAllLocations" type="button">${t('unlockAllLocations')}</button>
+                <button data-action="debug:readyFishingKit" type="button">${t('debugReadyFishingKit')}</button>
+              </div>
+              <div class="hint-mode-grid">
+                ${['auto', 'dawn_dusk', 'day', 'night'].map((bucket) => `
+                  <button class="hint-mode${(state.settings?.debug?.timeOfDayBucket ?? 'auto') === bucket ? ' is-selected' : ''}" data-action="debug:timeOfDay:${bucket}" type="button">
+                    ${t(`timeOfDayForce${toPascalCase(bucket)}`)}
+                  </button>
+                `).join('')}
+              </div>
+              <div class="hint-mode-grid">
+                ${['05:00', '12:00', '19:00', '23:00', '02:00'].map((time) => `
+                  <button class="hint-mode${context.clock === time && !state.settings?.debug?.timeOfDayBucket ? ' is-selected' : ''}" data-action="debug:setTime:${time}" type="button">
+                    ${time}
+                  </button>
+                `).join('')}
               </div>
               <form class="cheat-form" data-cheat-form>
                 <input data-cheat-input type="text" inputmode="text" placeholder="+1000" autocomplete="off" />
@@ -907,7 +922,10 @@ function panelToggleLabel(isCollapsed) {
 }
 
 function toPascalCase(value) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
+  return String(value)
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('');
 }
 
 function escapeHtml(value) {

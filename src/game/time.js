@@ -27,6 +27,11 @@ export function getTimePhase(state) {
 }
 
 export function getTimeOfDayBucket(state) {
+  const forcedBucket = state?.settings?.debug?.timeOfDayBucket;
+  if (['dawn_dusk', 'day', 'night'].includes(forcedBucket)) {
+    return forcedBucket;
+  }
+
   const phase = getTimePhase(state);
   return phase === 'morning' || phase === 'evening' ? 'dawn_dusk' : phase;
 }
