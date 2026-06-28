@@ -1,5 +1,6 @@
 import { drawerClutter, drawerItemOrder, drawerItems, foundDrawerItemCount } from '../game/starterTackleDrawer.js';
 import { t } from '../i18n/i18n.js';
+import { assetPath } from '../utils/assetPath.js';
 import './starterDrawer.css';
 
 export function starterDrawerMarkup(state) {
@@ -50,7 +51,7 @@ export function starterDrawerMarkup(state) {
 
 function drawerMarkup(drawer, found, completed) {
   return `
-    <div class="starter-drawer__zone">
+    <div class="starter-drawer__zone" style="--drawer-bg:url('${assetPath(`/assets/minigames/grandma-drawer/drawer-bg-${drawer + 1}.png`)}');">
       <div class="starter-drawer__handle" aria-hidden="true"></div>
       ${drawerClutter.filter((item) => item.drawer === drawer).map((item) => clutterMarkup(item, found, completed)).join('')}
     </div>
@@ -73,7 +74,8 @@ function clutterMarkup(item, found, completed) {
       ${completed || itemFound ? 'disabled' : ''}
       aria-label="${t(item.labelKey)}"
     >
-      <span>${item.mark}</span>
+      ${item.image ? `<img src="${assetPath(item.image)}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" alt="" />` : ''}
+      <span${item.image ? ' class="starter-drawer__mark-fallback"' : ''}>${item.mark}</span>
       <small>${t(item.labelKey)}</small>
     </button>
   `;

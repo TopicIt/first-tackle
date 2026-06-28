@@ -2,6 +2,7 @@ import './locationScene.css';
 import { cafeMarkup, logMarkup, marketMarkup } from './panels.js';
 import { fishingMinigameMarkup } from './fishingMinigame.js';
 import { starterDrawerMarkup } from './starterDrawer.js';
+import { wormDiggingGameMarkup } from './wormDiggingGame.js';
 import { getFishData } from '../game/fishData.js';
 import { getFishingLocation, isFishingLocation } from '../game/locations.js';
 import { tutorialSteps } from '../game/profile.js';
@@ -139,6 +140,7 @@ export function locationSceneMarkup(state, context) {
 
       ${fishingMinigameMarkup(state)}
       ${starterDrawerMarkup(state)}
+      ${wormDiggingGameMarkup(state)}
     </section>
   `;
 }

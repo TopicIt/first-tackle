@@ -9,7 +9,7 @@ import { shopItems } from '../game/state.js';
 import { getQuestRows } from '../game/quests.js';
 import { getCafeOrderRows } from '../game/cafeOrders.js';
 import { profileAvatars } from '../game/profile.js';
-import { componentDescriptions, componentLabels, tackleComponents } from '../game/tackle.js';
+import { componentDescriptions, componentLabels, requiredTackleSlots, tackleComponents } from '../game/tackle.js';
 import { resolveFishCatchCardImage } from '../game/fishCardImages.js';
 import { countItem, itemLabels } from '../game/inventory.js';
 import { t, translateEntry } from '../i18n/i18n.js';
@@ -347,7 +347,7 @@ export function tackleMarkup(state) {
           </strong>
           <small>${t(componentDescriptions[equipped[slot]] ?? componentDescriptions.none)}</small>
           <div class="tackle-options">
-            ${options.filter((id) => owned[id]).map((id) => `
+            ${options.filter((id) => owned[id] && !(requiredTackleSlots.includes(slot) && id === 'none')).map((id) => `
               <button class="${equipped[slot] === id ? 'is-selected' : ''}" data-action="tackle:equip:${slot}:${id}" type="button">
                 ${tackleComponentVisualMarkup(id)}
                 <span>
@@ -373,7 +373,7 @@ export function guideMarkup(state) {
       `).join('')}
     </div>
     <div class="guide-body">
-      ${tab === 'waters' ? watersGuideMarkup(state) : tab === 'fish' ? fishGuideMarkup(state) : guideSimpleMarkup(tab)}
+      ${tab === 'waters' ? watersGuideAccordionMarkup(state) : tab === 'fish' ? fishGuideAccordionMarkup(state) : guideAccordionMarkup(tab)}
     </div>
   `;
 }
@@ -793,6 +793,98 @@ function getMarketableFishEntries(state) {
     ...getFishEntries(state, 'fresh'),
     ...getFishEntries(state, 'cleaned'),
   ];
+}
+
+function fishGuideAccordionMarkup(state) {
+  const journal = state.catchJournal ?? {};
+  return getFishGuideEntries().map((entry) => `
+    <details class="guide-card guide-card--accordion">
+      <summary>
+        <img src="${speciesImage(entry.fishId)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
+        <span>
+          <h3>${t(entry.nameKey)} ${journal[entry.fishId]?.discovered ? '' : `- ${t('undiscoveredFish')}`}</h3>
+          <small>${t(entry.livesKey)}</small>
+        </span>
+      </summary>
+      <div class="guide-card__body">
+        <p>${t(entry.descriptionKey)}</p>
+        <dl>
+          <div><dt>${t('whereItLives')}</dt><dd>${t(entry.livesKey)}</dd></div>
+          <div><dt>${t('bestTime')}</dt><dd>${t(entry.timeKey)}</dd></div>
+          <div><dt>${t('preferredBait')}</dt><dd>${favoriteBaitsMarkup(entry.fishId)}</dd></div>
+          <div><dt>${t('weakerBaits')}</dt><dd>${weakerBaitsMarkup(entry.fishId)}</dd></div>
+          <div><dt>${t('trophyThresholds')}</dt><dd>${thresholdMarkup(entry.fishId)}</dd></div>
+        </dl>
+      </div>
+    </details>
+  `).join('');
+}
+
+function watersGuideAccordionMarkup(state) {
+  return waterGuide.map((water) => {
+    const unlocked = water.unlocked
+      || Boolean(state.travel?.visitedWaters?.[water.id])
+      || (water.access === 'bicycle' && state.purchased?.bicycle);
+    return `
+      <details class="guide-card guide-card--accordion guide-card--wide">
+        <summary>
+          <img src="${assetPath(waterImages[water.id] ?? '/assets/locations/pond_location_concept.png')}" onerror="this.src='${assetPath('/assets/locations/pond_location_concept.png')}'" alt="" />
+          <span>
+            <h3>${t(water.nameKey)} ${unlocked ? '' : `- ${t('locked')}`}</h3>
+            <small>${t(water.bestTimeKey)}</small>
+          </span>
+        </summary>
+        <div class="guide-card__body">
+          <p>${t(water.descriptionKey)}</p>
+          <dl>
+            <div><dt>${t('fishSpecies')}</dt><dd>${water.fishIds.map((fishId) => t(fishData.find((fish) => fish.id === fishId)?.nameKey ?? fishId)).join(', ')}</dd></div>
+            <div><dt>${t('bestTime')}</dt><dd>${t(water.bestTimeKey)}</dd></div>
+            <div><dt>${t('tackle')}</dt><dd>${t(water.tackleKey)}</dd></div>
+            <div><dt>${t('preferredBait')}</dt><dd>${t(water.baitKey)}</dd></div>
+            ${unlocked ? '' : `<div><dt>${t('unlock')}</dt><dd>${t(water.unlockKey)}</dd></div>`}
+          </dl>
+        </div>
+      </details>
+    `;
+  }).join('');
+}
+
+function guideAccordionMarkup(tab) {
+  const cards = {
+    baits: [
+      ['guideBaitCardWormsTitle', 'guideBaitCardWormsText'],
+      ['guideBaitCardLarvaeTitle', 'guideBaitCardLarvaeText'],
+      ['guideBaitCardBreadTitle', 'guideBaitCardBreadText'],
+      ['guideBaitCardLiveTitle', 'guideBaitCardLiveText'],
+    ],
+    tackle: [
+      ['guideTackleCardLineTitle', 'guideTackleCardLineText'],
+      ['guideTackleCardHookTitle', 'guideTackleCardHookText'],
+      ['guideTackleCardSinkerTitle', 'guideTackleCardSinkerText'],
+      ['guideTackleCardFloatTitle', 'guideTackleCardFloatText'],
+      ['guideTackleCardRodTitle', 'guideTackleCardRodText'],
+    ],
+    processing: [
+      ['guideProcessingCardCleanTitle', 'guideProcessingCardCleanText'],
+      ['guideProcessingCardSaltTitle', 'guideProcessingCardSaltText'],
+      ['guideProcessingCardDryTitle', 'guideProcessingCardDryText'],
+      ['guideProcessingCardMarketTitle', 'guideProcessingCardMarketText'],
+    ],
+  }[tab] ?? [];
+
+  return cards.map(([titleKey, bodyKey]) => `
+    <details class="guide-card guide-card--accordion guide-card--text">
+      <summary>
+        <span>
+          <h3>${t(titleKey)}</h3>
+          <small>${t(`guideTab${toPascalCase(tab)}`)}</small>
+        </span>
+      </summary>
+      <div class="guide-card__body">
+        <p>${t(bodyKey)}</p>
+      </div>
+    </details>
+  `).join('');
 }
 
 function fishGuideMarkup(state) {

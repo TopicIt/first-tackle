@@ -60,6 +60,12 @@ export function openFishingMinigame(state, method) {
     return;
   }
 
+  const effects = getTackleEffects(state);
+  if (!effects.hasCompleteStarterSet) {
+    pushLog(state, 'logNeedCompleteTackle');
+    return;
+  }
+
   if (method === 'stickRod' && !hasUsableRod(state)) {
     pushLog(state, 'logNeedFirstRod');
     return;

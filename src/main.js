@@ -28,7 +28,7 @@ import { getInteractionContext, getLocationSceneContext, runAction } from './gam
 import { exportSave, importSave, loadGame, resetGame, saveGame } from './game/save.js';
 import { createAudioManager } from './audio/audioManager.js';
 import { ensureMarketState, freshFishAtRisk } from './game/market.js';
-import { ensureTackleState, equipTackleComponent, getRigMethod, selectActiveRig } from './game/tackle.js';
+import { ensureTackleState, equipTackleComponent, getRigMethod } from './game/tackle.js';
 import { ensureTimeState, formatGameTime, getTimePhase } from './game/time.js';
 import { canOpenWaterFromMap, canSelectWaterForFishing, canUseBusStation, getFishingLocation, getLockedReasonKey, isFishingLocation } from './game/locations.js';
 import { getLocationTransition, markLocationTransitionVisit, shouldUseLocationTransitions } from './game/locationTransitions.js';
@@ -52,6 +52,12 @@ import {
   findDrawerItem,
   hasStarterTackleDrawerCompleted,
 } from './game/starterTackleDrawer.js';
+import {
+  claimWormDiggingReward,
+  closeWormDiggingGame,
+  openWormDiggingGame,
+  searchWormDigSpot,
+} from './game/wormDigging.js';
 import { createHud } from './ui/hud.js';
 import { updateMapOverlayMotion } from './ui/mapOverlay.js';
 import {
@@ -208,6 +214,31 @@ const hud = createHud(hudRoot, {
     if (actionId.startsWith('drawer:junk:')) {
       gameState.ui.starterTackleDrawerMessage = 'drawerJunkMessage';
       gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'worms:open') {
+      gameState.ui.activeScene = 'garden';
+      openWormDiggingGame(gameState);
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'worms:close') {
+      closeWormDiggingGame(gameState);
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('worms:spot:')) {
+      searchWormDigSpot(gameState, actionId.replace('worms:spot:', ''));
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'worms:claim') {
+      claimWormDiggingReward(gameState);
       renderHud();
       return;
     }
@@ -370,7 +401,6 @@ const hud = createHud(hudRoot, {
     }
 
     if (actionId.startsWith('tackle:rig:')) {
-      selectActiveRig(gameState, actionId.replace('tackle:rig:', ''));
       gameState.audioQueue.push('ui_click');
       renderHud();
       return;
@@ -379,12 +409,6 @@ const hud = createHud(hudRoot, {
     if (actionId.startsWith('minigame:start:')) {
       const method = actionId.replace('minigame:start:', '');
       const normalizedMethod = method === 'active' ? getRigMethod(gameState) : method === 'liveBait' ? 'liveBait' : method;
-      if (method === 'handline') {
-        selectActiveRig(gameState, 'handline');
-      }
-      if (method === 'stickRod') {
-        selectActiveRig(gameState, 'first_rod') || selectActiveRig(gameState, 'proper_rod');
-      }
       openFishingMinigame(gameState, normalizedMethod);
       advanceTutorialForAction(gameState, actionId);
       gameState.audioQueue.push('ui_click');
@@ -849,6 +873,7 @@ function renderHud() {
     language: getLanguage(),
     inventory: gameState.inventory,
     purchased: gameState.purchased,
+    tackle: gameState.tackle,
     audio: gameState.settings.audio,
     fishingSettings: gameState.settings.fishing,
     transitionSettings: gameState.settings.transitions,

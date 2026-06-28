@@ -14,6 +14,7 @@ import {
 import { locationSceneMarkup } from './locationScene.js';
 import { locationTransitionMarkup } from './locationTransition.js';
 import { mapOverlayMarkup } from './mapOverlay.js';
+import { syncFishingLineOverlay } from './fishingMinigame.js';
 import { syncFishingPrototype3d } from './fishingPrototype3d.js';
 import { getLanguage, t } from '../i18n/i18n.js';
 import { buildInfo } from '../buildInfo.js';
@@ -163,10 +164,12 @@ export function createHud(root, handlers) {
     if (preservedScroll) {
       pendingScrollRestore = preservedScroll;
     }
+    const panelToggleFromMobileMenu = action.startsWith('panel:toggle:') && Boolean(mobileMenu);
     const keepMobileMenuOpen = action.startsWith('panel:toggle:')
+      && !panelToggleFromMobileMenu
       && (mobileMenuOpen || Boolean(root.querySelector('.mobile-menu[open]')) || Boolean(mobileMenu));
     handlers.onDismissStartupTitle?.();
-    if (!action.startsWith('panel:toggle:')) {
+    if (!action.startsWith('panel:toggle:') || panelToggleFromMobileMenu) {
       mobileMenu?.removeAttribute('open');
       mobileMenuOpen = false;
     } else if (keepMobileMenuOpen || mobileMenu) {
@@ -213,6 +216,10 @@ export function createHud(root, handlers) {
           <span class="coin-hud__icon" aria-hidden="true"></span>
           <strong>${state.money}</strong>
         </div>
+        <button class="quest-notebook-button${collapsedPanels.quests ? '' : ' is-open'}" data-action="panel:toggle:quests" type="button" aria-label="${t('activeQuests')}">
+          <span aria-hidden="true"></span>
+          <strong>${t('activeQuests')}</strong>
+        </button>
 
         <section class="panel glass-menu status-panel${statusCollapsed}">
           <div class="panel-toggle-row">
@@ -525,6 +532,8 @@ export function createHud(root, handlers) {
       setupLocationTransition(root, state, handlers);
       setupStartupVideo(root, handlers);
       syncFishingPrototype3d(root, state);
+      syncFishingLineOverlay(root);
+      window.requestAnimationFrame(() => syncFishingLineOverlay(root));
     },
   };
 

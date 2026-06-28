@@ -4,7 +4,6 @@ import {
   getFishEntries,
 } from './fishInventory.js';
 import {
-  canCraftStickRod,
   cleanFish,
   collectTaranka,
   craftPrimitiveTackle,
@@ -37,7 +36,6 @@ import {
 } from './locations.js';
 import { arriveAtWater, buyBusTicket, travelByBicycle } from './travel.js';
 import { interactionZones } from './world.js';
-import { getTimePhase } from './time.js';
 import { getTackleEffects } from './tackle.js';
 import { tutorialSteps } from './profile.js';
 import { hasStarterTackleDrawerCompleted } from './starterTackleDrawer.js';
@@ -68,8 +66,8 @@ export function getInteractionContext(state, playerPosition) {
   if (zone.id === 'garden') {
     const cooldown = getWormSearchCooldown(state);
     actions.push({
-      id: 'search:worms',
-      label: cooldown > 0 ? t('searchIn', { seconds: Math.ceil(cooldown) }) : t('searchWorms'),
+      id: 'worms:open',
+      label: cooldown > 0 ? t('searchIn', { seconds: Math.ceil(cooldown) }) : t('wormDigAction'),
       disabled: cooldown > 0,
     });
   }
@@ -352,23 +350,6 @@ function getSceneActions(state, zoneId) {
         disabled: hasStarterTackleDrawerCompleted(state),
       },
       {
-        id: 'craft:stickRod',
-        label: t('craftStickRod'),
-        disabled: !canCraftStickRod(state),
-      },
-      ...(!state.tackle?.owned?.simple_stick_rod && !hasItem(state, 'stickRod') ? [{
-        id: 'gather:rodStick',
-        label: t('gatherRodStick'),
-      }] : []),
-      ...(!state.tackle?.owned?.grandma_thread || isTutorialAction(state, 'gather:thread') ? [{
-        id: 'gather:thread',
-        label: t('gatherGrandmaThread'),
-      }] : []),
-      ...(!state.tackle?.owned?.old_dull_hook || isTutorialAction(state, 'gather:oldHook') ? [{
-        id: 'gather:oldHook',
-        label: t('gatherOldHook'),
-      }] : []),
-      {
         id: 'clean:fish',
         label: t('cleanFish'),
         disabled: countFishByStatus(state, 'fresh') === 0,
@@ -401,40 +382,12 @@ function getSceneActions(state, zoneId) {
 
   if (zoneId === 'garden') {
     const cooldown = getWormSearchCooldown(state);
-    const featherOnCooldown = state.timers?.featherSearchPhaseKey === `${state.day}:${getTimePhase(state)}`;
     return [
       {
-        id: 'search:stones',
-        label: cooldown > 0 ? t('liftStonesIn', { seconds: Math.ceil(cooldown) }) : t('liftStones'),
+        id: 'worms:open',
+        label: cooldown > 0 ? t('searchIn', { seconds: Math.ceil(cooldown) }) : t('wormDigAction'),
         disabled: cooldown > 0,
       },
-      {
-        id: 'search:soil',
-        label: !state.purchased.shovel
-          ? t('needShovel')
-          : cooldown > 0
-            ? t('digSoilIn', { seconds: Math.ceil(cooldown) })
-            : t('digSoil'),
-        disabled: !state.purchased.shovel || cooldown > 0,
-      },
-      {
-        id: 'search:compost',
-        label: cooldown > 0 ? t('compostIn', { seconds: Math.ceil(cooldown) }) : t('searchCompost'),
-        disabled: cooldown > 0,
-      },
-      ...(!state.tackle?.owned?.goose_feather_float || isTutorialAction(state, 'search:feather') ? [{
-        id: 'search:feather',
-        label: featherOnCooldown ? t('feathersTryLater') : t('searchGooseFeather'),
-        disabled: featherOnCooldown,
-      }] : []),
-      ...((!state.tackle?.owned?.simple_stick_rod && !hasItem(state, 'stickRod')) || isTutorialAction(state, 'gather:rodStick') ? [{
-        id: 'gather:rodStick',
-        label: t('gatherRodStick'),
-      }] : []),
-      ...(!state.tackle?.owned?.small_stone || isTutorialAction(state, 'gather:stones') ? [{
-        id: 'gather:stones',
-        label: t('gatherSmallStones'),
-      }] : []),
     ];
   }
 

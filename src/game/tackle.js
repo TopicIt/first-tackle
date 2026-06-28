@@ -6,6 +6,8 @@ export const tackleComponents = {
   rod: ['none', 'simple_stick_rod', 'proper_rod'],
 };
 
+export const requiredTackleSlots = ['line', 'hook', 'sinker'];
+
 export const componentLabels = {
   grandma_thread: 'componentGrandmaThread',
   better_line: 'componentBetterLine',
@@ -64,6 +66,7 @@ export function createInitialTackleState() {
       float: 'none',
       rod: 'none',
     },
+    migratedLegacyRig: false,
   };
 }
 
@@ -84,7 +87,7 @@ export function ensureTackleState(state) {
     ...createInitialTackleState().equipped,
     ...(state.tackle.equipped ?? {}),
   };
-  migrateOldRigSelection(state);
+  migrateOldRigSelectionOnce(state);
 
   if (state.inventory?.primitiveTackle > 0) {
     state.tackle.owned.grandma_thread = true;
@@ -117,7 +120,7 @@ export function ensureTackleState(state) {
     state.tackle.owned.proper_rod = true;
   }
   repairEquippedComponents(state);
-  state.tackle.activeRig = getLegacyRigIdFromComponents(state);
+  state.tackle.activeRig = null;
 }
 
 export function ownTackleComponent(state, componentId) {
@@ -130,13 +133,18 @@ export function equipTackleComponent(state, slot, componentId) {
   if (!tackleComponents[slot]?.includes(componentId) || !state.tackle.owned[componentId]) {
     return false;
   }
+  if (requiredTackleSlots.includes(slot) && componentId === 'none') {
+    return false;
+  }
   state.tackle.equipped[slot] = componentId;
+  state.tackle.activeRig = null;
   return true;
 }
 
 export function selectActiveRig(state, rigId) {
   ensureTackleState(state);
-  return equipLegacyRig(state, rigId);
+  state.tackle.activeRig = null;
+  return ['handline', 'first_rod', 'proper_rod'].includes(rigId);
 }
 
 export function getActiveRig(state) {
@@ -157,12 +165,6 @@ export function getAvailableRigs(state) {
 
 export function getRigMethod(state, rigId = null) {
   ensureTackleState(state);
-  if (rigId === 'handline') {
-    return 'handline';
-  }
-  if (rigId === 'first_rod' || rigId === 'proper_rod') {
-    return 'stickRod';
-  }
   return state.tackle.equipped?.rod && state.tackle.equipped.rod !== 'none' ? 'stickRod' : 'handline';
 }
 
@@ -215,13 +217,24 @@ function getScatterScale(equipped) {
   return Math.max(0.48, scale);
 }
 
-function migrateOldRigSelection(state) {
+function migrateOldRigSelectionOnce(state) {
+  if (state.tackle?.migratedLegacyRig) {
+    return;
+  }
+
   const rigId = state.tackle?.activeRig;
+  const currentRod = state.tackle?.equipped?.rod ?? 'none';
+  if (currentRod !== 'none') {
+    state.tackle.migratedLegacyRig = true;
+    return;
+  }
+
   if (rigId === 'proper_rod' && (state.tackle.owned?.proper_rod || state.purchased?.properRod)) {
     state.tackle.equipped.rod = 'proper_rod';
   } else if (rigId === 'first_rod' && (state.tackle.owned?.simple_stick_rod || (state.inventory?.stickRod ?? 0) > 0)) {
     state.tackle.equipped.rod = 'simple_stick_rod';
   }
+  state.tackle.migratedLegacyRig = true;
 }
 
 function repairEquippedComponents(state) {
@@ -232,29 +245,6 @@ function repairEquippedComponents(state) {
         ?? 'none';
     }
   }
-}
-
-function equipLegacyRig(state, rigId) {
-  if (rigId === 'handline') {
-    state.tackle.equipped.rod = 'none';
-    state.tackle.equipped.float = 'none';
-    state.tackle.activeRig = 'handline';
-    return true;
-  }
-  if (rigId === 'first_rod' && state.tackle.owned.simple_stick_rod) {
-    state.tackle.equipped.rod = 'simple_stick_rod';
-    if (state.tackle.equipped.float === 'none' && state.tackle.owned.goose_feather_float) {
-      state.tackle.equipped.float = 'goose_feather_float';
-    }
-    state.tackle.activeRig = 'first_rod';
-    return true;
-  }
-  if (rigId === 'proper_rod' && state.tackle.owned.proper_rod) {
-    state.tackle.equipped.rod = 'proper_rod';
-    state.tackle.activeRig = 'proper_rod';
-    return true;
-  }
-  return false;
 }
 
 function getLegacyRigIdFromComponents(state) {

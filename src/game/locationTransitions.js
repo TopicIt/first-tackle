@@ -30,6 +30,18 @@ export const locationTransitions = {
       ],
     ],
   },
+  canal: {
+    id: 'fishing_canal',
+    targetScene: 'canal',
+    fallbackImage: assetPath('/assets/locations/fishing-canal.webp'),
+    fallbackImageAlt: assetPath('/assets/locations/pond_location_concept.png'),
+    videos: [
+      [
+        { src: assetPath('/assets/transitions/fishing-canal/fishing-canal-flyin.webm'), type: 'video/webm' },
+        { src: assetPath('/assets/transitions/fishing-canal/fishing-canal-flyin.mp4'), type: 'video/mp4' },
+      ],
+    ],
+  },
   sluice: {
     id: 'sluice_flyin',
     targetScene: 'sluice',
