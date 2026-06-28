@@ -280,6 +280,28 @@
   letter-spacing: 0;
 }
 
+.scene-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.scene-title-row h2 {
+  margin-bottom: 0;
+}
+
+.scene-clock {
+  border: 1px solid rgb(243 196 95 / 34%);
+  border-radius: 999px;
+  background: rgb(8 16 15 / 34%);
+  color: #fff8df;
+  font-size: 0.82rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: 6px 9px;
+}
+
 .scene-header p {
   max-width: 680px;
   margin: 0;
@@ -308,6 +330,8 @@
 }
 
 .scene-header__actions {
+  position: relative;
+  z-index: 5;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -340,10 +364,12 @@
 }
 
 .location-scene .scene-map {
-  min-width: 82px;
+  min-width: 132px;
+  min-height: 54px;
   border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 800;
+  font-size: 1rem;
+  font-weight: 900;
+  padding: 13px 18px;
 }
 
 .scene-body {
@@ -1079,10 +1105,10 @@
   }
 
   .location-scene .scene-map {
-    min-width: 72px;
-    min-height: 32px;
-    font-size: 0.72rem;
-    padding: 6px 10px;
+    min-width: 108px;
+    min-height: 46px;
+    font-size: 0.86rem;
+    padding: 10px 14px;
   }
 
   .scene-body {

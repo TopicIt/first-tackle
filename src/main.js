@@ -262,9 +262,10 @@ const hud = createHud(hudRoot, {
         renderHud();
         return;
       }
-      gameState.ui.activeScene = `${waterId}_map`;
-      gameState.ui.selectedHotspot = waterId;
-      gameState.audioQueue.push('open_scene');
+      if (startLocationTransition(waterId)) {
+        return;
+      }
+      enterFishingWater(waterId);
       renderHud();
       return;
     }
@@ -649,6 +650,13 @@ const hud = createHud(hudRoot, {
     }
     const marketScrollTop = captureMarketScroll(actionId);
     runAction(actionId, gameState, context);
+    if (
+      (actionId.startsWith('travel:water:') || actionId.startsWith('ticket:buy:'))
+      && isFishingLocation(gameState.ui?.activeScene)
+      && !gameState.ui?.fishingMinigame?.open
+    ) {
+      openFishingMinigame(gameState, getRigMethod(gameState));
+    }
     advanceTutorialForAction(gameState, actionId);
     syncPlayerToState();
     renderHud();

@@ -134,6 +134,35 @@ const guideTabIcons = {
   processing: '/assets/items/taranka_drying.png',
 };
 
+const guideCardImages = {
+  baits: [
+    '/assets/items/bait_worm.png',
+    '/assets/items/bait_worm.png',
+    '/assets/items/bait_larvae.png',
+    '/assets/items/bait_bread.png',
+    '/assets/items/bait_dough.png',
+    '/assets/items/bait_mastyrka.png',
+    '/assets/items/bait_corn.png',
+    '/assets/items/bait_nightcrawler.png',
+    '/assets/fish/catch_result_frame.png',
+  ],
+  tackle: [
+    '/assets/items/better_line.png',
+    '/assets/items/hooks_box.png',
+    '/assets/items/proper_sinker.png',
+    '/assets/items/float-proper.png',
+    '/assets/items/proper_rod.png',
+    '/assets/items/fishing_float.png',
+  ],
+  processing: [
+    '/assets/items/tackle_components.png',
+    '/assets/items/salt_bag.png',
+    '/assets/items/taranka_drying.png',
+    '/assets/fish/catch_result_frame.png',
+    '/assets/locations/market_location_concept.png',
+  ],
+};
+
 export function inventoryMarkup(state) {
   const rows = inventoryOrder
     .filter((itemId) => countItem(state, itemId) > 0 || itemId === 'worms')
@@ -327,7 +356,7 @@ export function questsMarkup(state) {
 
 export function mapViewerMarkup(state) {
   const zoom = state.ui?.mapViewerZoom ?? 1;
-  const mapAsset = getWorldMapAsset(state.ui?.resolvedViewMode ?? 'mobile');
+  const mapAsset = getWorldMapAsset(state.ui?.resolvedViewMode ?? 'mobile', state);
   return `
     <div class="map-viewer-tools">
       <button data-action="mapViewer:zoomOut" type="button">-</button>
@@ -391,6 +420,7 @@ export function guideMarkup(state) {
       `).join('')}
     </div>
     <div class="guide-body">
+      ${tab === 'waters' || tab === 'fish' ? guideTimeNoteMarkup() : ''}
       ${tab === 'waters' ? watersGuideAccordionMarkup(state) : tab === 'fish' ? fishGuideAccordionMarkup(state) : guideAccordionMarkup(tab, state)}
     </div>
   `;
@@ -932,7 +962,7 @@ function guideAccordionMarkup(tab, state = {}) {
     return `
     <article class="guide-card guide-card--accordion guide-card--text${expanded[key] ? ' is-open' : ''}">
       <button class="guide-card__summary" data-action="guide:toggle:${key}" type="button">
-        <img src="${assetPath(guideTabIcons[tab] ?? '/assets/items/tackle_components.png')}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
+        <img src="${assetPath(guideCardImages[tab]?.[index] ?? guideTabIcons[tab] ?? '/assets/items/tackle_components.png')}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
         <span>
           <h3>${t(titleKey)}</h3>
           <small>${t(`guideTab${toPascalCase(tab)}`)}</small>
@@ -945,6 +975,14 @@ function guideAccordionMarkup(tab, state = {}) {
     </article>
   `;
   }).join('');
+}
+
+function guideTimeNoteMarkup() {
+  return `
+    <article class="guide-card guide-card--text guide-card--time-note">
+      <p>${t('guideTimeOfDayNote')}</p>
+    </article>
+  `;
 }
 
 function fishGuideMarkup(state) {

@@ -16,9 +16,9 @@ export const MAP_HOTSPOTS = [
   {
     id: 'garden',
     type: 'rect',
-    x: 72,
+    x: 82,
     y: 78,
-    width: 34,
+    width: 28,
     height: 22,
     scene: 'garden',
     action: 'open:garden',

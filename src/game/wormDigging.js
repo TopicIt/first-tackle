@@ -1,4 +1,4 @@
-import { addItem } from './inventory.js';
+import { addItem, hasItem } from './inventory.js';
 import { advanceTime } from './time.js';
 import { nowSeconds, pushFeedback, pushLog, queueSound } from './state.js';
 
@@ -22,16 +22,18 @@ export function openWormDiggingGame(state) {
     return false;
   }
 
+  const mode = hasItem(state, 'shovel') || state.purchased?.shovel ? 'dig' : 'stone';
   state.ui ??= {};
   state.ui.wormDiggingGame = {
     open: true,
+    mode,
     searched: {},
     digs: [],
     worms: 0,
     larvae: 0,
     nightcrawler: 0,
     complete: false,
-    messageKey: 'wormDigHint',
+    messageKey: mode === 'dig' ? 'wormDigHint' : 'wormStoneHint',
   };
   queueSound(state, 'open_scene');
   return true;
@@ -58,12 +60,13 @@ export function digWormSoil(state, xPercent, yPercent) {
 
   const x = clamp(Number(xPercent), 5, 95);
   const y = clamp(Number(yPercent), 8, 92);
+  const hasShovel = game.mode === 'dig';
   const moistBonus = y > 46 && y < 84 ? 0.16 : 0;
   const compostBonus = x > 58 && y > 48 ? 0.12 : 0;
-  const found = Math.random() < 0.58 + moistBonus + compostBonus;
-  const worms = found ? 1 + Math.floor(Math.random() * 3) : 0;
-  const larvae = found && Math.random() < 0.22 ? 1 : 0;
-  const nightcrawler = found && y > 58 && Math.random() < 0.08 ? 1 : 0;
+  const found = Math.random() < (hasShovel ? 0.58 + moistBonus + compostBonus : 0.34 + moistBonus * 0.55);
+  const worms = found ? (hasShovel ? 1 + Math.floor(Math.random() * 3) : 1 + Math.floor(Math.random() * 2)) : 0;
+  const larvae = found && Math.random() < (hasShovel ? 0.22 : 0.1) ? 1 : 0;
+  const nightcrawler = found && hasShovel && y > 58 && Math.random() < 0.08 ? 1 : 0;
 
   game.digs = [
     ...digs,
@@ -80,7 +83,9 @@ export function digWormSoil(state, xPercent, yPercent) {
   game.worms = (game.worms ?? 0) + worms;
   game.larvae = (game.larvae ?? 0) + larvae;
   game.nightcrawler = (game.nightcrawler ?? 0) + nightcrawler;
-  game.messageKey = found ? (larvae || nightcrawler ? 'wormDigFoundLarvae' : 'wormDigFoundWorms') : 'wormDigEmpty';
+  game.messageKey = found
+    ? (larvae || nightcrawler ? 'wormDigFoundLarvae' : 'wormDigFoundWorms')
+    : hasShovel ? 'wormDigEmpty' : 'wormStoneEmpty';
   game.complete = game.digs.length >= REQUIRED_SEARCHES;
   queueSound(state, found ? 'gather_bait' : 'water_ripple');
   return true;
@@ -110,9 +115,9 @@ export function claimWormDiggingReward(state) {
     return false;
   }
 
-  const worms = Math.min(15, Math.max(8, game.worms + Math.floor(Math.random() * 4)));
-  const larvae = game.larvae + (Math.random() < 0.32 ? 1 : 0);
-  const nightcrawler = (game.nightcrawler ?? 0) + (Math.random() < 0.12 ? 1 : 0);
+  const worms = game.worms ?? 0;
+  const larvae = game.larvae ?? 0;
+  const nightcrawler = game.nightcrawler ?? 0;
   addItem(state, 'worms', worms);
   if (larvae > 0) {
     addItem(state, 'larvae', larvae);

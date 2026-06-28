@@ -1,4 +1,5 @@
 import { assetPath } from './assetPath.js';
+import { getTimeOfDayBackground } from './timeOfDayBackgrounds.js';
 
 const mobileWorldMapAsset = {
   primary: assetPath('/assets/locations/world_map_concept1.png'),
@@ -12,6 +13,13 @@ const desktopWorldMapAsset = {
   fallback: mobileWorldMapAsset.primary,
 };
 
-export function getWorldMapAsset(viewMode = 'mobile') {
-  return viewMode === 'desktop' ? desktopWorldMapAsset : mobileWorldMapAsset;
+export function getWorldMapAsset(viewMode = 'mobile', state = null) {
+  const baseAsset = viewMode === 'desktop' ? desktopWorldMapAsset : mobileWorldMapAsset;
+  const timeAsset = getTimeOfDayBackground('main_map', state, baseAsset.primary);
+  return {
+    primary: timeAsset.primary ?? baseAsset.primary,
+    fallback: timeAsset.fallbacks[0] ?? baseAsset.fallback,
+    fallbacks: [...timeAsset.fallbacks, baseAsset.fallback].filter(Boolean),
+    bucket: timeAsset.bucket,
+  };
 }

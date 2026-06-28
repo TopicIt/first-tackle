@@ -7,16 +7,17 @@ import './mapOverlay.css';
 
 export function mapOverlayMarkup(state) {
   const viewMode = state.ui?.resolvedViewMode ?? 'mobile';
-  const worldMapAsset = getWorldMapAsset(viewMode);
+  const worldMapAsset = getWorldMapAsset(viewMode, state);
+  const fallback = worldMapAsset.fallbacks?.[0] ?? worldMapAsset.fallback;
   return `
-    <section class="illustrated-map${MAP_HOTSPOT_DEBUG ? ' is-debugging-hotspots' : ''}" aria-label="${t('mapHint')}" data-map-mode="${viewMode}">
+    <section class="illustrated-map${MAP_HOTSPOT_DEBUG ? ' is-debugging-hotspots' : ''}" aria-label="${t('mapHint')}" data-map-mode="${viewMode}" data-time-of-day="${worldMapAsset.bucket}">
       <div class="illustrated-map__frame">
         <img
           class="illustrated-map__image"
           src="${worldMapAsset.primary}"
           alt=""
           aria-hidden="true"
-          onerror="this.onerror=null;this.src='${worldMapAsset.fallback}'"
+          onerror="this.onerror=null;this.src='${fallback}'"
         />
         <div class="illustrated-map__breath" aria-hidden="true"></div>
         <div class="illustrated-map__water" aria-hidden="true"></div>

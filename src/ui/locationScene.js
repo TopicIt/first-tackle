@@ -9,6 +9,7 @@ import { tutorialSteps } from '../game/profile.js';
 import { t, translateEntry } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
 import { getLocationImage, getLocationImageFallback } from '../utils/locationAsset.js';
+import { getTimeOfDayBackgroundUrls } from '../utils/timeOfDayBackgrounds.js';
 
 const sceneConfigs = {
   house: {
@@ -60,6 +61,7 @@ const sceneConfigs = {
     descriptionKey: 'sceneSluiceDescription',
     image: getLocationImage('sluice'),
     fallbackImage: getLocationImageFallback('sluice'),
+    backgroundKey: 'shluz_aerial',
     bgClass: 'scene-bg--slow-zoom',
     effects: ['scene-water-ripples', 'scene-cloud-shadow'],
   },
@@ -68,6 +70,7 @@ const sceneConfigs = {
     descriptionKey: 'sceneFirePondsDescription',
     image: getLocationImage('firePonds'),
     fallbackImage: getLocationImageFallback('firePonds'),
+    backgroundKey: 'pond_fields_map',
     bgClass: 'scene-bg--slow-zoom',
     effects: ['scene-water-ripples', 'scene-cloud-shadow'],
   },
@@ -84,7 +87,7 @@ export function locationSceneMarkup(state, context) {
     <section class="location-scene location-scene--${sceneId}" aria-label="${t(config.titleKey)} ${t('location')}">
       <div
         class="scene-bg ${config.bgClass}"
-        style="${sceneBackgroundStyle(config)}"
+        style="${sceneBackgroundStyle(config, state)}"
         aria-hidden="true"
       ></div>
       <div class="scene-vignette" aria-hidden="true"></div>
@@ -93,7 +96,10 @@ export function locationSceneMarkup(state, context) {
       <div class="scene-shell">
         <header class="scene-header">
           <div>
-            <h2>${t(config.titleKey)}</h2>
+            <div class="scene-title-row">
+              <h2>${t(config.titleKey)}</h2>
+              ${sceneId === 'house' ? `<span class="scene-clock">${context.clock ?? ''}</span>` : ''}
+            </div>
             <details class="scene-description">
               <summary>${t('locationDescription')}</summary>
               <p>${t(config.descriptionKey)}</p>
@@ -101,12 +107,11 @@ export function locationSceneMarkup(state, context) {
           </div>
           <div class="scene-header__actions">
             <button class="scene-map" data-action="scene:map" type="button">${t('backToMap')}</button>
-            <button class="scene-close" data-scene-close="true" type="button" aria-label="${t('close')}">&times;</button>
           </div>
         </header>
 
         <div class="scene-body">
-          ${sceneId === 'market' || sceneId === 'cafe' ? '' : `<section class="scene-actions">
+          ${sceneId === 'market' || sceneId === 'cafe' || state.ui?.fishingMinigame?.open ? '' : `<section class="scene-actions">
             <div class="scene-action-grid">
               ${context.sceneActions.map((action) => actionButtonMarkup(action, state)).join('')}
             </div>
@@ -234,16 +239,23 @@ function fishingSceneConfig(sceneId) {
     descriptionKey: location.descriptionKey,
     image: getLocationImage(location.fishingImageId ?? location.imageId),
     fallbackImage: getLocationImageFallback(location.fishingImageId ?? location.imageId),
+    backgroundKey: fishingBackgroundKey(location.id),
     bgClass: 'scene-bg--slow-zoom',
     effects: ['scene-water-ripples', 'scene-bobber', 'scene-cloud-shadow'],
   };
 }
 
-function sceneBackgroundStyle(config) {
-  const images = [
-    config.image ? `url('${config.image}')` : '',
-    config.fallbackImage ? `url('${config.fallbackImage}')` : '',
-  ].filter(Boolean);
+function sceneBackgroundStyle(config, state) {
+  const images = config.backgroundKey
+    ? getTimeOfDayBackgroundUrls(config.backgroundKey, state, [config.image, config.fallbackImage])
+    : [config.image, config.fallbackImage].filter(Boolean);
 
-  return `background-image: ${images.join(', ')}`;
+  return `background-image: ${images.map((image) => `url('${image}')`).join(', ')}`;
+}
+
+function fishingBackgroundKey(locationId) {
+  return {
+    canal: 'canal_view',
+    sluice: 'shluz_view',
+  }[locationId] ?? null;
 }

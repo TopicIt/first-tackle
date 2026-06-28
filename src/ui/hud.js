@@ -174,6 +174,9 @@ export function createHud(root, handlers) {
     if (preservedScroll) {
       pendingScrollRestore = preservedScroll;
     }
+    if (action.startsWith('guide:toggle:')) {
+      button.blur();
+    }
     const panelToggleFromMobileMenu = action.startsWith('panel:toggle:') && Boolean(mobileMenu);
     const keepMobileMenuOpen = action.startsWith('panel:toggle:')
       && !panelToggleFromMobileMenu
@@ -808,6 +811,7 @@ function restorePreservedScroll(root, entries) {
     window.requestAnimationFrame(apply);
     window.setTimeout(apply, 40);
     window.setTimeout(apply, 140);
+    window.setTimeout(apply, 320);
   });
 }
 
