@@ -1141,3 +1141,15 @@
     max-height: none;
   }
 }
+
+:root.low-power-mode .location-scene__image,
+:root.low-power-mode .location-scene__art::before,
+:root.low-power-mode .location-scene__art::after,
+:root.low-power-mode .scene-atmosphere *,
+:root.low-power-mode .scene-feedback {
+  animation: none !important;
+}
+
+:root.low-power-mode .scene-atmosphere {
+  display: none;
+}

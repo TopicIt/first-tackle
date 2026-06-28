@@ -128,6 +128,12 @@ const fishImages = {
   sudak: '/assets/fish/sudak.png',
 };
 
+const guideTabIcons = {
+  baits: '/assets/items/bait_worm.png',
+  tackle: '/assets/items/tackle_components.png',
+  processing: '/assets/items/taranka_drying.png',
+};
+
 export function inventoryMarkup(state) {
   const rows = inventoryOrder
     .filter((itemId) => countItem(state, itemId) > 0 || itemId === 'worms')
@@ -851,7 +857,6 @@ function fishGuideAccordionMarkup(state) {
           <div><dt>${t('weakerBaits')}</dt><dd>${weakerBaitsMarkup(entry.fishId)}</dd></div>
           <div><dt>${t('depthPreference')}</dt><dd>${depthPreferenceMarkup(entry.fishId)}</dd></div>
           <div><dt>${t('trophyThresholds')}</dt><dd>${thresholdMarkup(entry.fishId)}</dd></div>
-          <div><dt>${t('fishingTips')}</dt><dd>${t(entry.tipsKey)}</dd></div>
         </dl>
       </div>` : ''}
     </article>
@@ -927,6 +932,7 @@ function guideAccordionMarkup(tab, state = {}) {
     return `
     <article class="guide-card guide-card--accordion guide-card--text${expanded[key] ? ' is-open' : ''}">
       <button class="guide-card__summary" data-action="guide:toggle:${key}" type="button">
+        <img src="${assetPath(guideTabIcons[tab] ?? '/assets/items/tackle_components.png')}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
         <span>
           <h3>${t(titleKey)}</h3>
           <small>${t(`guideTab${toPascalCase(tab)}`)}</small>

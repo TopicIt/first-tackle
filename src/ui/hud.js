@@ -216,9 +216,7 @@ export function createHud(root, handlers) {
       const guideCollapsed = collapsedPanels.guide ? ' is-collapsed' : '';
       const settingsCollapsed = collapsedPanels.settings ? ' is-collapsed' : '';
       const achievementsCollapsed = collapsedPanels.achievements ? ' is-collapsed' : '';
-      const isMainMap = !state.ui?.activeScene && !state.ui?.fishingMinigame?.open;
-      const autoQuestOpen = isMainMap && (state.ui?.questAutoExpandUntil ?? 0) > Date.now();
-      const effectiveQuestsCollapsed = autoQuestOpen ? false : collapsedPanels.quests;
+      const effectiveQuestsCollapsed = collapsedPanels.quests !== false;
       const questsCollapsed = effectiveQuestsCollapsed ? ' is-collapsed' : '';
       const mapViewerCollapsed = collapsedPanels.mapViewer ? ' is-collapsed' : '';
       const claimableQuestCount = getQuestRows(state).filter((quest) => quest.complete && !quest.claimed).length;
@@ -395,7 +393,7 @@ export function createHud(root, handlers) {
               ${panelToggleIcon(collapsedPanels.guide)}
             </button>
           </div>
-          <div class="panel-collapsible">
+          <div class="panel-collapsible" data-scroll-preserve="guide-body">
             ${collapsedPanels.guide ? '' : guideMarkup(state)}
           </div>
         </section>
@@ -449,6 +447,18 @@ export function createHud(root, handlers) {
                 </div>
                 <button data-action="transitions:toggle" type="button">
                   ${state.settings?.transitions?.enabled === false ? t('enableTransitions') : t('disableTransitions')}
+                </button>
+              </div>
+            </section>
+            <section class="settings-block">
+              <p class="section-label">${t('lowPowerMode')}</p>
+              <div class="settings-flag-card">
+                <div>
+                  <strong>${state.settings?.performance?.lowPower ? t('enabled') : t('disabled')}</strong>
+                  <small>${t('lowPowerModeHint')}</small>
+                </div>
+                <button data-action="lowPower:toggle" type="button">
+                  ${state.settings?.performance?.lowPower ? t('disableLowPowerMode') : t('enableLowPowerMode')}
                 </button>
               </div>
             </section>
@@ -815,7 +825,8 @@ function shouldPreserveScroll(action) {
   return action.startsWith('buy:')
     || action.startsWith('sell:')
     || action.startsWith('market:tab:')
-    || action.startsWith('panel:toggle:marketSpecies:');
+    || action.startsWith('panel:toggle:marketSpecies:')
+    || action.startsWith('guide:toggle:');
 }
 
   function setupLocationTransition(root, state, handlers) {

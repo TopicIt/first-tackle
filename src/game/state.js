@@ -375,6 +375,9 @@ export function createInitialState() {
         enabled: true,
         explicit: false,
       },
+      performance: {
+        lowPower: null,
+      },
       intro: {
         showOnStartup: true,
       },

@@ -30,6 +30,11 @@ const runtime = {
 };
 
 export function syncFishingPrototype3d(root, state) {
+  if (state.settings?.performance?.lowPower) {
+    teardownFishingPrototype3d();
+    return;
+  }
+
   const shouldShow = Boolean(DEBUG_FISHERMAN_MODEL && state.ui?.fishingMinigame?.open);
   const canvas = shouldShow ? root.querySelector('[data-fishing-prototype-canvas]') : null;
 

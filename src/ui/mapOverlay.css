@@ -268,6 +268,17 @@
 
 }
 
+:root.low-power-mode .illustrated-map__breath,
+:root.low-power-mode .illustrated-map__water,
+:root.low-power-mode .map-hotspot__area {
+  animation: none !important;
+}
+
+:root.low-power-mode .illustrated-map__breath,
+:root.low-power-mode .illustrated-map__water {
+  opacity: 0.18;
+}
+
 @media (max-width: 760px) {
   .illustrated-map__image {
     object-position: 56% 68%;

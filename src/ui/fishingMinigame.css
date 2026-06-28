@@ -1875,3 +1875,21 @@
   pointer-events: none !important;
 }
 
+:root.low-power-mode .bird,
+:root.low-power-mode .dragonfly,
+:root.low-power-mode .surface-ring,
+:root.low-power-mode .reed,
+:root.low-power-mode .fishing-figure__hat,
+:root.low-power-mode .fishing-figure__body,
+:root.low-power-mode .fishing-figure__head,
+:root.low-power-mode .fishing-figure__arm,
+:root.low-power-mode .fishing-figure__rod {
+  animation: none !important;
+}
+
+:root.low-power-mode .bird,
+:root.low-power-mode .dragonfly,
+:root.low-power-mode .surface-ring {
+  display: none;
+}
+

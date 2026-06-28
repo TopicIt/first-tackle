@@ -22,7 +22,6 @@ export function getFishGuideEntries() {
     livesKey: `guideLives_${fish.id}`,
     timeKey: `guideTime_${fish.id}`,
     baitKey: `guideBait_${fish.id}`,
-    tipsKey: `guideTips_${fish.id}`,
     economyKey: `guideEconomy_${fish.id}`,
   }));
 }

@@ -85,6 +85,7 @@ ensureQuestState(gameState);
 ensureCafeOrders(gameState);
 syncGrandmaTrust(gameState);
 normalizeTransitionSettings(gameState);
+applyPerformanceSettings(gameState);
 normalizeViewModeSettings(gameState);
 resetLaunchUiState(gameState);
 applyViewModeToDocument(gameState);
@@ -380,7 +381,7 @@ const hud = createHud(hudRoot, {
     if (actionId === 'scene:map') {
       gameState.ui.activeScene = null;
       closeFishingMinigame(gameState);
-      showMapQuestsBriefly(gameState);
+      keepQuestsCollapsed(gameState);
       renderHud();
       return;
     }
@@ -493,6 +494,17 @@ const hud = createHud(hudRoot, {
       return;
     }
 
+    if (actionId === 'lowPower:toggle') {
+      gameState.settings.performance = {
+        ...(gameState.settings.performance ?? {}),
+        lowPower: !gameState.settings.performance?.lowPower,
+      };
+      applyPerformanceSettings(gameState);
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
     if (actionId === 'debug:unlockAllLocations') {
       unlockAllLocationsForDebug(gameState);
       renderHud();
@@ -500,7 +512,6 @@ const hud = createHud(hudRoot, {
     }
 
     if (actionId.startsWith('quest:claim:')) {
-      gameState.ui.questAutoExpandUntil = Date.now() + 5000;
       gameState.ui.collapsedPanels = {
         ...(gameState.ui.collapsedPanels ?? {}),
         quests: false,
@@ -617,6 +628,7 @@ const hud = createHud(hudRoot, {
     if (actionId === 'minigame:menu') {
       gameState.ui.activeScene = null;
       closeFishingMinigame(gameState);
+      keepQuestsCollapsed(gameState);
       renderHud();
       return;
     }
@@ -647,7 +659,7 @@ const hud = createHud(hudRoot, {
     audio.activate();
     gameState.ui.activeScene = null;
     closeFishingMinigame(gameState);
-    showMapQuestsBriefly(gameState);
+    keepQuestsCollapsed(gameState);
     renderHud();
   },
   onToggleLanguage() {
@@ -787,13 +799,13 @@ function closeSiblingPanels(state, openedPanelId) {
   }
 }
 
-function showMapQuestsBriefly(state) {
+function keepQuestsCollapsed(state) {
   state.ui ??= {};
   state.ui.collapsedPanels = {
     ...(state.ui.collapsedPanels ?? {}),
     quests: true,
   };
-  state.ui.questAutoExpandUntil = Date.now() + 5000;
+  state.ui.questAutoExpandUntil = 0;
 }
 
 function normalizePanelStateForViewport(state) {
@@ -849,6 +861,22 @@ function normalizeTransitionSettings(state) {
   ) {
     state.settings.transitions.enabled = false;
   }
+}
+
+function normalizePerformanceSettings(state) {
+  state.settings ??= {};
+  const savedLowPower = state.settings.performance?.lowPower;
+  state.settings.performance = {
+    ...(state.settings.performance ?? {}),
+    lowPower: typeof savedLowPower === 'boolean'
+      ? savedLowPower
+      : window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
+  };
+}
+
+function applyPerformanceSettings(state) {
+  normalizePerformanceSettings(state);
+  document.documentElement.classList.toggle('low-power-mode', Boolean(state.settings.performance.lowPower));
 }
 
 function startLocationTransition(sceneId) {
@@ -924,6 +952,7 @@ function renderHud() {
     audio: gameState.settings.audio,
     fishingSettings: gameState.settings.fishing,
     transitionSettings: gameState.settings.transitions,
+    performanceSettings: gameState.settings.performance,
     viewMode: gameState.settings.viewMode,
     resolvedViewMode: gameState.ui.resolvedViewMode,
     fishBasket: gameState.fishBasket,
@@ -964,6 +993,7 @@ function ensureRuntimeState(state) {
   ensureQuestState(state);
   ensureCafeOrders(state);
   normalizeTransitionSettings(state);
+  applyPerformanceSettings(state);
   normalizeViewModeSettings(state);
   applyViewModeToDocument(state);
   normalizePanelStateForViewport(state);
@@ -1224,6 +1254,9 @@ window.addEventListener('keyup', (event) => {
 resize();
 renderHud();
 window.setInterval(() => {
+  if (gameState.settings?.performance?.lowPower) {
+    return;
+  }
   updateMapOverlayMotion(performance.now());
 }, 250);
 
@@ -1241,10 +1274,12 @@ function animate() {
   if (!activeSceneOpen || minigameOpen) {
     player.update(delta, world.bounds);
     world.updateCamera(player.position);
-    world.animate(delta);
+    if (!gameState.settings?.performance?.lowPower) {
+      world.animate(delta);
+    }
   }
   tickFishingMinigame(gameState, performance.now());
-  if (!activeSceneOpen) {
+  if (!activeSceneOpen && !gameState.settings?.performance?.lowPower) {
     updateMapOverlayMotion(performance.now());
   }
   gameState.settings.audio.musicTrackId = audio.getCurrentTrackId();

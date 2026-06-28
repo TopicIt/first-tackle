@@ -182,6 +182,10 @@ function mergeState(base, saved) {
         ...base.settings.transitions,
         ...(saved.settings?.transitions ?? {}),
       },
+      performance: {
+        ...base.settings.performance,
+        ...(saved.settings?.performance ?? {}),
+      },
       intro: {
         ...base.settings.intro,
         ...(saved.settings?.intro ?? {}),

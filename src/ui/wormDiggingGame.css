@@ -185,6 +185,10 @@
   }
 }
 
+:root.low-power-mode .worm-digging__hole {
+  animation: none !important;
+}
+
 .worm-digging__footer span {
   color: #e6e0bd;
   font-size: 0.84rem;
