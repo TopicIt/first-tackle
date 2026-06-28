@@ -1,5 +1,4 @@
 import './wormDiggingGame.css';
-import { wormDigSpots } from '../game/wormDigging.js';
 import { t } from '../i18n/i18n.js';
 
 export function wormDiggingGameMarkup(state) {
@@ -8,7 +7,8 @@ export function wormDiggingGameMarkup(state) {
     return '';
   }
 
-  const searchedCount = Object.keys(game.searched ?? {}).length;
+  const digs = game.digs ?? [];
+  const searchedCount = digs.length || Object.keys(game.searched ?? {}).length;
   return `
     <section class="worm-digging" aria-label="${t('wormDigTitle')}">
       <div class="worm-digging__panel">
@@ -16,15 +16,16 @@ export function wormDiggingGameMarkup(state) {
           <div>
             <p class="section-label">${t('wormDigMiniGameLabel')}</p>
             <h2>${t('wormDigTitle')}</h2>
-            <p>${t(game.messageKey ?? 'wormDigHint')}</p>
+            <p>${t(game.messageKey ?? 'wormDigSubtitle')}</p>
           </div>
           <button class="worm-digging__close" data-action="worms:close" type="button" aria-label="${t('close')}">&times;</button>
         </header>
-        <div class="worm-digging__field">
+        <div class="worm-digging__field" data-worm-field role="button" tabindex="0" aria-label="${t('wormDigSubtitle')}">
           <span class="worm-digging__furrow worm-digging__furrow--one"></span>
           <span class="worm-digging__furrow worm-digging__furrow--two"></span>
           <span class="worm-digging__furrow worm-digging__furrow--three"></span>
-          ${wormDigSpots.map((spot) => spotMarkup(spot, game.searched?.[spot.id])).join('')}
+          <span class="worm-digging__shovel" aria-hidden="true"></span>
+          ${digs.map(digMarkup).join('')}
         </div>
         <footer class="worm-digging__footer">
           <strong>${t('wormDigProgress', { count: searchedCount })}</strong>
@@ -38,18 +39,11 @@ export function wormDiggingGameMarkup(state) {
   `;
 }
 
-function spotMarkup(spot, searched) {
+function digMarkup(dig) {
+  const found = (dig.worms ?? 0) + (dig.larvae ?? 0) + (dig.nightcrawler ?? 0) > 0;
   return `
-    <button
-      class="worm-digging__spot${searched ? ' is-searched' : ''}"
-      style="--x:${spot.x}%;--y:${spot.y}%;"
-      data-action="worms:spot:${spot.id}"
-      type="button"
-      ${searched ? 'disabled' : ''}
-      aria-label="${t(spot.labelKey)}"
-      title="${t(spot.labelKey)}"
-    >
+    <span class="worm-digging__hole${found ? ' has-worms' : ''}" style="--x:${dig.x}%;--y:${dig.y}%;">
       <span></span>
-    </button>
+    </span>
   `;
 }

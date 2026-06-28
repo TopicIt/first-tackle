@@ -559,6 +559,7 @@ export function tickFishingMinigame(state, nowMs) {
 export function getAvailableBaits(state) {
   const liveBaitCount = getFishEntries(state, 'live_bait').length;
   return [
+    { id: 'small_worms', count: countItem(state, 'smallWorms'), disabled: countItem(state, 'smallWorms') === 0 },
     { id: 'worms', count: countItem(state, 'worms'), disabled: countItem(state, 'worms') === 0 },
     { id: 'larvae', count: countItem(state, 'larvae'), disabled: countItem(state, 'larvae') === 0 },
     { id: 'bread', count: countItem(state, 'bread'), disabled: countItem(state, 'bread') === 0 },
@@ -896,6 +897,10 @@ function tickRareInsect(state, minigame, nowMs) {
 }
 
 function consumeBait(state, baitId) {
+  if (baitId === 'small_worms') {
+    return removeItem(state, 'smallWorms', 1);
+  }
+
   if (['worms', 'larvae', 'bread', 'mastyrka', 'corn', 'dough', 'nightcrawler'].includes(baitId)) {
     return removeItem(state, baitId, 1);
   }
@@ -1089,14 +1094,19 @@ function getBaitSuitability(fishId, baitId) {
     return 1.24;
   }
 
-  const animalBaits = ['worms', 'larvae', 'nightcrawler', 'live_bait'];
+  const animalBaits = ['worms', 'small_worms', 'larvae', 'nightcrawler', 'live_bait'];
   const predators = ['pike', 'sudak', 'som', 'eel', 'okun', 'canadian_catfish'];
   if (baitId === 'live_bait') {
     if (fishId === 'rotan') return 0.1;
     return predators.includes(fishId) ? 1.18 : 0;
   }
   if (predators.includes(fishId)) {
+    if (baitId === 'small_worms') return fishId === 'okun' ? 0.22 : 0.06;
     return animalBaits.includes(baitId) ? 0.16 : 0;
+  }
+
+  if (baitId === 'small_worms') {
+    return ['bleak', 'roach', 'plotytsia', 'gudgeon', 'crucian', 'okun'].includes(fishId) ? 0.92 : 0.18;
   }
 
   const neutralBaits = {

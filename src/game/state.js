@@ -73,6 +73,16 @@ export const shopItems = [
     category: 'other',
   },
   {
+    id: 'baitSmallWorms',
+    label: 'Small worms',
+    price: 20,
+    description: 'Tiny worms for careful small fish',
+    type: 'consumable',
+    itemId: 'smallWorms',
+    amount: 25,
+    category: 'bait',
+  },
+  {
     id: 'baitBread',
     label: 'Bread',
     price: 30,
@@ -201,6 +211,7 @@ export function createInitialState() {
     inventory: {
       thread: 1,
       simpleHook: 1,
+      smallWorms: 0,
       worms: 5,
       larvae: 0,
       bread: 0,

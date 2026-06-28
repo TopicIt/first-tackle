@@ -58,8 +58,34 @@
   background:
     radial-gradient(circle at 18% 26%, rgb(172 130 79 / 48%), transparent 18%),
     radial-gradient(circle at 70% 72%, rgb(72 96 44 / 44%), transparent 22%),
-    linear-gradient(160deg, #4f6f36, #705238 52%, #3d522d);
+    radial-gradient(circle at 86% 18%, rgb(32 70 32 / 72%), transparent 17%),
+    repeating-linear-gradient(12deg, rgb(66 45 28 / 32%) 0 8px, rgb(92 61 36 / 28%) 8px 15px),
+    linear-gradient(160deg, #55743b, #725036 48%, #3d522d);
+  cursor: url('/assets/items/item_shovel.png') 8 28, pointer;
   overflow: hidden;
+}
+
+.worm-digging__field::before,
+.worm-digging__field::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+.worm-digging__field::before {
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgb(55 111 48 / 34%), transparent 24%),
+    radial-gradient(circle at 74% 62%, rgb(38 28 18 / 42%), transparent 18%);
+}
+
+.worm-digging__field::after {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 34px;
+  background: repeating-linear-gradient(90deg, rgb(70 118 46 / 82%) 0 4px, transparent 4px 10px);
+  opacity: 0.72;
 }
 
 .worm-digging__furrow {
@@ -77,31 +103,69 @@
 .worm-digging__furrow--two { top: 52%; transform: rotate(6deg); }
 .worm-digging__furrow--three { top: 74%; transform: rotate(-3deg); }
 
-.worm-digging__spot {
+.worm-digging__shovel {
+  position: absolute;
+  right: 8%;
+  top: 14%;
+  z-index: 2;
+  width: 18px;
+  height: 96px;
+  border-radius: 999px;
+  background: #b88648;
+  transform: rotate(34deg);
+  box-shadow: 0 8px 16px rgb(0 0 0 / 28%);
+}
+
+.worm-digging__shovel::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -18px;
+  width: 34px;
+  height: 26px;
+  border: 5px solid #b88648;
+  border-bottom: 0;
+  border-radius: 18px 18px 0 0;
+  transform: translateX(-50%);
+}
+
+.worm-digging__shovel::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -34px;
+  width: 44px;
+  height: 48px;
+  border-radius: 8px 8px 26px 26px;
+  background: linear-gradient(#c7c1aa, #747260);
+  transform: translateX(-50%);
+}
+
+.worm-digging__hole {
   position: absolute;
   left: var(--x);
   top: var(--y);
+  z-index: 3;
   display: grid;
   place-items: center;
-  width: 64px;
-  min-height: 64px;
-  border: 1px solid rgb(255 248 210 / 34%);
+  width: 58px;
+  height: 38px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgb(255 248 210 / 18%), rgb(78 50 29 / 32%) 58%, transparent 70%);
+  background: radial-gradient(ellipse, rgb(30 18 12 / 88%) 0 42%, rgb(83 52 31 / 74%) 43% 70%, transparent 72%);
   transform: translate(-50%, -50%);
+  animation: wormDigPop 180ms ease-out;
 }
 
-.worm-digging__spot span {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: rgb(56 34 19 / 70%);
-  box-shadow: inset 0 3px 4px rgb(0 0 0 / 28%);
+.worm-digging__hole span {
+  width: 26px;
+  height: 8px;
+  border-radius: 999px;
+  background: transparent;
 }
 
-.worm-digging__spot.is-searched {
-  opacity: 0.42;
-  transform: translate(-50%, -50%) scale(0.84);
+.worm-digging__hole.has-worms span {
+  background: #d59a74;
+  box-shadow: 11px 1px 0 #e7c066, -8px 3px 0 #c88464;
 }
 
 .worm-digging__footer {
@@ -110,6 +174,13 @@
   gap: 10px;
   align-items: center;
   min-height: 44px;
+}
+
+@keyframes wormDigPop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.62);
+  }
 }
 
 .worm-digging__footer span {

@@ -26,6 +26,7 @@ export function openWormDiggingGame(state) {
   state.ui.wormDiggingGame = {
     open: true,
     searched: {},
+    digs: [],
     worms: 0,
     larvae: 0,
     nightcrawler: 0,
@@ -41,6 +42,48 @@ export function closeWormDiggingGame(state) {
     state.ui.wormDiggingGame.open = false;
     queueSound(state, 'close_scene');
   }
+}
+
+export function digWormSoil(state, xPercent, yPercent) {
+  const game = state.ui?.wormDiggingGame;
+  if (!game?.open || game.complete) {
+    return false;
+  }
+
+  const digs = game.digs ?? [];
+  if (digs.length >= REQUIRED_SEARCHES) {
+    game.complete = true;
+    return false;
+  }
+
+  const x = clamp(Number(xPercent), 5, 95);
+  const y = clamp(Number(yPercent), 8, 92);
+  const moistBonus = y > 46 && y < 84 ? 0.16 : 0;
+  const compostBonus = x > 58 && y > 48 ? 0.12 : 0;
+  const found = Math.random() < 0.58 + moistBonus + compostBonus;
+  const worms = found ? 1 + Math.floor(Math.random() * 3) : 0;
+  const larvae = found && Math.random() < 0.22 ? 1 : 0;
+  const nightcrawler = found && y > 58 && Math.random() < 0.08 ? 1 : 0;
+
+  game.digs = [
+    ...digs,
+    {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      x,
+      y,
+      worms,
+      larvae,
+      nightcrawler,
+    },
+  ];
+  game.searched = Object.fromEntries(game.digs.map((dig, index) => [String(index), true]));
+  game.worms = (game.worms ?? 0) + worms;
+  game.larvae = (game.larvae ?? 0) + larvae;
+  game.nightcrawler = (game.nightcrawler ?? 0) + nightcrawler;
+  game.messageKey = found ? (larvae || nightcrawler ? 'wormDigFoundLarvae' : 'wormDigFoundWorms') : 'wormDigEmpty';
+  game.complete = game.digs.length >= REQUIRED_SEARCHES;
+  queueSound(state, found ? 'gather_bait' : 'water_ripple');
+  return true;
 }
 
 export function searchWormDigSpot(state, spotId) {
@@ -69,7 +112,7 @@ export function claimWormDiggingReward(state) {
 
   const worms = Math.min(15, Math.max(8, game.worms + Math.floor(Math.random() * 4)));
   const larvae = game.larvae + (Math.random() < 0.32 ? 1 : 0);
-  const nightcrawler = Math.random() < 0.18 ? 1 : 0;
+  const nightcrawler = (game.nightcrawler ?? 0) + (Math.random() < 0.12 ? 1 : 0);
   addItem(state, 'worms', worms);
   if (larvae > 0) {
     addItem(state, 'larvae', larvae);
@@ -90,4 +133,8 @@ export function claimWormDiggingReward(state) {
   });
   queueSound(state, 'gather_bait');
   return true;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
 }

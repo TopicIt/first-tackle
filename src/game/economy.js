@@ -123,6 +123,7 @@ function getShopItemKey(itemId) {
     bestBicycle: 'itemBestBicycle',
     salt: 'itemSalt',
     hooksPack: 'itemHooksPack',
+    baitSmallWorms: 'itemSmallWorms',
     baitBread: 'itemBread',
     baitWorms: 'itemWorms',
     baitMastyrka: 'itemMastyrka',

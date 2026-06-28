@@ -20,6 +20,7 @@ import { getLanguage, t } from '../i18n/i18n.js';
 import { buildInfo } from '../buildInfo.js';
 import { DEFAULT_AVATAR, GAME_TITLE } from '../game/state.js';
 import { profileAvatars, tutorialSteps } from '../game/profile.js';
+import { getQuestRows } from '../game/quests.js';
 import { assetPath } from '../utils/assetPath.js';
 
 export function createHud(root, handlers) {
@@ -143,6 +144,15 @@ export function createHud(root, handlers) {
       return;
     }
 
+    const wormField = event.target.closest('[data-worm-field]');
+    if (wormField && !event.target.closest('button[data-action]')) {
+      const rect = wormField.getBoundingClientRect();
+      const x = Math.round(((event.clientX - rect.left) / rect.width) * 100);
+      const y = Math.round(((event.clientY - rect.top) / rect.height) * 100);
+      handlers.onAction(`worms:dig:${x}:${y}`);
+      return;
+    }
+
     const languageButton = event.target.closest('button[data-language-toggle]');
     if (languageButton) {
       handlers.onDismissStartupTitle?.();
@@ -206,8 +216,12 @@ export function createHud(root, handlers) {
       const guideCollapsed = collapsedPanels.guide ? ' is-collapsed' : '';
       const settingsCollapsed = collapsedPanels.settings ? ' is-collapsed' : '';
       const achievementsCollapsed = collapsedPanels.achievements ? ' is-collapsed' : '';
-      const questsCollapsed = collapsedPanels.quests ? ' is-collapsed' : '';
+      const isMainMap = !state.ui?.activeScene && !state.ui?.fishingMinigame?.open;
+      const autoQuestOpen = isMainMap && (state.ui?.questAutoExpandUntil ?? 0) > Date.now();
+      const effectiveQuestsCollapsed = autoQuestOpen ? false : collapsedPanels.quests;
+      const questsCollapsed = effectiveQuestsCollapsed ? ' is-collapsed' : '';
       const mapViewerCollapsed = collapsedPanels.mapViewer ? ' is-collapsed' : '';
+      const claimableQuestCount = getQuestRows(state).filter((quest) => quest.complete && !quest.claimed).length;
 
       root.innerHTML = `
         ${mapOverlayMarkup(renderState)}
@@ -216,9 +230,10 @@ export function createHud(root, handlers) {
           <span class="coin-hud__icon" aria-hidden="true"></span>
           <strong>${state.money}</strong>
         </div>
-        <button class="quest-notebook-button${collapsedPanels.quests ? '' : ' is-open'}" data-action="panel:toggle:quests" type="button" aria-label="${t('activeQuests')}">
+        <button class="quest-notebook-button${effectiveQuestsCollapsed ? '' : ' is-open'}" data-action="panel:toggle:quests" type="button" aria-label="${t('activeQuests')}">
           <span aria-hidden="true"></span>
-          ${collapsedPanels.quests ? '' : `<strong>${t('activeQuests')}</strong>`}
+          ${claimableQuestCount ? `<em>${claimableQuestCount}</em>` : ''}
+          ${effectiveQuestsCollapsed ? '' : `<strong>${t('activeQuests')}</strong>`}
         </button>
 
         <section class="panel glass-menu status-panel${statusCollapsed}">
@@ -357,7 +372,7 @@ export function createHud(root, handlers) {
             </button>
           </div>
           <div class="panel-collapsible">
-            ${collapsedPanels.quests ? '' : questsMarkup(state)}
+            ${effectiveQuestsCollapsed ? '' : questsMarkup(state)}
           </div>
         </section>
 

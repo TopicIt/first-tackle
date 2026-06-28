@@ -56,6 +56,7 @@ import {
 import {
   claimWormDiggingReward,
   closeWormDiggingGame,
+  digWormSoil,
   openWormDiggingGame,
   searchWormDigSpot,
 } from './game/wormDigging.js';
@@ -240,6 +241,13 @@ const hud = createHud(hudRoot, {
       return;
     }
 
+    if (actionId.startsWith('worms:dig:')) {
+      const [, , x, y] = actionId.split(':');
+      digWormSoil(gameState, x, y);
+      renderHud();
+      return;
+    }
+
     if (actionId === 'worms:claim') {
       claimWormDiggingReward(gameState);
       renderHud();
@@ -358,6 +366,9 @@ const hud = createHud(hudRoot, {
         ...(gameState.ui.collapsedPanels ?? {}),
         [panelId]: !gameState.ui.collapsedPanels?.[panelId],
       };
+      if (panelId === 'quests') {
+        gameState.ui.questAutoExpandUntil = 0;
+      }
       if (!gameState.ui.collapsedPanels[panelId]) {
         closeSiblingPanels(gameState, panelId);
       }
@@ -369,6 +380,7 @@ const hud = createHud(hudRoot, {
     if (actionId === 'scene:map') {
       gameState.ui.activeScene = null;
       closeFishingMinigame(gameState);
+      showMapQuestsBriefly(gameState);
       renderHud();
       return;
     }
@@ -382,6 +394,17 @@ const hud = createHud(hudRoot, {
 
     if (actionId.startsWith('guide:tab:')) {
       gameState.ui.guideTab = actionId.replace('guide:tab:', '');
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('guide:toggle:')) {
+      const guideKey = actionId.replace('guide:toggle:', '');
+      gameState.ui.expandedGuideCards = {
+        ...(gameState.ui.expandedGuideCards ?? {}),
+        [guideKey]: !gameState.ui.expandedGuideCards?.[guideKey],
+      };
       gameState.audioQueue.push('ui_click');
       renderHud();
       return;
@@ -477,6 +500,11 @@ const hud = createHud(hudRoot, {
     }
 
     if (actionId.startsWith('quest:claim:')) {
+      gameState.ui.questAutoExpandUntil = Date.now() + 5000;
+      gameState.ui.collapsedPanels = {
+        ...(gameState.ui.collapsedPanels ?? {}),
+        quests: false,
+      };
       claimQuestReward(gameState, actionId.replace('quest:claim:', ''));
       renderHud();
       return;
@@ -619,6 +647,7 @@ const hud = createHud(hudRoot, {
     audio.activate();
     gameState.ui.activeScene = null;
     closeFishingMinigame(gameState);
+    showMapQuestsBriefly(gameState);
     renderHud();
   },
   onToggleLanguage() {
@@ -756,6 +785,15 @@ function closeSiblingPanels(state, openedPanelId) {
       state.ui.collapsedPanels[panelId] = true;
     }
   }
+}
+
+function showMapQuestsBriefly(state) {
+  state.ui ??= {};
+  state.ui.collapsedPanels = {
+    ...(state.ui.collapsedPanels ?? {}),
+    quests: true,
+  };
+  state.ui.questAutoExpandUntil = Date.now() + 5000;
 }
 
 function normalizePanelStateForViewport(state) {

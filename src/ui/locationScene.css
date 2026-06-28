@@ -1105,8 +1105,8 @@
     .location-scene--garden,
     .location-scene--bus_station
   ) .scene-body {
-    align-content: center;
-    padding-bottom: max(78px, calc(env(safe-area-inset-bottom) + 64px));
+    align-content: end;
+    padding-bottom: max(48px, calc(env(safe-area-inset-bottom) + 42px));
   }
 
   .location-scene:is(
@@ -1126,7 +1126,7 @@
     .location-scene--garden,
     .location-scene--bus_station
   ) .scene-actions {
-    margin-bottom: 18px;
+    margin-bottom: 8px;
   }
 
   .scene-log {

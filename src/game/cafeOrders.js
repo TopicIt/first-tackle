@@ -5,6 +5,7 @@ import { ensureTimeState } from './time.js';
 
 const ORDER_LIMIT = 2;
 const ORDER_DURATION_MINUTES = 30;
+const ORDER_DURATION_MS = ORDER_DURATION_MINUTES * 60 * 1000;
 
 const orderTemplates = [
   {
@@ -51,7 +52,10 @@ export function ensureCafeOrders(state) {
   ensureTimeState(state);
 
   const now = getAbsoluteMinutes(state);
-  state.quests.cafeOrders = state.quests.cafeOrders.filter((order) => order.expiresAt > now);
+  const realNow = Date.now();
+  state.quests.cafeOrders = state.quests.cafeOrders
+    .map((order) => normalizeCafeOrder(order, state, now, realNow))
+    .filter((order) => order.expiresAt > now && order.expiresAtReal > realNow);
   while (state.quests.cafeOrders.length < ORDER_LIMIT) {
     state.quests.cafeOrders.push(createCafeOrder(state));
   }
@@ -60,13 +64,17 @@ export function ensureCafeOrders(state) {
 export function getCafeOrderRows(state) {
   ensureCafeOrders(state);
   const now = getAbsoluteMinutes(state);
+  const realNow = Date.now();
   return state.quests.cafeOrders.map((order) => {
     const matching = getMatchingFish(state, order);
+    const secondsLeft = Math.max(0, Math.ceil(((order.expiresAtReal ?? realNow) - realNow) / 1000));
     return {
       ...order,
       progress: Math.min(order.required, matching.length),
       complete: matching.length >= order.required,
       minutesLeft: Math.max(0, order.expiresAt - now),
+      secondsLeft,
+      timerText: formatSeconds(secondsLeft),
       fishNameKey: getFishData(order.fishId)?.nameKey ?? order.fishId,
     };
   });
@@ -75,7 +83,8 @@ export function getCafeOrderRows(state) {
 export function completeCafeOrder(state, orderId) {
   ensureCafeOrders(state);
   const order = state.quests.cafeOrders.find((entry) => entry.id === orderId);
-  if (!order) {
+  if (!order || (order.expiresAtReal ?? Date.now()) <= Date.now()) {
+    ensureCafeOrders(state);
     return false;
   }
 
@@ -107,7 +116,28 @@ function createCafeOrder(state) {
     id: `${template.templateId}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     createdAt: getAbsoluteMinutes(state),
     expiresAt: getAbsoluteMinutes(state) + ORDER_DURATION_MINUTES,
+    createdAtReal: Date.now(),
+    expiresAtReal: Date.now() + ORDER_DURATION_MS,
   };
+}
+
+function normalizeCafeOrder(order, state, now, realNow) {
+  if (order.expiresAtReal) {
+    return order;
+  }
+
+  const minutesLeft = Math.max(1, (order.expiresAt ?? (now + ORDER_DURATION_MINUTES)) - now);
+  return {
+    ...order,
+    createdAtReal: realNow,
+    expiresAtReal: realNow + minutesLeft * 60 * 1000,
+  };
+}
+
+function formatSeconds(seconds) {
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return `${minutes}:${String(rest).padStart(2, '0')}`;
 }
 
 function getMatchingFish(state, order) {

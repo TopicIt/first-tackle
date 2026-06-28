@@ -10,6 +10,7 @@ export const waterQualitySizeBonus = {
 };
 
 export const baitSizeBonus = {
+  small_worms: -0.025,
   bread: 0.01,
   worms: 0.01,
   larvae: 0.005,

@@ -1,6 +1,7 @@
 export const itemLabels = {
   thread: 'itemThread',
   simpleHook: 'itemSimpleHook',
+  smallWorms: 'itemSmallWorms',
   worms: 'itemWorms',
   larvae: 'itemLarvae',
   bread: 'itemBread',
