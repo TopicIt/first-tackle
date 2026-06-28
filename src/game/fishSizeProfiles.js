@@ -20,6 +20,12 @@ export const baitSizeBonus = {
   live_bait: 0.03,
 };
 
+export const depthSizeBonus = {
+  surface: -0.12,
+  middle: 0,
+  bottom: 0.08,
+};
+
 export const fishSizeProfiles = {
   rotan: profile(25, [35, 90], [90, 150], [150, 260], 180, 240, 320),
   crucian: profile(25, [45, 120], [120, 380], [380, 950], 400, 1000, 1250, { common: 76, uncommon: 20, rare: 3.5, legendary: 0.5 }),
@@ -60,8 +66,11 @@ export function rollFishWeight(fishId, options = {}) {
   const baitBonus = options.baitFits ? (baitSizeBonus[options.baitId] ?? 0) : 0;
   const waterBonus = waterQualitySizeBonus[options.waterId] ?? 0;
   const tackleBonus = options.tackleTrophyBonus ?? 0;
-  const multiplier = 1 + baitBonus + waterBonus + tackleBonus;
-  return Math.min(sizeProfile.max, Math.max(sizeProfile.min, Math.round(base * multiplier)));
+  const depthBonus = depthSizeBonus[options.depth] ?? 0;
+  const multiplier = 1 + baitBonus + waterBonus + tackleBonus + depthBonus;
+  const minWeight = Math.max(sizeProfile.min, options.minWeight ?? 0);
+  const capped = Math.min(sizeProfile.max, Math.round(base * multiplier));
+  return Math.max(minWeight, capped);
 }
 
 export function classifyCatchSize(fishId, weightGrams) {

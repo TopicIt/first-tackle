@@ -334,6 +334,7 @@ export function createInitialState() {
       },
       fishing: {
         biteHints: 'subtle',
+        lastDepth: 'middle',
       },
       transitions: {
         enabled: true,

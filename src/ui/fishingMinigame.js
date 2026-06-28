@@ -93,6 +93,13 @@ export function fishingMinigameMarkup(state) {
             </section>
 
             <section class="fishing-panel">
+              <p class="section-label">${t('chooseDepth')}</p>
+              <div class="depth-selector">
+                ${['bottom', 'middle', 'surface'].map((depth) => depthButtonMarkup(depth, minigame.selectedDepth ?? 'middle')).join('')}
+              </div>
+            </section>
+
+            <section class="fishing-panel">
               <p class="section-label">${t('chooseCastSpot')}</p>
               <div class="spot-list">
                 ${getAvailableCastSpots(state, minigame.method).map((spot) => spotListButtonMarkup(spot, minigame.selectedSpot)).join('')}
@@ -135,6 +142,15 @@ function baitButtonMarkup(bait, selectedBait) {
     <button class="bait-button${selected}" data-action="bait:${bait.id}" type="button"${disabled}>
       ${t(`bait${toPascalCase(bait.id)}`)}
       <strong>${bait.count}</strong>
+    </button>
+  `;
+}
+
+function depthButtonMarkup(depth, selectedDepth) {
+  const selected = depth === selectedDepth ? ' is-selected' : '';
+  return `
+    <button class="depth-button${selected}" data-action="depth:${depth}" type="button">
+      ${t(`depth${toPascalCase(depth)}`)}
     </button>
   `;
 }

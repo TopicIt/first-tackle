@@ -17,6 +17,7 @@ import {
   releaseSmallFish,
   runFishingContextAction,
   selectFishingBait,
+  selectFishingDepth,
   selectFishingSpot,
   selectFishingZone,
   setBiteHintMode,
@@ -101,6 +102,7 @@ let lastHudSnapshot = '';
 const audio = createAudioManager(gameState.settings.audio);
 let spaceIsDown = false;
 let fishingActionLockedUntil = 0;
+let lastHudRenderAt = 0;
 let rememberedMarketScrollTop = 0;
 let lastAutosaveAt = 0;
 let lastAutosaveSignature = '';
@@ -137,6 +139,7 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'tutorial:start') {
       startTutorial(gameState);
+      gameState.tutorialState.collapsed = true;
       renderHud();
       return;
     }
@@ -418,6 +421,12 @@ const hud = createHud(hudRoot, {
 
     if (actionId.startsWith('bait:')) {
       selectFishingBait(gameState, actionId.replace('bait:', ''));
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('depth:')) {
+      selectFishingDepth(gameState, actionId.replace('depth:', ''));
       renderHud();
       return;
     }
@@ -1183,15 +1192,31 @@ window.setInterval(() => {
 function animate() {
   requestAnimationFrame(animate);
 
+  if (document.hidden) {
+    clock.getDelta();
+    return;
+  }
+
   const delta = Math.min(clock.getDelta(), 0.05);
-  player.update(delta, world.bounds);
-  world.updateCamera(player.position);
-  world.animate(delta);
+  const minigameOpen = Boolean(gameState.ui?.fishingMinigame?.open);
+  const activeSceneOpen = Boolean(gameState.ui?.activeScene);
+  if (!activeSceneOpen || minigameOpen) {
+    player.update(delta, world.bounds);
+    world.updateCamera(player.position);
+    world.animate(delta);
+  }
   tickFishingMinigame(gameState, performance.now());
-  updateMapOverlayMotion(performance.now());
+  if (!activeSceneOpen) {
+    updateMapOverlayMotion(performance.now());
+  }
   gameState.settings.audio.musicTrackId = audio.getCurrentTrackId();
   syncPlayerToState();
-  renderHud();
+  const now = performance.now();
+  const renderEveryMs = minigameOpen ? 120 : activeSceneOpen ? 500 : 180;
+  if (now - lastHudRenderAt >= renderEveryMs) {
+    lastHudRenderAt = now;
+    renderHud();
+  }
   audio.drainQueue(gameState);
   renderer.render(world.scene, world.camera);
 }

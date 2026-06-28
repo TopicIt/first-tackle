@@ -8,7 +8,7 @@ import { syncGrandmaTrust } from './profile.js';
 import { syncQuestProgress } from './quests.js';
 
 const trackedStatuses = ['fresh', 'cleaned', 'salted', 'drying', 'ready_taranka', 'taranka', 'smoked', 'live_bait'];
-const liveBaitSpecies = ['gudgeon', 'crucian', 'plotytsia', 'loach'];
+const liveBaitSpecies = ['gudgeon', 'crucian', 'plotytsia', 'loach', 'bleak'];
 
 export function createFishEntry(catchResult, caughtAtDay, context = {}) {
   return {
@@ -19,6 +19,7 @@ export function createFishEntry(catchResult, caughtAtDay, context = {}) {
     catchSpotId: context.catchSpotId ?? null,
     method: context.method ?? null,
     bait: context.bait ?? null,
+    depth: context.depth ?? null,
     waterId: context.waterId ?? null,
     value: catchResult.value,
     status: 'fresh',
@@ -168,6 +169,8 @@ export function markFishAsLiveBait(state, fishEntryId) {
   }
 
   entry.status = 'live_bait';
+  entry.liveBaitSourceFishId = entry.fishId;
+  entry.liveBaitQuality = entry.weightGrams <= 50 ? 'small' : 'sturdy';
   syncInventoryFromFishBasket(state);
   return entry;
 }
@@ -344,12 +347,15 @@ function normalizeFishEntry(entry, day) {
     catchSpotId: entry.catchSpotId ?? null,
     method: entry.method ?? null,
     bait: entry.bait ?? null,
+    depth: entry.depth ?? null,
     waterId: entry.waterId ?? null,
     status: trackedStatuses.includes(entry.status) ? entry.status : 'fresh',
     isLiveBaitEligible: entry.isLiveBaitEligible ?? isLiveBaitEligible(entry.fishId, entry.weightGrams),
     catchCategory: entry.catchCategory ?? classifyCatchSize(entry.fishId, entry.weightGrams),
     trophyTier: entry.trophyTier ?? null,
     selectedCardImage: entry.selectedCardImage ?? null,
+    liveBaitSourceFishId: entry.liveBaitSourceFishId ?? (entry.status === 'live_bait' ? entry.fishId : null),
+    liveBaitQuality: entry.liveBaitQuality ?? (entry.status === 'live_bait' ? 'small' : null),
   };
   persistCatchCardImage(normalized);
   return normalized;
@@ -418,6 +424,9 @@ function updateCatchJournal(state, entry) {
 
 export function classifyTrophyCatch(entry, fish = getFishData(entry?.fishId)) {
   void fish;
+  if (entry?.depth === 'surface') {
+    return null;
+  }
   const favoriteBaits = biteProfiles[entry?.fishId]?.preferred?.baits ?? [];
   if (!favoriteBaits.includes(entry?.bait)) {
     return null;
@@ -461,9 +470,7 @@ function awardTrophyReward(state, entry, wasCaught) {
 }
 
 export function isLiveBaitEligible(fishId, weightGrams) {
-  if (fishId === 'loach') return true;
-  if (['gudgeon', 'crucian', 'plotytsia'].includes(fishId)) return weightGrams <= 50;
-  return false;
+  return liveBaitSpecies.includes(fishId) && weightGrams <= 80;
 }
 
 function updateJournalEntry(journal, entry) {

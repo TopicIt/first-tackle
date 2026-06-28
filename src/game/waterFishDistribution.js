@@ -16,8 +16,8 @@ export const waterFishDistribution = {
   },
   greada: {
     fishIds: ['crucian', 'rotan', 'lynok', 'canadian_catfish', 'loach'],
-    weights: { crucian: 2.6, rotan: 0.5, lynok: 0.6, canadian_catfish: 2.15, loach: 0.75 },
-    size: { canadian_catfish: [1.08, 1.24], lynok: [1.06, 1.18] },
+    weights: { crucian: 2.45, rotan: 0.45, lynok: 0.58, canadian_catfish: 2.75, loach: 0.82 },
+    size: { canadian_catfish: [1.1, 1.28], lynok: [1.06, 1.18] },
   },
   lake_tur: {
     fishIds: ['crucian', 'bleak', 'rudd', 'loach', 'pike', 'okun', 'lynok', 'sudak', 'som', 'canadian_catfish', 'gudgeon', 'white_bream', 'bream', 'plotytsia'],

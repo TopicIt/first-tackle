@@ -4,7 +4,7 @@ import { getFishGuideEntries, waterGuide } from '../game/guideData.js';
 import { biteProfiles } from '../game/bitePatterns.js';
 import { fishSizeProfiles } from '../game/fishSizeProfiles.js';
 import { getFishSaleValue, getFreshnessInfo, getMarketPriceInfo } from '../game/market.js';
-import { getCastSpot } from '../game/bitePatterns.js';
+import { castSpots, getCastSpot } from '../game/bitePatterns.js';
 import { shopItems } from '../game/state.js';
 import { getQuestRows } from '../game/quests.js';
 import { getCafeOrderRows } from '../game/cafeOrders.js';
@@ -813,7 +813,9 @@ function fishGuideAccordionMarkup(state) {
           <div><dt>${t('bestTime')}</dt><dd>${t(entry.timeKey)}</dd></div>
           <div><dt>${t('preferredBait')}</dt><dd>${favoriteBaitsMarkup(entry.fishId)}</dd></div>
           <div><dt>${t('weakerBaits')}</dt><dd>${weakerBaitsMarkup(entry.fishId)}</dd></div>
+          <div><dt>${t('depthPreference')}</dt><dd>${depthPreferenceMarkup(entry.fishId)}</dd></div>
           <div><dt>${t('trophyThresholds')}</dt><dd>${thresholdMarkup(entry.fishId)}</dd></div>
+          <div><dt>${t('fishingTips')}</dt><dd>${t(entry.tipsKey)}</dd></div>
         </dl>
       </div>
     </details>
@@ -841,6 +843,8 @@ function watersGuideAccordionMarkup(state) {
             <div><dt>${t('bestTime')}</dt><dd>${t(water.bestTimeKey)}</dd></div>
             <div><dt>${t('tackle')}</dt><dd>${t(water.tackleKey)}</dd></div>
             <div><dt>${t('preferredBait')}</dt><dd>${t(water.baitKey)}</dd></div>
+            <div><dt>${t('recommendedDepths')}</dt><dd>${waterDepthsMarkup(water.id)}</dd></div>
+            <div><dt>${t('castingSpots')}</dt><dd>${waterCastSpotsMarkup(water.id)}</dd></div>
             ${unlocked ? '' : `<div><dt>${t('unlock')}</dt><dd>${t(water.unlockKey)}</dd></div>`}
           </dl>
         </div>
@@ -855,6 +859,10 @@ function guideAccordionMarkup(tab) {
       ['guideBaitCardWormsTitle', 'guideBaitCardWormsText'],
       ['guideBaitCardLarvaeTitle', 'guideBaitCardLarvaeText'],
       ['guideBaitCardBreadTitle', 'guideBaitCardBreadText'],
+      ['guideBaitCardDoughTitle', 'guideBaitCardDoughText'],
+      ['guideBaitCardMastyrkaTitle', 'guideBaitCardMastyrkaText'],
+      ['guideBaitCardCornTitle', 'guideBaitCardCornText'],
+      ['guideBaitCardNightcrawlerTitle', 'guideBaitCardNightcrawlerText'],
       ['guideBaitCardLiveTitle', 'guideBaitCardLiveText'],
     ],
     tackle: [
@@ -863,11 +871,13 @@ function guideAccordionMarkup(tab) {
       ['guideTackleCardSinkerTitle', 'guideTackleCardSinkerText'],
       ['guideTackleCardFloatTitle', 'guideTackleCardFloatText'],
       ['guideTackleCardRodTitle', 'guideTackleCardRodText'],
+      ['guideTackleCardDepthTitle', 'guideTackleCardDepthText'],
     ],
     processing: [
       ['guideProcessingCardCleanTitle', 'guideProcessingCardCleanText'],
       ['guideProcessingCardSaltTitle', 'guideProcessingCardSaltText'],
       ['guideProcessingCardDryTitle', 'guideProcessingCardDryText'],
+      ['guideProcessingCardLiveTitle', 'guideProcessingCardLiveText'],
       ['guideProcessingCardMarketTitle', 'guideProcessingCardMarketText'],
     ],
   }[tab] ?? [];
@@ -961,6 +971,35 @@ function thresholdMarkup(fishId) {
     return t('none');
   }
   return `0 < ${profile.common[0]}g В· * ${profile.common[0]}g В· ${t('catchCategoryTrophy')} ${profile.trophyWeight}g В· ** ${Math.round(profile.trophyWeight * 1.45)}g В· *** ${profile.legendaryWeight}g`;
+}
+
+function depthPreferenceMarkup(fishId) {
+  const fish = fishData.find((entry) => entry.id === fishId);
+  const preference = fish?.depthPreference ?? 'middle';
+  if (fishId === 'crucian') {
+    return `${t('depthSurface')} - ${t('catchCategorySmall')}; ${t('depthMiddle')}; ${t('depthBottom')} - ${t('catchCategoryTrophy')}`;
+  }
+  return t(`depth${toPascalCase(preference === 'any' ? 'middle' : preference)}`);
+}
+
+function waterDepthsMarkup(waterId) {
+  const fishIds = waterGuide.find((water) => water.id === waterId)?.fishIds ?? [];
+  const preferences = new Set(fishIds.map((fishId) => fishData.find((fish) => fish.id === fishId)?.depthPreference ?? 'middle'));
+  if (preferences.has('bottom')) {
+    return `${t('depthBottom')}, ${t('depthMiddle')}`;
+  }
+  if (preferences.has('surface')) {
+    return `${t('depthSurface')}, ${t('depthMiddle')}`;
+  }
+  return t('depthMiddle');
+}
+
+function waterCastSpotsMarkup(waterId) {
+  const spots = castSpots
+    .filter((spot) => (spot.waterId ?? 'canal') === waterId)
+    .slice(0, 4)
+    .map((spot) => t(spot.labelKey));
+  return spots.length ? spots.join(', ') : t('none');
 }
 
 function favoriteWaterLabel(state) {

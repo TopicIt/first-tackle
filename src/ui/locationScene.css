@@ -39,6 +39,21 @@
   animation: sceneSlowZoom 28s ease-in-out infinite alternate;
 }
 
+@media (max-width: 760px), (prefers-reduced-motion: reduce) {
+  .scene-bg--slow-pan,
+  .scene-bg--slow-zoom,
+  .scene-light-sweep,
+  .scene-floating-dust,
+  .scene-warm-haze,
+  .scene-cloud-shadow,
+  .scene-road-dust,
+  .scene-insects span,
+  .scene-water-ripples span,
+  .scene-bobber {
+    animation-duration: 60s;
+  }
+}
+
 .scene-vignette {
   position: absolute;
   inset: 0;
@@ -1088,6 +1103,15 @@
   .location-scene:is(
     .location-scene--house,
     .location-scene--garden,
+    .location-scene--bus_station
+  ) .scene-body {
+    align-content: center;
+    padding-bottom: max(78px, calc(env(safe-area-inset-bottom) + 64px));
+  }
+
+  .location-scene:is(
+    .location-scene--house,
+    .location-scene--garden,
     .location-scene--bus_station,
     .location-scene--market,
     .location-scene--fishing_select,
@@ -1095,6 +1119,14 @@
     .location-scene--fire_ponds_map
   ) .scene-actions {
     padding: 10px;
+  }
+
+  .location-scene:is(
+    .location-scene--house,
+    .location-scene--garden,
+    .location-scene--bus_station
+  ) .scene-actions {
+    margin-bottom: 18px;
   }
 
   .scene-log {

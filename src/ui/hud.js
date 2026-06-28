@@ -218,7 +218,7 @@ export function createHud(root, handlers) {
         </div>
         <button class="quest-notebook-button${collapsedPanels.quests ? '' : ' is-open'}" data-action="panel:toggle:quests" type="button" aria-label="${t('activeQuests')}">
           <span aria-hidden="true"></span>
-          <strong>${t('activeQuests')}</strong>
+          ${collapsedPanels.quests ? '' : `<strong>${t('activeQuests')}</strong>`}
         </button>
 
         <section class="panel glass-menu status-panel${statusCollapsed}">
@@ -357,7 +357,7 @@ export function createHud(root, handlers) {
             </button>
           </div>
           <div class="panel-collapsible">
-            ${questsMarkup(state)}
+            ${collapsedPanels.quests ? '' : questsMarkup(state)}
           </div>
         </section>
 
@@ -381,7 +381,7 @@ export function createHud(root, handlers) {
             </button>
           </div>
           <div class="panel-collapsible">
-            ${guideMarkup(state)}
+            ${collapsedPanels.guide ? '' : guideMarkup(state)}
           </div>
         </section>
 

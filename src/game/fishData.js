@@ -10,6 +10,8 @@ export const fishData = [
     basePrice: 4,
     weight: 38,
     descriptionKey: 'descRotan',
+    depthPreference: 'bottom',
+    surfaceBite: false,
   },
   {
     id: 'crucian',
@@ -20,6 +22,7 @@ export const fishData = [
     basePrice: 7,
     weight: 28,
     descriptionKey: 'descCrucian',
+    depthPreference: 'any',
   },
   {
     id: 'bleak',
@@ -30,6 +33,7 @@ export const fishData = [
     basePrice: 5,
     weight: 24,
     descriptionKey: 'descBleak',
+    depthPreference: 'surface',
   },
   {
     id: 'roach',
@@ -40,6 +44,7 @@ export const fishData = [
     basePrice: 9,
     weight: 8,
     descriptionKey: 'descRoach',
+    depthPreference: 'middle',
   },
   {
     id: 'rudd',
@@ -50,6 +55,7 @@ export const fishData = [
     basePrice: 12,
     weight: 5,
     descriptionKey: 'descRudd',
+    depthPreference: 'surface',
   },
   {
     id: 'loach',
@@ -60,6 +66,7 @@ export const fishData = [
     basePrice: 15,
     weight: 2,
     descriptionKey: 'descLoach',
+    depthPreference: 'bottom',
   },
   {
     id: 'pike',
@@ -70,6 +77,7 @@ export const fishData = [
     basePrice: 22,
     weight: 1,
     descriptionKey: 'descPike',
+    depthPreference: 'middle',
   },
   {
     id: 'okun',
@@ -80,6 +88,8 @@ export const fishData = [
     basePrice: 13,
     weight: 7,
     descriptionKey: 'descOkun',
+    depthPreference: 'middle',
+    surfaceBite: false,
   },
   {
     id: 'lynok',
@@ -90,6 +100,7 @@ export const fishData = [
     basePrice: 24,
     weight: 3,
     descriptionKey: 'descLynok',
+    depthPreference: 'bottom',
   },
   {
     id: 'sudak',
@@ -100,6 +111,7 @@ export const fishData = [
     basePrice: 30,
     weight: 2,
     descriptionKey: 'descSudak',
+    depthPreference: 'bottom',
   },
   {
     id: 'som',
@@ -110,6 +122,7 @@ export const fishData = [
     basePrice: 46,
     weight: 1,
     descriptionKey: 'descSom',
+    depthPreference: 'bottom',
   },
   {
     id: 'canadian_catfish',
@@ -120,6 +133,7 @@ export const fishData = [
     basePrice: 18,
     weight: 4,
     descriptionKey: 'descCanadianCatfish',
+    depthPreference: 'bottom',
   },
   {
     id: 'carp',
@@ -130,6 +144,7 @@ export const fishData = [
     basePrice: 42,
     weight: 1,
     descriptionKey: 'descCarp',
+    depthPreference: 'bottom',
   },
   {
     id: 'grass_carp',
@@ -140,6 +155,7 @@ export const fishData = [
     basePrice: 55,
     weight: 0.4,
     descriptionKey: 'descGrassCarp',
+    depthPreference: 'middle',
   },
   {
     id: 'silver_carp',
@@ -150,6 +166,7 @@ export const fishData = [
     basePrice: 58,
     weight: 0.35,
     descriptionKey: 'descSilverCarp',
+    depthPreference: 'middle',
   },
   {
     id: 'white_bream',
@@ -160,6 +177,7 @@ export const fishData = [
     basePrice: 11,
     weight: 6,
     descriptionKey: 'descWhiteBream',
+    depthPreference: 'middle',
   },
   {
     id: 'bream',
@@ -170,6 +188,7 @@ export const fishData = [
     basePrice: 26,
     weight: 2,
     descriptionKey: 'descBream',
+    depthPreference: 'bottom',
   },
   {
     id: 'plotytsia',
@@ -180,6 +199,7 @@ export const fishData = [
     basePrice: 7,
     weight: 10,
     descriptionKey: 'descPlotytsia',
+    depthPreference: 'middle',
   },
   {
     id: 'gudgeon',
@@ -190,6 +210,7 @@ export const fishData = [
     basePrice: 5,
     weight: 8,
     descriptionKey: 'descGudgeon',
+    depthPreference: 'bottom',
   },
   {
     id: 'eel',
@@ -200,6 +221,7 @@ export const fishData = [
     basePrice: 900,
     weight: 0.8,
     descriptionKey: 'descEel',
+    depthPreference: 'bottom',
   },
 ];
 

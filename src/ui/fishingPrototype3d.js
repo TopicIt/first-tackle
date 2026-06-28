@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { assetPath } from '../utils/assetPath.js';
 
-export const DEBUG_FISHERMAN_MODEL = true;
+export const DEBUG_FISHERMAN_MODEL = false;
 
 const prototypeConfig = {
   // Prototype model path: swap this when a newer fishing character export is ready.
@@ -60,7 +60,7 @@ function setupFishingPrototype3d(canvas) {
     powerPreference: 'high-performance',
   });
   runtime.renderer.outputColorSpace = THREE.SRGBColorSpace;
-  runtime.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  runtime.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.35));
   runtime.renderer.setClearColor(0x000000, 0);
 
   runtime.scene = new THREE.Scene();
@@ -244,6 +244,9 @@ function renderLoop() {
   }
 
   runtime.animationFrameId = window.requestAnimationFrame(renderLoop);
+  if (document.hidden) {
+    return;
+  }
 
   if (runtime.modelRoot) {
     runtime.modelRoot.rotation.y = prototypeConfig.rotation.y + Math.sin(performance.now() * 0.0012) * 0.04;
