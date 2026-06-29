@@ -672,7 +672,7 @@ function startupOverlayMarkup(state) {
 }
 
 function tutorialPromptMarkup(state) {
-  if (!state.playerProfile?.setupComplete || state.tutorialState?.completed || state.tutorialState?.skipped || state.tutorialState?.closed || state.ui?.startupStep) {
+  if (!state.playerProfile?.setupComplete || state.tutorialState?.completed || state.tutorialState?.skipped || state.tutorialState?.closed || state.ui?.startupStep || state.ui?.starterTackleDrawerOpen) {
     return '';
   }
 

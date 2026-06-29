@@ -1778,7 +1778,7 @@ button:disabled {
 
 .map-viewer-image {
   display: block;
-  width: calc(100% * var(--map-viewer-zoom, 1));
+  width: max(100%, calc(920px * var(--map-viewer-zoom, 1)));
   max-width: none;
   min-width: 100%;
   height: auto;
@@ -1814,6 +1814,47 @@ button:disabled {
   border-radius: 7px;
   background: linear-gradient(180deg, rgb(41 54 32 / 76%), rgb(8 16 14 / 62%));
   padding: 9px;
+}
+
+.guide-card--time-note {
+  display: grid;
+  gap: 7px;
+  background: linear-gradient(180deg, rgb(48 61 35 / 84%), rgb(15 24 19 / 72%));
+}
+
+.guide-card--time-note strong,
+.guide-card--time-note p {
+  margin: 0;
+  min-width: 0;
+}
+
+.guide-card--time-note strong {
+  color: #ffe28a;
+  font-size: 0.84rem;
+}
+
+.guide-card--time-note p {
+  color: #dcece2;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.guide-time-note__rows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.guide-time-note__rows span {
+  min-width: min(100%, 190px);
+  border: 1px solid rgb(243 196 95 / 18%);
+  border-radius: 999px;
+  background: rgb(255 226 138 / 10%);
+  color: #fff8df;
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1.25;
+  padding: 6px 9px;
 }
 
 .guide-card--accordion {

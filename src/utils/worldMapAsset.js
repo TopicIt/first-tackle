@@ -13,8 +13,16 @@ const desktopWorldMapAsset = {
   fallback: mobileWorldMapAsset.primary,
 };
 
-export function getWorldMapAsset(viewMode = 'mobile', state = null) {
+export function getWorldMapAsset(viewMode = 'mobile', state = null, options = {}) {
   const baseAsset = viewMode === 'desktop' ? desktopWorldMapAsset : mobileWorldMapAsset;
+  if (options.useTimeOfDay === false) {
+    return {
+      primary: baseAsset.primary,
+      fallback: baseAsset.fallback,
+      fallbacks: [baseAsset.fallback].filter(Boolean),
+      bucket: 'static',
+    };
+  }
   const timeAsset = getTimeOfDayBackground('main_map', state, baseAsset.primary);
   return {
     primary: timeAsset.primary ?? baseAsset.primary,

@@ -122,13 +122,6 @@ export function completeStarterTackleDrawer(state) {
   equipStarterComponentIfEmpty(state, 'rod', 'simple_stick_rod');
   state.progress.firstTackleReady = true;
   state.progress.starterTackleDrawerCompleted = true;
-  state.tutorialState = {
-    ...(state.tutorialState ?? {}),
-    completed: true,
-    started: true,
-    promptDismissed: true,
-    step: 4,
-  };
   pushFeedback(state, 'feedbackTackle', {}, 'item');
   pushLog(state, 'logDrawerCompleted');
   queueSound(state, 'craft_item');

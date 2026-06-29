@@ -356,7 +356,7 @@ export function questsMarkup(state) {
 
 export function mapViewerMarkup(state) {
   const zoom = state.ui?.mapViewerZoom ?? 1;
-  const mapAsset = getWorldMapAsset(state.ui?.resolvedViewMode ?? 'mobile', state);
+  const mapAsset = getWorldMapAsset('desktop', state, { useTimeOfDay: false });
   return `
     <div class="map-viewer-tools">
       <button data-action="mapViewer:zoomOut" type="button">-</button>
@@ -980,7 +980,13 @@ function guideAccordionMarkup(tab, state = {}) {
 function guideTimeNoteMarkup() {
   return `
     <article class="guide-card guide-card--text guide-card--time-note">
-      <p>${t('guideTimeOfDayNote')}</p>
+      <strong>${t('guideTimeTitle')}</strong>
+      <div class="guide-time-note__rows">
+        <span>${t('guideTimeDawnDusk')}</span>
+        <span>${t('guideTimeDay')}</span>
+        <span>${t('guideTimeNight')}</span>
+      </div>
+      <p>${t('guideTimeExplanation')}</p>
     </article>
   `;
 }

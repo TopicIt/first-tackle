@@ -264,6 +264,12 @@ const hud = createHud(hudRoot, {
         renderHud();
         return;
       }
+      if (waterId === 'sluice' || waterId === 'fire_ponds') {
+        gameState.ui.activeScene = `${waterId}_map`;
+        closeFishingMinigame(gameState);
+        renderHud();
+        return;
+      }
       if (startLocationTransition(waterId)) {
         return;
       }
