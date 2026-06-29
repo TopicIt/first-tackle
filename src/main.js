@@ -179,17 +179,14 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'tutorial:skip') {
       skipTutorial(gameState);
+      saveGame(gameState);
       renderHud();
       return;
     }
 
     if (actionId === 'tutorial:close') {
-      gameState.tutorialState = {
-        ...(gameState.tutorialState ?? {}),
-        promptDismissed: true,
-        closed: true,
-      };
-      gameState.audioQueue.push('ui_click');
+      skipTutorial(gameState);
+      saveGame(gameState);
       renderHud();
       return;
     }
@@ -303,6 +300,12 @@ const hud = createHud(hudRoot, {
         return;
       }
       enterFishingWater(waterId);
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'map:toggleHotspots') {
+      gameState.ui.mapHotspotsHidden = !gameState.ui.mapHotspotsHidden;
       renderHud();
       return;
     }

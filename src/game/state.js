@@ -399,6 +399,7 @@ export function createInitialState() {
     ui: {
       activeScene: null,
       selectedHotspot: null,
+      mapHotspotsHidden: false,
       catchResult: null,
       fishingMinigame: null,
       collapsedPanels: {

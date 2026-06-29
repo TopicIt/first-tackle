@@ -159,9 +159,7 @@ function mergeState(base, saved) {
       selectedStarColor: saved.playerProfile?.selectedStarColor ?? null,
       setupComplete: profileSetupComplete,
     },
-    money: saved.progress?.uahEconomyStarted
-      ? saved.money ?? base.money
-      : Math.max(saved.money ?? base.money, base.money),
+    money: resolveLoadedMoney(base, saved),
     inventory: {
       ...base.inventory,
       ...(saved.inventory ?? {}),
@@ -348,6 +346,50 @@ function mergeState(base, saved) {
     feedback: Array.isArray(saved.feedback) ? saved.feedback.slice(0, 4) : base.feedback,
     log: Array.isArray(saved.log) ? saved.log.slice(0, 6) : base.log,
   };
+}
+
+function resolveLoadedMoney(base, saved) {
+  const savedMoney = saved.money ?? base.money;
+  if (savedMoney === 0 && isFreshBrokenZeroMoneySave(base, saved)) {
+    return base.money;
+  }
+
+  return saved.progress?.uahEconomyStarted
+    ? savedMoney
+    : Math.max(savedMoney, base.money);
+}
+
+function isFreshBrokenZeroMoneySave(base, saved) {
+  const stats = saved.stats ?? {};
+  if ((stats.totalFishCaught ?? 0) > 0 || (stats.biggestFishWeight ?? 0) > 0) {
+    return false;
+  }
+
+  if ((saved.day ?? 1) > 1 || (saved.trophies ?? []).length > 0 || (saved.fishBasket ?? []).length > 0) {
+    return false;
+  }
+
+  if (Object.values(saved.purchased ?? {}).some(Boolean) || Object.values(saved.quests?.claimed ?? {}).some(Boolean)) {
+    return false;
+  }
+
+  const catchJournal = saved.catchJournal ?? {};
+  if (Object.values(catchJournal).some((entry) => (entry?.totalCaught ?? 0) > 0)) {
+    return false;
+  }
+
+  const starterAllowance = new Set(['thread', 'simpleHook', 'worms', 'primitiveTackle', 'stickRod']);
+  const baseInventory = base.inventory ?? {};
+  for (const [itemId, count] of Object.entries(saved.inventory ?? {})) {
+    const allowedStarterCount = itemId === 'worms'
+      ? Math.max(baseInventory.worms ?? 0, 5)
+      : baseInventory[itemId] ?? 0;
+    if (!starterAllowance.has(itemId) && count > allowedStarterCount) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 function mergeMarketState(savedMarket, day) {

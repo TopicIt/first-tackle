@@ -232,26 +232,43 @@ export function createHud(root, handlers) {
       const mapViewerCollapsed = collapsedPanels.mapViewer ? ' is-collapsed' : '';
       const claimableQuestCount = getQuestRows(state).filter((quest) => quest.complete && !quest.claimed).length;
       const mapOpen = !state.ui?.activeScene && !state.ui?.fishingMinigame?.open;
+      const fishingOpen = Boolean(state.ui?.fishingMinigame?.open);
       const selectedStar = getSelectedProfileStar(state);
-
-      root.innerHTML = `
-        ${mapOverlayMarkup(renderState)}
-        ${state.ui?.startupTitleDismissed ? '' : `<div class="startup-title" aria-hidden="true">${t('appTitle')}</div>`}
-        <div class="coin-hud${state.ui?.fishingMinigame?.open ? ' coin-hud--fishing' : mapOpen ? ' coin-hud--map' : ' coin-hud--scene'}" aria-label="${t('coins')}">
+      const surface = fishingOpen ? 'fishing' : mapOpen ? 'map' : 'scene';
+      root.dataset.surface = surface;
+      root.dataset.scene = state.ui?.activeScene ?? '';
+      const coinHud = (modifier) => `
+        <div class="coin-hud ${modifier}" aria-label="${t('coins')}">
           <span class="coin-hud__icon" aria-hidden="true"></span>
           <strong>${state.money}</strong>
         </div>
-        ${mapOpen ? `
-          <button class="map-profile-button" data-action="profile:open" type="button" aria-label="${t('profile')}">
-            <img src="${profileImageSrc(state.playerProfile)}" onerror="this.src='${assetPath(DEFAULT_AVATAR)}'" alt="" />
-            ${selectedStar ? `<span class="map-profile-button__star" style="--star-color:${selectedStar.color}" aria-hidden="true">&#9733;</span>` : ''}
-          </button>
-        ` : ''}
-        ${state.ui?.fishingMinigame?.open ? '' : `<button class="quest-notebook-button${effectiveQuestsCollapsed ? '' : ' is-open'}" data-action="panel:toggle:quests" type="button" aria-label="${t('activeQuests')}">
+      `;
+      const profileButton = `
+        <button class="map-profile-button" data-action="profile:open" type="button" aria-label="${t('profile')}">
+          <img src="${profileImageSrc(state.playerProfile)}" onerror="this.src='${assetPath(DEFAULT_AVATAR)}'" alt="" />
+          ${selectedStar ? `<span class="map-profile-button__star" style="--star-color:${selectedStar.color}" aria-hidden="true">&#9733;</span>` : ''}
+        </button>
+      `;
+      const questNotebookButton = (extraClass = '') => `
+        <button class="quest-notebook-button${extraClass}${effectiveQuestsCollapsed ? '' : ' is-open'}" data-action="panel:toggle:quests" type="button" aria-label="${t('activeQuests')}">
           <span aria-hidden="true"></span>
           ${claimableQuestCount ? `<em>${claimableQuestCount}</em>` : ''}
           ${effectiveQuestsCollapsed ? '' : `<strong>${t('activeQuests')}</strong>`}
-        </button>`}
+        </button>
+      `;
+
+      root.innerHTML = `
+        ${mapOverlayMarkup(renderState)}
+        ${mapOpen || state.ui?.startupTitleDismissed ? '' : `<div class="startup-title" aria-hidden="true">${t('appTitle')}</div>`}
+        ${mapOpen ? `
+          <div class="map-top-controls" aria-label="${t('map')}">
+            ${profileButton}
+            ${coinHud('coin-hud--map')}
+            ${questNotebookButton(' quest-notebook-button--map')}
+          </div>
+        ` : ''}
+        ${mapOpen ? '' : coinHud(fishingOpen ? 'coin-hud--fishing' : 'coin-hud--scene')}
+        ${fishingOpen || mapOpen ? '' : questNotebookButton()}
 
         <section class="panel glass-menu status-panel${statusCollapsed}">
           <div class="panel-toggle-row">

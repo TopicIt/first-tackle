@@ -346,6 +346,50 @@ button:disabled {
   color: #fff7d0;
 }
 
+.map-top-controls {
+  pointer-events: auto;
+  position: fixed;
+  right: max(8px, env(safe-area-inset-right));
+  top: max(8px, env(safe-area-inset-top));
+  z-index: 310;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.map-top-controls .map-profile-button,
+.map-top-controls .coin-hud,
+.map-top-controls .quest-notebook-button {
+  position: relative;
+  inset: auto;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  z-index: auto;
+  flex: 0 0 auto;
+}
+
+.map-top-controls .coin-hud {
+  min-height: 42px;
+  font-size: 0.82rem;
+  padding: 7px 10px;
+}
+
+.map-top-controls .quest-notebook-button {
+  width: 42px;
+  min-width: 42px;
+  max-width: 42px;
+  min-height: 42px;
+  border-radius: 999px;
+  justify-content: center;
+  padding: 7px;
+}
+
+.map-top-controls .quest-notebook-button strong {
+  display: none;
+}
+
 .quest-notebook-button {
   pointer-events: auto;
   position: fixed;
@@ -2667,6 +2711,84 @@ button:disabled {
   background: rgb(8 16 15 / 62%);
   font-size: 0.82rem;
   padding: 6px 10px;
+}
+
+:root[data-view-mode="mobile"] .map-top-controls {
+  right: max(8px, env(safe-area-inset-right));
+  top: max(8px, env(safe-area-inset-top));
+  gap: 5px;
+}
+
+:root[data-view-mode="mobile"] .map-top-controls .coin-hud {
+  position: relative;
+  inset: auto;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  z-index: auto;
+  min-height: 42px;
+  font-size: 0.78rem;
+  padding: 6px 9px;
+}
+
+:root[data-view-mode="mobile"] .map-top-controls .map-profile-button {
+  position: relative;
+  inset: auto;
+  width: 44px;
+  height: 44px;
+}
+
+:root[data-view-mode="mobile"] .map-top-controls .quest-notebook-button {
+  position: relative;
+  inset: auto;
+  width: 42px;
+  min-width: 42px;
+  max-width: 42px;
+  min-height: 42px;
+  border-radius: 999px;
+  padding: 7px;
+}
+
+:root[data-view-mode="mobile"] .hud[data-surface="map"] .clock-line {
+  left: calc(max(8px, env(safe-area-inset-left)) + 50px);
+  top: max(8px, env(safe-area-inset-top));
+  max-width: min(144px, calc(100vw - 228px));
+  min-height: 34px;
+  border-radius: 999px;
+  background: rgb(8 16 15 / 38%);
+  font-size: 0.72rem;
+  padding: 5px 9px;
+}
+
+:root[data-view-mode="mobile"] .hud[data-scene="sluice_map"] .coin-hud--scene,
+:root[data-view-mode="mobile"] .hud[data-scene="fire_ponds_map"] .coin-hud--scene {
+  top: max(8px, env(safe-area-inset-top));
+  right: calc(max(8px, env(safe-area-inset-right)) + 54px);
+  z-index: 320;
+  min-height: 42px;
+  max-width: 78px;
+  font-size: 0.78rem;
+  padding: 6px 9px;
+}
+
+:root[data-view-mode="mobile"] .hud[data-scene="sluice_map"] .quest-notebook-button,
+:root[data-view-mode="mobile"] .hud[data-scene="fire_ponds_map"] .quest-notebook-button {
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+  z-index: 320;
+  width: 42px;
+  min-width: 42px;
+  max-width: 42px;
+  min-height: 42px;
+  border-radius: 999px;
+  justify-content: center;
+  padding: 7px;
+}
+
+:root[data-view-mode="mobile"] .hud[data-scene="sluice_map"] .quest-notebook-button strong,
+:root[data-view-mode="mobile"] .hud[data-scene="fire_ponds_map"] .quest-notebook-button strong {
+  display: none;
 }
 
 :root[data-view-mode="mobile"] .coin-hud--fishing {

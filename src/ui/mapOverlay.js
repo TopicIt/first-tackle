@@ -1,7 +1,8 @@
 import { MAP_HOTSPOTS, MAP_HOTSPOT_DEBUG } from '../game/mapHotspots.js';
 import { tutorialSteps } from '../game/profile.js';
 import { canOpenWaterFromMap, canUseBusStation, getLockedReasonKey, isFishingLocation } from '../game/locations.js';
-import { t } from '../i18n/i18n.js';
+import { getLanguage, t } from '../i18n/i18n.js';
+import { assetPath } from '../utils/assetPath.js';
 import { getWorldMapAsset } from '../utils/worldMapAsset.js';
 import './mapOverlay.css';
 
@@ -9,8 +10,12 @@ export function mapOverlayMarkup(state) {
   const viewMode = state.ui?.resolvedViewMode ?? 'mobile';
   const worldMapAsset = getWorldMapAsset(viewMode, state);
   const fallback = worldMapAsset.fallbacks?.[0] ?? worldMapAsset.fallback;
+  const hotspotsHidden = state.ui?.mapHotspotsHidden ? ' is-hotspots-hidden' : '';
+  const logoSrc = getLanguage() === 'uk'
+    ? assetPath('/assets/logo/Logo-ukr.png')
+    : assetPath('/assets/logo/logo-eng.png');
   return `
-    <section class="illustrated-map${MAP_HOTSPOT_DEBUG ? ' is-debugging-hotspots' : ''}" aria-label="${t('mapHint')}" data-map-mode="${viewMode}" data-time-of-day="${worldMapAsset.bucket}">
+    <section class="illustrated-map${MAP_HOTSPOT_DEBUG ? ' is-debugging-hotspots' : ''}${hotspotsHidden}" aria-label="${t('mapHint')}" data-map-mode="${viewMode}" data-time-of-day="${worldMapAsset.bucket}">
       <div class="illustrated-map__frame">
         <img
           class="illustrated-map__image"
@@ -19,7 +24,10 @@ export function mapOverlayMarkup(state) {
           aria-hidden="true"
           onerror="this.onerror=null;this.src='${fallback}'"
         />
-        ${state.ui?.activeScene ? '' : `<div class="illustrated-map__title" aria-hidden="true">${t('appTitle')}</div>`}
+        ${state.ui?.activeScene ? '' : `<button class="illustrated-map__empty-toggle" data-action="map:toggleHotspots" type="button" aria-label="${t('mapHint')}"></button>`}
+        ${state.ui?.activeScene ? '' : `<div class="illustrated-map__brand" aria-hidden="true">
+          <img src="${logoSrc}" alt="" />
+        </div>`}
         <div class="illustrated-map__breath" aria-hidden="true"></div>
         <div class="illustrated-map__water" aria-hidden="true"></div>
         <div class="illustrated-map__hotspots">

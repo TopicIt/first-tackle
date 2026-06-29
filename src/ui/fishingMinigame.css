@@ -1578,6 +1578,10 @@
     overflow: auto;
   }
 
+  .fishing-minigame__layout.is-controls-collapsed .fishing-minigame__controls {
+    display: none;
+  }
+
   .fishing-minigame__panel-heading {
     border-radius: 999px;
     background: rgb(8 16 17 / 62%);
@@ -1864,6 +1868,10 @@
   width: min(178px, 46vw);
   max-height: calc(100dvh - 166px);
   overflow: auto;
+}
+
+:root[data-view-mode="mobile"] .fishing-minigame__layout.is-controls-collapsed .fishing-minigame__controls {
+  display: none;
 }
 
 :root[data-view-mode="mobile"] .fishing-panel {

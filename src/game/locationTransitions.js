@@ -53,7 +53,6 @@ export const locationTransitions = {
     fallbackImageAlt: assetPath('/assets/locations/shluz.png'),
     videos: [
       [
-        { src: assetPath('/assets/transitions/shluz/shluz-flyin.webm'), type: 'video/webm' },
         { src: assetPath('/assets/transitions/shluz/shluz-flyin.mp4'), type: 'video/mp4' },
       ],
     ],
