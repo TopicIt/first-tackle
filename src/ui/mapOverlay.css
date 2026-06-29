@@ -61,6 +61,7 @@
   text-shadow: 0 1px 9px rgb(0 0 0 / 62%);
   white-space: nowrap;
   backdrop-filter: blur(9px);
+  animation: mapTitleAutoHide 5s ease forwards;
 }
 
 .illustrated-map[data-map-mode="desktop"] .illustrated-map__image {
@@ -283,12 +284,30 @@
   }
 }
 
+@keyframes mapTitleAutoHide {
+  0%,
+  82% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-8px);
+    visibility: hidden;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .illustrated-map__breath,
   .illustrated-map__water,
   .map-hotspot__area {
     animation-duration: 1ms;
     animation-iteration-count: 1;
+  }
+
+  .illustrated-map__title {
+    animation-duration: 1ms;
   }
 
 }

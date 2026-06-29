@@ -40,73 +40,142 @@
 }
 
 .fishing-minigame__header {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 18px;
-  background: rgb(9 17 18 / 42%);
-  padding: 10px 14px;
+  display: grid;
+  gap: 6px;
+  width: min(430px, calc(100vw - 16px));
+  background: rgb(18 31 24 / 58%);
+  border-color: rgb(243 196 95 / 28%);
+  border-radius: 14px;
+  padding: 8px;
 }
 
-.fishing-minigame__header-actions {
-  display: flex;
+.fishing-minigame__top-row {
+  display: grid;
+  grid-template-columns: minmax(58px, 0.75fr) 38px 38px minmax(68px, 0.9fr);
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.fishing-minigame__close,
+.fishing-minigame__hint-row {
+  min-width: 0;
+}
+
+.fishing-minigame__icon-button,
 .fishing-minigame__map {
+  position: relative;
   display: grid;
   place-items: center;
   border: 1px solid rgb(255 255 255 / 16%);
-  background: rgb(6 12 11 / 36%);
+  background: rgb(6 12 11 / 42%);
   color: #f7fff8;
   backdrop-filter: blur(8px);
 }
 
-.fishing-minigame__close {
-  width: 34px;
-  min-height: 34px;
-  border-radius: 999px;
+.fishing-minigame__icon-button {
+  width: 38px;
+  min-width: 38px;
+  min-height: 36px;
+  border-color: rgb(243 196 95 / 28%);
+  border-radius: 12px;
   padding: 0;
-  font-size: 1.22rem;
-  line-height: 1;
 }
 
 .fishing-minigame__map {
-  min-width: 84px;
-  min-height: 34px;
-  border-radius: 999px;
+  min-width: 68px;
+  min-height: 36px;
+  border-color: rgb(243 196 95 / 34%);
+  border-radius: 12px;
+  color: #fff8df;
   font-size: 0.78rem;
-  font-weight: 800;
-  padding: 7px 11px;
+  font-weight: 900;
+  padding: 7px 10px;
 }
 
-.fishing-minigame__header h2 {
-  margin: 0 0 6px;
-  color: #fff8e4;
-  font-size: 1.5rem;
+.fishing-minigame__icon-button--controls span,
+.fishing-minigame__icon-button--quests span {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.fishing-minigame__icon-button--controls span,
+.fishing-minigame__icon-button--controls span::before,
+.fishing-minigame__icon-button--controls span::after {
+  border-radius: 999px;
+  background: #ffe6a2;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 10%);
+}
+
+.fishing-minigame__icon-button--controls span {
+  height: 3px;
+}
+
+.fishing-minigame__icon-button--controls span::before,
+.fishing-minigame__icon-button--controls span::after {
+  position: absolute;
+  left: 0;
+  width: 18px;
+  height: 3px;
+  content: "";
+}
+
+.fishing-minigame__icon-button--controls span::before {
+  top: -7px;
+}
+
+.fishing-minigame__icon-button--controls span::after {
+  top: 7px;
+}
+
+.fishing-minigame__icon-button--quests span {
+  border: 2px solid #ffe6a2;
+  border-radius: 4px;
+  background:
+    linear-gradient(90deg, transparent 0 7px, rgb(255 230 162 / 55%) 7px 9px, transparent 9px),
+    rgb(255 230 162 / 10%);
+}
+
+.fishing-minigame__icon-button--quests em {
+  position: absolute;
+  right: -4px;
+  top: -5px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  min-height: 18px;
+  border-radius: 999px;
+  background: #f3c45f;
+  color: #17211c;
+  font-size: 0.62rem;
+  font-style: normal;
+  font-weight: 900;
+  padding: 1px 4px;
 }
 
 .fishing-minigame__time {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  max-width: 100%;
-  margin: 0 0 5px;
+  display: grid;
+  place-items: center;
+  min-height: 36px;
+  margin: 0;
   border: 1px solid rgb(243 196 95 / 28%);
-  border-radius: 999px;
+  border-radius: 12px;
   background: rgb(20 32 27 / 42%);
   color: #ffe6a2;
-  font-size: 0.76rem;
-  font-weight: 850;
+  font-size: 0.86rem;
+  font-weight: 900;
   line-height: 1.1;
-  padding: 4px 8px;
+  padding: 6px 8px;
 }
 
 .fishing-minigame__status {
   margin: 0;
   color: #d6ecea;
+  font-size: 0.76rem;
+  line-height: 1.18;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fishing-minigame__layout {
@@ -195,6 +264,28 @@
   background: linear-gradient(180deg, rgb(48 61 35 / 72%), rgb(9 17 15 / 54%));
   color: #f3f3ea;
   text-shadow: 0 1px 8px rgb(0 0 0 / 52%);
+}
+
+.bait-button {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  gap: 8px;
+  text-align: left;
+}
+
+.bait-button img {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 14%);
+}
+
+.bait-button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .zone-button {
@@ -1398,56 +1489,41 @@
     right: 8px;
     top: 8px;
     z-index: 12;
-    align-items: center;
-    border-radius: 999px;
-    background: rgb(8 16 17 / 40%);
-    box-shadow: none;
-    padding: 6px 10px 6px 12px;
+    width: auto;
+    border-radius: 14px;
+    background: rgb(18 31 24 / 62%);
+    box-shadow: 0 10px 24px rgb(0 0 0 / 16%);
+    padding: 7px;
   }
 
-  .fishing-minigame__header > div:first-child {
-    min-width: 0;
-  }
-
-  .fishing-minigame__header .section-label,
-  .fishing-minigame__header h2 {
-    display: none;
+  .fishing-minigame__top-row {
+    grid-template-columns: minmax(54px, 0.8fr) 36px 36px minmax(66px, 0.9fr);
+    gap: 5px;
   }
 
   .fishing-minigame__time {
-    max-width: 54vw;
-    margin: 0 0 2px;
-    overflow: hidden;
-    font-size: 0.68rem;
-    padding: 3px 7px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    min-height: 34px;
+    font-size: 0.78rem;
+    padding: 5px 7px;
   }
 
   .fishing-minigame__status {
-    max-width: 54vw;
-    overflow: hidden;
     color: #e7f3ec;
     font-size: 0.72rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .fishing-minigame__header-actions {
-    gap: 6px;
-  }
-
-  .fishing-minigame__close {
-    width: 30px;
-    min-height: 30px;
-    font-size: 1.05rem;
+    text-align: center;
   }
 
   .fishing-minigame__map {
     min-width: 68px;
-    min-height: 30px;
+    min-height: 34px;
     font-size: 0.7rem;
     padding: 5px 9px;
+  }
+
+  .fishing-minigame__icon-button {
+    width: 36px;
+    min-width: 36px;
+    min-height: 34px;
   }
 
   .fishing-minigame__layout,
@@ -1486,10 +1562,10 @@
   .fishing-minigame__controls {
     position: absolute;
     left: 8px;
-    top: 54px;
+    top: 92px;
     z-index: 15;
     width: min(178px, 46vw);
-    max-height: calc(100dvh - 128px);
+    max-height: calc(100dvh - 166px);
     overflow: auto;
   }
 
@@ -1533,6 +1609,16 @@
     border-radius: 999px;
     font-size: 0.68rem;
     padding: 5px 8px;
+  }
+
+  .bait-button {
+    grid-template-columns: 26px minmax(0, 1fr) auto;
+    gap: 6px;
+  }
+
+  .bait-button img {
+    width: 26px;
+    height: 26px;
   }
 
   .fishing-panel__quick-nav button {
@@ -1691,39 +1777,41 @@
   right: 8px;
   top: 8px;
   z-index: 12;
-  align-items: center;
-  border-radius: 999px;
-  background: rgb(8 16 17 / 40%);
-  box-shadow: none;
-  padding: 6px 10px 6px 12px;
+  width: auto;
+  border-radius: 14px;
+  background: rgb(18 31 24 / 62%);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 16%);
+  padding: 7px;
 }
 
-:root[data-view-mode="mobile"] .fishing-minigame__header > div:first-child {
-  min-width: 0;
-}
-
-:root[data-view-mode="mobile"] .fishing-minigame__header .section-label,
-:root[data-view-mode="mobile"] .fishing-minigame__header h2 {
-  display: none;
+:root[data-view-mode="mobile"] .fishing-minigame__top-row {
+  grid-template-columns: minmax(54px, 0.8fr) 36px 36px minmax(66px, 0.9fr);
+  gap: 5px;
 }
 
 :root[data-view-mode="mobile"] .fishing-minigame__time {
-  max-width: 54vw;
-  margin: 0 0 2px;
-  overflow: hidden;
-  font-size: 0.68rem;
-  padding: 3px 7px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-height: 34px;
+  font-size: 0.78rem;
+  padding: 5px 7px;
 }
 
 :root[data-view-mode="mobile"] .fishing-minigame__status {
-  max-width: 54vw;
-  overflow: hidden;
   color: #e7f3ec;
   font-size: 0.72rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: center;
+}
+
+:root[data-view-mode="mobile"] .fishing-minigame__map {
+  min-width: 68px;
+  min-height: 34px;
+  font-size: 0.7rem;
+  padding: 5px 9px;
+}
+
+:root[data-view-mode="mobile"] .fishing-minigame__icon-button {
+  width: 36px;
+  min-width: 36px;
+  min-height: 34px;
 }
 
 :root[data-view-mode="mobile"] .fishing-minigame__layout,
@@ -1762,10 +1850,10 @@
 :root[data-view-mode="mobile"] .fishing-minigame__controls {
   position: absolute;
   left: 8px;
-  top: 54px;
+  top: 92px;
   z-index: 15;
   width: min(178px, 46vw);
-  max-height: calc(100dvh - 128px);
+  max-height: calc(100dvh - 166px);
   overflow: auto;
 }
 
@@ -1792,6 +1880,16 @@
   border-radius: 999px;
   font-size: 0.68rem;
   padding: 5px 8px;
+}
+
+:root[data-view-mode="mobile"] .bait-button {
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+:root[data-view-mode="mobile"] .bait-button img {
+  width: 26px;
+  height: 26px;
 }
 
 :root[data-view-mode="mobile"] .zone-button small,

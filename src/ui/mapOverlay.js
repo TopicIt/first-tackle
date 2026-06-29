@@ -19,7 +19,7 @@ export function mapOverlayMarkup(state) {
           aria-hidden="true"
           onerror="this.onerror=null;this.src='${fallback}'"
         />
-        <div class="illustrated-map__title" aria-hidden="true">${t('appTitle')}</div>
+        ${state.ui?.activeScene ? '' : `<div class="illustrated-map__title" aria-hidden="true">${t('appTitle')}</div>`}
         <div class="illustrated-map__breath" aria-hidden="true"></div>
         <div class="illustrated-map__water" aria-hidden="true"></div>
         <div class="illustrated-map__hotspots">

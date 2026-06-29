@@ -231,11 +231,11 @@ export function createHud(root, handlers) {
           <span class="coin-hud__icon" aria-hidden="true"></span>
           <strong>${state.money}</strong>
         </div>
-        <button class="quest-notebook-button${effectiveQuestsCollapsed ? '' : ' is-open'}" data-action="panel:toggle:quests" type="button" aria-label="${t('activeQuests')}">
+        ${state.ui?.fishingMinigame?.open ? '' : `<button class="quest-notebook-button${effectiveQuestsCollapsed ? '' : ' is-open'}" data-action="panel:toggle:quests" type="button" aria-label="${t('activeQuests')}">
           <span aria-hidden="true"></span>
           ${claimableQuestCount ? `<em>${claimableQuestCount}</em>` : ''}
           ${effectiveQuestsCollapsed ? '' : `<strong>${t('activeQuests')}</strong>`}
-        </button>
+        </button>`}
 
         <section class="panel glass-menu status-panel${statusCollapsed}">
           <div class="panel-toggle-row">
@@ -451,6 +451,9 @@ export function createHud(root, handlers) {
                 <button data-action="transitions:toggle" type="button">
                   ${state.settings?.transitions?.enabled === false ? t('enableTransitions') : t('disableTransitions')}
                 </button>
+              </div>
+              <div class="settings-action-row settings-action-row--stack">
+                <button data-action="animations:resetLimits" type="button">${t('resetAnimationLimits')}</button>
               </div>
             </section>
             <section class="settings-block">

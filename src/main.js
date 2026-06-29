@@ -33,7 +33,16 @@ import { addItem } from './game/inventory.js';
 import { ensureTackleState, equipTackleComponent, getRigMethod } from './game/tackle.js';
 import { ensureTimeState, formatGameTime, getTimeOfDayBucket, getTimePhase } from './game/time.js';
 import { canOpenWaterFromMap, canSelectWaterForFishing, canUseBusStation, getFishingLocation, getLockedReasonKey, isFishingLocation } from './game/locations.js';
-import { getLocationTransition, markLocationTransitionVisit, shouldUseLocationTransitions } from './game/locationTransitions.js';
+import {
+  INTRO_VIDEO_ANIMATION_ID,
+  canPlayLimitedAnimation,
+  getLocationTransition,
+  markLocationTransitionVisit,
+  normalizeAnimationLimits,
+  recordLimitedAnimationPlay,
+  resetAnimationLimits,
+  shouldUseLocationTransitions,
+} from './game/locationTransitions.js';
 import { arriveAtWater } from './game/travel.js';
 import { claimQuestReward, ensureQuestState, syncQuestProgress, unlockAllLocationsForDebug } from './game/quests.js';
 import { completeCafeOrder, ensureCafeOrders } from './game/cafeOrders.js';
@@ -88,6 +97,7 @@ ensureCafeOrders(gameState);
 syncGrandmaTrust(gameState);
 normalizeTransitionSettings(gameState);
 applyPerformanceSettings(gameState);
+normalizeAnimationLimits(gameState);
 normalizeViewModeSettings(gameState);
 resetLaunchUiState(gameState);
 applyViewModeToDocument(gameState);
@@ -302,6 +312,12 @@ const hud = createHud(hudRoot, {
     }
 
     if (actionId === 'intro:replay') {
+      if (!canPlayLimitedAnimation(gameState, INTRO_VIDEO_ANIMATION_ID)) {
+        gameState.audioQueue.push('ui_click');
+        renderHud();
+        return;
+      }
+      recordLimitedAnimationPlay(gameState, INTRO_VIDEO_ANIMATION_ID);
       gameState.ui.startupStep = 'introVideo';
       renderHud();
       return;
@@ -493,9 +509,25 @@ const hud = createHud(hudRoot, {
     }
 
     if (actionId === 'transitions:toggle') {
+      const nextEnabled = !gameState.settings.transitions?.enabled;
       gameState.settings.transitions = {
         ...(gameState.settings.transitions ?? {}),
-        enabled: !gameState.settings.transitions?.enabled,
+        enabled: nextEnabled,
+        explicit: true,
+      };
+      if (nextEnabled) {
+        resetAnimationLimits(gameState);
+      }
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'animations:resetLimits') {
+      resetAnimationLimits(gameState);
+      gameState.settings.transitions = {
+        ...(gameState.settings.transitions ?? {}),
+        enabled: true,
         explicit: true,
       };
       gameState.audioQueue.push('ui_click');
@@ -958,6 +990,7 @@ function startLocationTransition(sceneId) {
     return false;
   }
 
+  recordLimitedAnimationPlay(gameState, transition);
   markLocationTransitionVisit(gameState, transition);
   gameState.ui.locationTransition = transition;
   gameState.ui.selectedHotspot = sceneId;
@@ -1074,6 +1107,7 @@ function ensureRuntimeState(state) {
   ensureCafeOrders(state);
   normalizeTransitionSettings(state);
   applyPerformanceSettings(state);
+  normalizeAnimationLimits(state);
   normalizeViewModeSettings(state);
   applyViewModeToDocument(state);
   normalizePanelStateForViewport(state);
@@ -1117,6 +1151,14 @@ function getNextStartupStep() {
 
 function handleStartupAction(actionId) {
   if (actionId === 'startup:intro:watch') {
+    if (!canPlayLimitedAnimation(gameState, INTRO_VIDEO_ANIMATION_ID)) {
+      gameState.seenEvents.introResolved = true;
+      gameState.seenEvents.introSkipped = true;
+      gameState.settings.intro.showOnStartup = false;
+      gameState.ui.startupStep = gameState.playerProfile?.setupComplete ? null : 'profile';
+      return;
+    }
+    recordLimitedAnimationPlay(gameState, INTRO_VIDEO_ANIMATION_ID);
     gameState.ui.startupStep = 'introVideo';
     return;
   }

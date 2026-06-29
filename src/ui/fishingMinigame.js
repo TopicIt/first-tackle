@@ -1,6 +1,7 @@
 import './fishingMinigame.css';
 import { getFishData } from '../game/fishData.js';
 import { getAvailableBaits, getAvailableCastSpots, getFishingContextAction } from '../game/fishingMinigameLogic.js';
+import { getQuestRows } from '../game/quests.js';
 import { getCastSpot } from '../game/bitePatterns.js';
 import { catchCategoryBadgeMarkup, catchJournalMarkup, keepnetMarkup } from './panels.js';
 import { resolveFishCatchCardImage } from '../game/fishCardImages.js';
@@ -9,25 +10,12 @@ import { assetPath } from '../utils/assetPath.js';
 import { getFishingLocation } from '../game/locations.js';
 import { getLocationImage, getLocationImageFallback } from '../utils/locationAsset.js';
 import { getTimeOfDayBackground } from '../utils/timeOfDayBackgrounds.js';
-import { formatGameTime, getTimePhase } from '../game/time.js';
+import { formatGameTime } from '../game/time.js';
 
 const castZoneKeys = {
   near_bank: 'castZoneNearBank',
   mid_water: 'castZoneMidWater',
   reed_edge: 'castZoneReedEdge',
-};
-
-const methodKeys = {
-  handline: 'fishingMethodHandline',
-  stickRod: 'fishingMethodStickRod',
-  liveBait: 'fishingMethodLiveBait',
-};
-
-const timePhaseKeys = {
-  morning: 'timePhaseMorning',
-  day: 'timePhaseDay',
-  evening: 'timePhaseEvening',
-  night: 'timePhaseNight',
 };
 
 const fishingLineFallbackAnchors = {
@@ -52,8 +40,8 @@ export function fishingMinigameMarkup(state) {
   const floatStyle = state.tackle?.equipped?.float ?? 'none';
   const activeFishing = isActiveFishingPhase(minigame.phase);
   const waterImage = getFishingWaterImage(state);
-  const timePhase = getTimePhase(state);
-  const timeLabel = `${t('dayLabel', { day: state.day ?? 1 })} · ${t(timePhaseKeys[timePhase] ?? 'timePhaseDay')} · ${formatGameTime(state)}`;
+  const compactTimeLabel = formatGameTime(state);
+  const claimableQuestCount = getQuestRows(state).filter((quest) => quest.complete && !quest.claimed).length;
 
   return `
     <section class="fishing-minigame" aria-label="${t('fishingTitle')}">
@@ -68,15 +56,19 @@ export function fishingMinigameMarkup(state) {
 
       <div class="fishing-minigame__shell">
         <header class="fishing-minigame__header">
-          <div>
-            <p class="section-label">${t('fishingTitle')}</p>
-            <h2>${t(methodKeys[minigame.method])}</h2>
-            <p class="fishing-minigame__time">${timeLabel}</p>
-            <p class="fishing-minigame__status">${t(minigame.statusKey)}</p>
-          </div>
-          <div class="fishing-minigame__header-actions">
-            <button class="fishing-minigame__close" data-action="minigame:back" type="button" aria-label="${t('close')}" title="${t('close')}">&times;</button>
+          <div class="fishing-minigame__top-row">
+            <span class="fishing-minigame__time">${compactTimeLabel}</span>
+            <button class="fishing-minigame__icon-button fishing-minigame__icon-button--controls" data-action="panel:toggle:fishingControls" type="button" aria-label="${t('controls')}" title="${t('controls')}">
+              <span aria-hidden="true"></span>
+            </button>
+            <button class="fishing-minigame__icon-button fishing-minigame__icon-button--quests${collapsedPanels.quests === false ? ' is-open' : ''}" data-action="panel:toggle:quests" type="button" aria-label="${t('activeQuests')}" title="${t('activeQuests')}">
+              <span aria-hidden="true"></span>
+              ${claimableQuestCount ? `<em>${claimableQuestCount}</em>` : ''}
+            </button>
             <button class="fishing-minigame__map" data-action="minigame:menu" type="button">${t('backToMap')}</button>
+          </div>
+          <div class="fishing-minigame__hint-row">
+            <p class="fishing-minigame__status">${t(minigame.statusKey)}</p>
           </div>
         </header>
 
@@ -152,10 +144,25 @@ function baitButtonMarkup(bait, selectedBait) {
   const disabled = bait.disabled ? ' disabled' : '';
   return `
     <button class="bait-button${selected}" data-action="bait:${bait.id}" type="button"${disabled}>
-      ${t(`bait${toPascalCase(bait.id)}`)}
+      <img src="${baitImage(bait.id)}" onerror="this.style.display='none'" alt="" />
+      <span>${t(`bait${toPascalCase(bait.id)}`)}</span>
       <strong>${bait.count}</strong>
     </button>
   `;
+}
+
+function baitImage(baitId) {
+  return assetPath({
+    small_worms: '/assets/items/bait_nightcrawler.png',
+    worms: '/assets/items/bait_nightcrawler.png',
+    nightcrawler: '/assets/items/bait_worm.png',
+    larvae: '/assets/items/bait_larvae.png',
+    bread: '/assets/items/bait_bread.png',
+    mastyrka: '/assets/items/bait_mastyrka.png',
+    corn: '/assets/items/bait_corn.png',
+    dough: '/assets/items/bait_dough.png',
+    live_bait: '/assets/fish/catch_result_frame.png',
+  }[baitId] ?? '/assets/items/bait_worm.png');
 }
 
 function depthButtonMarkup(depth, selectedDepth) {
@@ -210,11 +217,6 @@ function selectedScatterMarkup(state, minigame) {
       aria-hidden="true"
     ></span>
   `;
-}
-
-function selectedSpotChip(minigame) {
-  const spot = minigame.selectedSpot ? getCastSpot(minigame.selectedSpot) : null;
-  return spot ? `<span class="fishing-spot-chip">${t(spot.labelKey)}</span>` : '';
 }
 
 function isActiveFishingPhase(phase) {
@@ -466,7 +468,6 @@ function fishingStageMarkup(state, minigame, options) {
   return `
     <div class="fishing-stage${activeFishing ? ' fishing-stage--active-cast' : ''}" style="${bobberStyle(minigame)}">
       ${stageBody}
-      ${activeFishing ? '' : selectedSpotChip(minigame)}
       <div class="fishing-context-action">
         <button
           class="fishing-context-action__button fishing-context-action__button--${contextAction.variant}"
@@ -481,7 +482,6 @@ function fishingStageMarkup(state, minigame, options) {
           : ''}
         <span>${t('spaceAction')}</span>
       </div>
-      <button class="fishing-keepnet-shortcut" data-action="panel:toggle:keepnet" type="button">${t('keepnet')}</button>
     </div>
   `;
 }

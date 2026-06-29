@@ -382,6 +382,9 @@ export function createInitialState() {
       performance: {
         lowPower: null,
       },
+      animationLimits: {
+        counts: {},
+      },
       intro: {
         showOnStartup: true,
       },

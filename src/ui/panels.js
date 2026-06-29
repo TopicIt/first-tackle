@@ -92,24 +92,24 @@ const itemImages = {
   grandma_thread: '/assets/items/grandma_thread.png',
   taranka: '/assets/items/taranka_drying.png',
   smokedFish: '/assets/items/taranka_drying.png',
-  baitSmallWorms: '/assets/items/bait_worm.png',
+  baitSmallWorms: '/assets/items/bait_nightcrawler.png',
   baitBread: '/assets/items/bait_bread.png',
   gooseFeatherFloat: '/assets/items/fishing_float.png',
   baitLarvae: '/assets/items/bait_larvae.png',
-  baitWorms: '/assets/items/bait_worm.png',
+  baitWorms: '/assets/items/bait_nightcrawler.png',
   baitMastyrka: '/assets/items/bait_mastyrka.png',
   baitCorn: '/assets/items/bait_corn.png',
   baitDough: '/assets/items/bait_dough.png',
-  baitNightcrawler: '/assets/items/bait_nightcrawler.png',
+  baitNightcrawler: '/assets/items/bait_worm.png',
   baitLarvae: '/assets/items/bait_larvae.png',
-  smallWorms: '/assets/items/bait_worm.png',
+  smallWorms: '/assets/items/bait_nightcrawler.png',
   bread: '/assets/items/bait_bread.png',
   larvae: '/assets/items/bait_larvae.png',
-  worms: '/assets/items/bait_worm.png',
+  worms: '/assets/items/bait_nightcrawler.png',
   mastyrka: '/assets/items/bait_mastyrka.png',
   corn: '/assets/items/bait_corn.png',
   dough: '/assets/items/bait_dough.png',
-  nightcrawler: '/assets/items/bait_nightcrawler.png',
+  nightcrawler: '/assets/items/bait_worm.png',
 };
 
 const waterImages = {
@@ -129,21 +129,21 @@ const fishImages = {
 };
 
 const guideTabIcons = {
-  baits: '/assets/items/bait_worm.png',
+  baits: '/assets/items/bait_nightcrawler.png',
   tackle: '/assets/items/tackle_components.png',
   processing: '/assets/items/taranka_drying.png',
 };
 
 const guideCardImages = {
   baits: [
-    '/assets/items/bait_worm.png',
-    '/assets/items/bait_worm.png',
+    '/assets/items/bait_nightcrawler.png',
+    '/assets/items/bait_nightcrawler.png',
     '/assets/items/bait_larvae.png',
     '/assets/items/bait_bread.png',
     '/assets/items/bait_dough.png',
     '/assets/items/bait_mastyrka.png',
     '/assets/items/bait_corn.png',
-    '/assets/items/bait_nightcrawler.png',
+    '/assets/items/bait_worm.png',
     '/assets/fish/catch_result_frame.png',
   ],
   tackle: [
@@ -735,14 +735,14 @@ function marketBuyCardMarkup(state, item) {
     <article class="market-card">
       <span class="market-card__image-wrap">
         <img src="${itemImage(item.id)}" loading="lazy" decoding="async" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
-        ${item.amount && item.amount > 1 ? `<span class="market-card__qty-badge">x${item.amount}</span>` : ''}
+        ${item.amount && item.amount > 1 ? `<span class="market-card__qty-badge">×${item.amount}</span>` : ''}
       </span>
       <div class="market-card__content">
         <h3>${getShopItemLabel(item.id)}</h3>
         <p>${t(shopDescriptionKey(item.id))}</p>
         <div class="market-card__meta">
           <strong>${owned ? t('owned') : `${item.price} ${t('coins').toLowerCase()}`}</strong>
-          ${item.amount && item.amount > 1 ? `<span class="market-card__qty">x${item.amount}</span>` : ''}
+          ${item.amount && item.amount > 1 ? `<span class="market-card__qty">×${item.amount}</span>` : ''}
         </div>
       </div>
       <button data-action="buy:${item.id}" type="button"${owned || state.money < item.price ? ' disabled' : ''}>${owned ? t('owned') : t('buy')}</button>

@@ -570,8 +570,8 @@
 .market-card p {
   display: -webkit-box;
   overflow: hidden;
-  line-clamp: 2;
-  -webkit-line-clamp: 2;
+  line-clamp: 1;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   line-height: 1.22;
 }
@@ -805,26 +805,27 @@
 .location-scene--fire_ponds_map .scene-action-grid button.scene-hotspot {
   position: fixed;
   z-index: 5;
-  width: min(280px, 44vw);
-  min-height: 128px;
-  border-radius: 22px;
-  background: rgb(148 212 196 / 22%);
+  width: min(236px, 42vw);
+  min-height: 104px;
+  border-radius: 18px;
+  background: rgb(30 64 58 / 34%);
+  border-color: rgb(243 196 95 / 36%);
   box-shadow: 0 18px 42px rgb(0 0 0 / 22%);
   color: #fff8df;
-  font-size: 1.05rem;
+  font-size: 0.98rem;
   justify-items: center;
   text-align: center;
 }
 
 .location-scene--sluice_map .scene-action-grid button.scene-hotspot--left {
-  left: 24%;
-  top: 52%;
+  left: 30%;
+  top: 36%;
   transform: translate(-50%, -50%);
 }
 
 .location-scene--fire_ponds_map .scene-action-grid button.scene-hotspot--right {
-  right: 24%;
-  top: 52%;
+  right: 28%;
+  top: 38%;
   transform: translate(50%, -50%);
 }
 
@@ -1256,6 +1257,41 @@
   .scene-market {
     max-height: none;
   }
+}
+
+.location-scene--sluice_map .scene-actions,
+.location-scene--fire_ponds_map .scene-actions {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  width: auto;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  pointer-events: none;
+  backdrop-filter: none;
+}
+
+.location-scene--sluice_map .scene-action-grid,
+.location-scene--fire_ponds_map .scene-action-grid {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+
+.location-scene--sluice_map .scene-header,
+.location-scene--fire_ponds_map .scene-header {
+  position: relative;
+  z-index: 4;
+}
+
+.location-scene--sluice_map .scene-action-grid button.scene-hotspot,
+.location-scene--fire_ponds_map .scene-action-grid button.scene-hotspot {
+  position: absolute;
+  pointer-events: auto;
 }
 
 :root.low-power-mode .location-scene__image,

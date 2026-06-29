@@ -186,6 +186,14 @@ function mergeState(base, saved) {
         ...base.settings.performance,
         ...(saved.settings?.performance ?? {}),
       },
+      animationLimits: {
+        ...base.settings.animationLimits,
+        ...(saved.settings?.animationLimits ?? {}),
+        counts: {
+          ...base.settings.animationLimits.counts,
+          ...(saved.settings?.animationLimits?.counts ?? {}),
+        },
+      },
       intro: {
         ...base.settings.intro,
         ...(saved.settings?.intro ?? {}),
