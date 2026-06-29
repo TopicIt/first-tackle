@@ -21,6 +21,7 @@ import { buildInfo } from '../buildInfo.js';
 import { DEFAULT_AVATAR, GAME_TITLE } from '../game/state.js';
 import { profileAvatars, tutorialSteps } from '../game/profile.js';
 import { getQuestRows } from '../game/quests.js';
+import { getSelectedProfileStar } from '../game/achievementStars.js';
 import { assetPath } from '../utils/assetPath.js';
 
 export function createHud(root, handlers) {
@@ -43,6 +44,13 @@ export function createHud(root, handlers) {
   });
 
   root.addEventListener('change', (event) => {
+    const profilePhotoInput = event.target.closest('input[data-profile-photo-input]');
+    if (profilePhotoInput?.files?.[0]) {
+      readProfilePhoto(profilePhotoInput.files[0], handlers);
+      profilePhotoInput.value = '';
+      return;
+    }
+
     const importInput = event.target.closest('input[data-save-import]');
     if (importInput?.files?.[0]) {
       const reader = new FileReader();
@@ -223,14 +231,22 @@ export function createHud(root, handlers) {
       const questsCollapsed = effectiveQuestsCollapsed ? ' is-collapsed' : '';
       const mapViewerCollapsed = collapsedPanels.mapViewer ? ' is-collapsed' : '';
       const claimableQuestCount = getQuestRows(state).filter((quest) => quest.complete && !quest.claimed).length;
+      const mapOpen = !state.ui?.activeScene && !state.ui?.fishingMinigame?.open;
+      const selectedStar = getSelectedProfileStar(state);
 
       root.innerHTML = `
         ${mapOverlayMarkup(renderState)}
         ${state.ui?.startupTitleDismissed ? '' : `<div class="startup-title" aria-hidden="true">${t('appTitle')}</div>`}
-        <div class="coin-hud" aria-label="${t('coins')}">
+        <div class="coin-hud${state.ui?.fishingMinigame?.open ? ' coin-hud--fishing' : mapOpen ? ' coin-hud--map' : ' coin-hud--scene'}" aria-label="${t('coins')}">
           <span class="coin-hud__icon" aria-hidden="true"></span>
           <strong>${state.money}</strong>
         </div>
+        ${mapOpen ? `
+          <button class="map-profile-button" data-action="profile:open" type="button" aria-label="${t('profile')}">
+            <img src="${profileImageSrc(state.playerProfile)}" onerror="this.src='${assetPath(DEFAULT_AVATAR)}'" alt="" />
+            ${selectedStar ? `<span class="map-profile-button__star" style="--star-color:${selectedStar.color}" aria-hidden="true">&#9733;</span>` : ''}
+          </button>
+        ` : ''}
         ${state.ui?.fishingMinigame?.open ? '' : `<button class="quest-notebook-button${effectiveQuestsCollapsed ? '' : ' is-open'}" data-action="panel:toggle:quests" type="button" aria-label="${t('activeQuests')}">
           <span aria-hidden="true"></span>
           ${claimableQuestCount ? `<em>${claimableQuestCount}</em>` : ''}
@@ -914,6 +930,45 @@ function actionButtonMarkup(action) {
 function menuButton(panelId, labelKey, collapsedPanels) {
   const open = !collapsedPanels[panelId];
   return `<button class="glass-menu-button${open ? ' is-active' : ''}" data-action="panel:toggle:${panelId}" type="button">${t(labelKey)}</button>`;
+}
+
+function readProfilePhoto(file, handlers) {
+  if (!file?.type?.startsWith('image/')) {
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.addEventListener('load', () => {
+    const rawDataUrl = String(reader.result ?? '');
+    const image = new Image();
+    image.addEventListener('load', () => {
+      const canvas = document.createElement('canvas');
+      const size = 256;
+      canvas.width = size;
+      canvas.height = size;
+      const context = canvas.getContext('2d');
+      if (!context) {
+        handlers.onProfilePhotoUpload?.(rawDataUrl);
+        return;
+      }
+      const scale = Math.max(size / image.width, size / image.height);
+      const width = image.width * scale;
+      const height = image.height * scale;
+      context.drawImage(image, (size - width) / 2, (size - height) / 2, width, height);
+      handlers.onProfilePhotoUpload?.(canvas.toDataURL('image/jpeg', 0.84));
+    }, { once: true });
+    image.addEventListener('error', () => handlers.onProfilePhotoUpload?.(rawDataUrl), { once: true });
+    image.src = rawDataUrl;
+  }, { once: true });
+  reader.readAsDataURL(file);
+}
+
+function profileImageSrc(profile) {
+  const custom = profile?.customAvatarDataUrl;
+  if (profile?.avatarType === 'custom' && typeof custom === 'string' && custom.startsWith('data:image/')) {
+    return escapeHtml(custom);
+  }
+  return assetPath(profile?.avatar ?? DEFAULT_AVATAR);
 }
 
 function panelToggleIcon(isCollapsed) {

@@ -12,6 +12,12 @@ import { profileAvatars } from '../game/profile.js';
 import { componentDescriptions, componentLabels, requiredTackleSlots, tackleComponents } from '../game/tackle.js';
 import { resolveFishCatchCardImage } from '../game/fishCardImages.js';
 import { countItem, itemLabels } from '../game/inventory.js';
+import {
+  TROPHY_TIERS,
+  getSelectedProfileStar,
+  getSpeciesTrophyProgress,
+  getUnlockedStars,
+} from '../game/achievementStars.js';
 import { t, translateEntry } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
 import { getWorldMapAsset } from '../utils/worldMapAsset.js';
@@ -189,6 +195,8 @@ export function profileMarkup(state) {
   const profile = state.playerProfile ?? {};
   const keepnetSummary = getKeepnetSummary(state);
   const totalTrophies = (state.trophies ?? []).filter((entry) => entry.tier).length;
+  const unlockedStars = getUnlockedStars(state);
+  const selectedStar = getSelectedProfileStar(state);
   const biggestFishId = state.stats?.biggestFishSpecies;
   const biggestWeight = state.stats?.biggestFishWeight ?? 0;
   const biggestFish = fishData.find((fish) => fish.id === biggestFishId);
@@ -199,10 +207,14 @@ export function profileMarkup(state) {
 
   return `
     <div class="profile-card">
-      <img class="profile-card__avatar" src="${assetPath(profile.avatar ?? profileAvatars[0])}" onerror="this.src='${assetPath(profileAvatars[0])}'" alt="" />
+      <div class="profile-card__avatar-wrap">
+        <img class="profile-card__avatar" src="${profileImageSrc(profile)}" onerror="this.src='${assetPath(profileAvatars[0])}'" alt="" />
+        ${selectedStar ? `<span class="profile-star profile-star--selected" style="--star-color:${selectedStar.color}" title="${t('selectedStar')}">&#9733;</span>` : ''}
+      </div>
       <div>
         <h3>${escapeHtml(profile.name ?? '')}</h3>
         <p>${t('coins')}: <strong>${state.money}</strong></p>
+        <small>${t('earnedStars')}: <strong>${unlockedStars.length}</strong></small>
       </div>
     </div>
     ${state.ui?.editingProfile ? `
@@ -214,6 +226,10 @@ export function profileMarkup(state) {
             ${profileAvatars.map((avatar) => avatarButtonMarkup(avatar, profile.avatar)).join('')}
           </div>
         </details>
+        <label class="profile-upload">
+          <span>${t('uploadPhoto')}</span>
+          <input data-profile-photo-input type="file" accept="image/*" />
+        </label>
         <div class="profile-form__actions">
           <button type="submit">${t('saveProfile')}</button>
           <button data-action="profile:cancelEdit" type="button">${t('close')}</button>
@@ -225,10 +241,23 @@ export function profileMarkup(state) {
       <div><dt>${t('totalFishCaught')}</dt><dd>${state.stats?.totalFishCaught ?? 0}</dd></div>
       <div><dt>${t('fishInKeepnet')}</dt><dd>${keepnetSummary.totalFish}</dd></div>
       <div><dt>${t('totalTrophies')}</dt><dd>${totalTrophies}</dd></div>
+      <div><dt>${t('earnedStars')}</dt><dd>${unlockedStars.length}</dd></div>
       <div><dt>${t('biggestFish')}</dt><dd>${biggestFish && biggestWeight ? `${t(biggestFish.nameKey)} ${biggestWeight}g` : t('none')}</dd></div>
       <div><dt>${t('favoriteWater')}</dt><dd>${favoriteWaterLabel(state)}</dd></div>
       <div><dt>${t('unlockedWaters')}</dt><dd>${unlockedWaters.length ? unlockedWaters.map((key) => t(key)).join(', ') : t('waterCanal')}</dd></div>
     </dl>
+    <section class="profile-stars">
+      <p class="section-label">${t('selectedStar')}</p>
+      ${unlockedStars.length ? `
+        <div class="profile-star-grid">
+          ${unlockedStars.map((star) => starOptionMarkup(star, profile.selectedStarId)).join('')}
+        </div>
+      ` : `<p class="empty-panel">${t('noStarsYet')}</p>`}
+    </section>
+    <section class="profile-achievements">
+      <p class="section-label">${t('achievements')}</p>
+      ${achievementsMarkup(state)}
+    </section>
   `;
 }
 
@@ -320,22 +349,35 @@ export function achievementsMarkup(state) {
   const trophyBySpecies = state.achievements?.trophyBySpecies ?? {};
   const rows = fishData.map((fish) => {
     const tiers = trophyBySpecies[fish.id] ?? {};
+    const progress = getSpeciesTrophyProgress(state, fish.id);
+    const star = state.achievements?.completedSpeciesStars?.[fish.id];
 
     return `
-      <article class="achievement-card">
+      <article class="achievement-card${progress.complete ? ' is-complete' : ''}">
         <img src="${speciesImage(fish.id)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
         <div>
-          <h3>${t(fish.nameKey)}</h3>
+          <h3>${t(fish.nameKey)} ${star ? `<span class="profile-star" style="--star-color:${star.color}">&#9733;</span>` : ''}</h3>
           <div class="trophy-badge-row">
-            ${['normal', 'very_rare', 'rarest'].map((tier) => trophyBadgeMarkup(tier, tiers[tier]?.weightGrams, !tiers[tier])).join('')}
+            ${TROPHY_TIERS.map((tier) => trophyBadgeMarkup(tier, tiers[tier]?.weightGrams, !tiers[tier])).join('')}
           </div>
-          <small>${t('achievementTrophyGoal')}</small>
+          <small>${progress.completedCount}/${progress.totalTiers} &middot; ${progress.complete ? t('speciesStarUnlocked') : t('achievementTrophyGoal')}</small>
         </div>
       </article>
     `;
   }).join('');
 
   return rows || `<p class="empty-panel">${t('achievementsEmpty')}</p>`;
+}
+
+function starOptionMarkup(star, selectedStarId) {
+  const fish = fishData.find((entry) => entry.id === star.fishId);
+  const selected = star.id === selectedStarId ? ' is-selected' : '';
+  return `
+    <button class="profile-star-option${selected}" data-action="profile:star:${star.id}" type="button" style="--star-color:${star.color}" aria-label="${t('selectStar')} ${t(fish?.nameKey ?? star.fishId)}">
+      <span>&#9733;</span>
+      <strong>${t(fish?.nameKey ?? star.fishId)}</strong>
+    </button>
+  `;
 }
 
 export function questsMarkup(state) {
@@ -556,6 +598,14 @@ export function trophyBadgeMarkup(tier, weightGrams = null, locked = false) {
   const stars = { normal: '*', very_rare: '**', rarest: '***' }[tier] ?? '*';
   const weight = weightGrams ? ` ${weightGrams}g` : '';
   return `<span class="trophy-badge trophy-badge--${tier}${locked ? ' is-locked' : ''}" title="${t(trophyKeyForTier(tier))}">${locked ? '□' : stars}${weight || (locked ? ` ${t('locked')}` : '')}</span>`;
+}
+
+function profileImageSrc(profile) {
+  const custom = profile?.customAvatarDataUrl;
+  if (profile?.avatarType === 'custom' && typeof custom === 'string' && custom.startsWith('data:image/')) {
+    return escapeHtml(custom);
+  }
+  return assetPath(profile?.avatar ?? profileAvatars[0]);
 }
 
 function trophyCardMarkup(trophy) {

@@ -5,6 +5,7 @@ import { pushFeedback, pushLog } from './state.js';
 import { classifyCatchSize, trophyTierForCategory } from './fishSizeProfiles.js';
 import { persistCatchCardImage } from './fishCardImages.js';
 import { syncGrandmaTrust } from './profile.js';
+import { syncCompletedSpeciesStars } from './achievementStars.js';
 import { syncQuestProgress } from './quests.js';
 
 const trackedStatuses = ['fresh', 'cleaned', 'salted', 'drying', 'ready_taranka', 'taranka', 'smoked', 'live_bait'];
@@ -477,6 +478,7 @@ function updateCatchJournal(state, entry) {
       caughtAtDay: entry.caughtAtDay,
     };
     awardTrophyReward(state, entry, wasCaught);
+    syncCompletedSpeciesStars(state, entry.fishId);
   }
 
   for (const trophyKey of trophies) {

@@ -212,6 +212,15 @@
   gap: 10px;
 }
 
+.fishing-minigame__controls > .fishing-minigame__panel-heading .section-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .fishing-minigame__controls-body,
 .fishing-result__body {
   display: grid;

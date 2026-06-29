@@ -227,6 +227,10 @@ export function createInitialState() {
       setupComplete: false,
       name: DEFAULT_PLAYER_NAME,
       avatar: DEFAULT_AVATAR,
+      avatarType: 'preset',
+      customAvatarDataUrl: null,
+      selectedStarId: null,
+      selectedStarColor: null,
       nameCustom: false,
       createdAt: null,
       updatedAt: null,
@@ -341,10 +345,12 @@ export function createInitialState() {
     },
     catchJournal: {},
     trophies: [],
-      achievements: {
-        trophyBySpecies: {},
-        claimedTrophyRewards: {},
-      },
+    achievements: {
+      trophyBySpecies: {},
+      claimedTrophyRewards: {},
+      completedSpeciesStars: {},
+      unlockedStars: [],
+    },
     quests: {
       claimed: {},
     },

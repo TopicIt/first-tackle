@@ -83,6 +83,7 @@ export function locationSceneMarkup(state, context) {
   if (!config) {
     return '';
   }
+  const fishingOpen = Boolean(state.ui?.fishingMinigame?.open);
 
   return `
     <section class="location-scene location-scene--${sceneId}" aria-label="${t(config.titleKey)} ${t('location')}">
@@ -107,12 +108,12 @@ export function locationSceneMarkup(state, context) {
             </details>
           </div>
           <div class="scene-header__actions">
-            <button class="scene-map" data-action="scene:map" type="button">${t('backToMap')}</button>
+            ${fishingOpen ? '' : `<button class="scene-map" data-action="scene:map" type="button">${t('backToMap')}</button>`}
           </div>
         </header>
 
         <div class="scene-body">
-          ${sceneId === 'market' || sceneId === 'cafe' || state.ui?.fishingMinigame?.open ? '' : `<section class="scene-actions">
+          ${sceneId === 'market' || sceneId === 'cafe' || fishingOpen ? '' : `<section class="scene-actions">
             <div class="scene-action-grid">
               ${context.sceneActions.map((action) => actionButtonMarkup(action, state)).join('')}
             </div>

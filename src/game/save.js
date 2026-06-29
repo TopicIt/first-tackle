@@ -153,6 +153,10 @@ function mergeState(base, saved) {
     playerProfile: {
       ...base.playerProfile,
       ...(saved.playerProfile ?? {}),
+      avatarType: saved.playerProfile?.avatarType ?? (saved.playerProfile?.customAvatarDataUrl ? 'custom' : 'preset'),
+      customAvatarDataUrl: saved.playerProfile?.customAvatarDataUrl ?? null,
+      selectedStarId: saved.playerProfile?.selectedStarId ?? null,
+      selectedStarColor: saved.playerProfile?.selectedStarColor ?? null,
       setupComplete: profileSetupComplete,
     },
     money: saved.progress?.uahEconomyStarted
@@ -302,6 +306,13 @@ function mergeState(base, saved) {
         ...base.achievements.claimedTrophyRewards,
         ...(saved.achievements?.claimedTrophyRewards ?? {}),
       },
+      completedSpeciesStars: {
+        ...base.achievements.completedSpeciesStars,
+        ...(saved.achievements?.completedSpeciesStars ?? {}),
+      },
+      unlockedStars: Array.isArray(saved.achievements?.unlockedStars)
+        ? saved.achievements.unlockedStars
+        : base.achievements.unlockedStars,
     },
     tackle: {
       activeRig: saved.tackle?.activeRig ?? base.tackle.activeRig,

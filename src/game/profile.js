@@ -1,5 +1,6 @@
 import { DEFAULT_AVATAR, DEFAULT_PLAYER_NAME, pushLog, queueSound } from './state.js';
 import { completeStarterTackleDrawer } from './starterTackleDrawer.js';
+import { ensureAchievementStarState } from './achievementStars.js';
 
 export const profileAvatars = [
   '/assets/profile/Grandson-1.png',
@@ -70,11 +71,14 @@ export function ensureProfileState(state) {
   state.playerProfile ??= {};
   state.playerProfile.name = normalizePlayerName(state.playerProfile.name);
   state.playerProfile.avatar = state.playerProfile.avatar || DEFAULT_AVATAR;
+  state.playerProfile.avatarType = state.playerProfile.avatarType ?? (state.playerProfile.customAvatarDataUrl ? 'custom' : 'preset');
+  state.playerProfile.customAvatarDataUrl ??= null;
   state.playerProfile.setupComplete = Boolean(state.playerProfile.setupComplete ?? state.progress?.profileSetupComplete);
   state.progress ??= {};
   state.progress.profileSetupComplete = state.playerProfile.setupComplete;
   state.tutorialState ??= {};
   state.seenEvents ??= {};
+  ensureAchievementStarState(state);
 }
 
 export function updateProfile(state, profile) {
@@ -83,6 +87,8 @@ export function updateProfile(state, profile) {
     ...state.playerProfile,
     name: normalizePlayerName(profile.name),
     avatar: profile.avatar || state.playerProfile.avatar || DEFAULT_AVATAR,
+    avatarType: state.playerProfile.avatarType ?? 'preset',
+    customAvatarDataUrl: state.playerProfile.customAvatarDataUrl ?? null,
     setupComplete: true,
     updatedAt: new Date().toISOString(),
     createdAt: state.playerProfile.createdAt ?? new Date().toISOString(),
@@ -99,10 +105,24 @@ export function selectAvatar(state, avatar) {
     return;
   }
   state.playerProfile.avatar = avatar;
+  state.playerProfile.avatarType = 'preset';
+  state.playerProfile.customAvatarDataUrl = null;
   if (!state.playerProfile.nameCustom) {
     state.playerProfile.name = defaultNameByAvatar[avatar] ?? DEFAULT_PLAYER_NAME;
   }
   queueSound(state, 'ui_click');
+}
+
+export function setCustomAvatar(state, dataUrl) {
+  ensureProfileState(state);
+  if (!String(dataUrl ?? '').startsWith('data:image/')) {
+    return false;
+  }
+  state.playerProfile.customAvatarDataUrl = String(dataUrl);
+  state.playerProfile.avatarType = 'custom';
+  state.playerProfile.updatedAt = new Date().toISOString();
+  queueSound(state, 'ui_click');
+  return true;
 }
 
 export function updateProfileDraftName(state, name) {

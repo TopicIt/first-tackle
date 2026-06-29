@@ -43,6 +43,7 @@ import {
   resetAnimationLimits,
   shouldUseLocationTransitions,
 } from './game/locationTransitions.js';
+import { selectProfileStar, syncCompletedSpeciesStars } from './game/achievementStars.js';
 import { arriveAtWater } from './game/travel.js';
 import { claimQuestReward, ensureQuestState, syncQuestProgress, unlockAllLocationsForDebug } from './game/quests.js';
 import { completeCafeOrder, ensureCafeOrders } from './game/cafeOrders.js';
@@ -56,6 +57,7 @@ import {
   startTutorial,
   syncGrandmaTrust,
   updateProfileDraftName,
+  setCustomAvatar,
   updateProfile,
 } from './game/profile.js';
 import {
@@ -95,6 +97,7 @@ ensureProfileState(gameState);
 ensureQuestState(gameState);
 ensureCafeOrders(gameState);
 syncGrandmaTrust(gameState);
+syncCompletedSpeciesStars(gameState);
 normalizeTransitionSettings(gameState);
 applyPerformanceSettings(gameState);
 normalizeAnimationLimits(gameState);
@@ -139,8 +142,24 @@ const hud = createHud(hudRoot, {
       return;
     }
 
+    if (actionId.startsWith('profile:star:')) {
+      selectProfileStar(gameState, actionId.replace('profile:star:', ''));
+      renderHud();
+      return;
+    }
+
     if (actionId === 'profile:edit') {
       gameState.ui.editingProfile = true;
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'profile:open') {
+      gameState.ui.collapsedPanels = {
+        ...(gameState.ui.collapsedPanels ?? {}),
+        profile: false,
+      };
+      closeSiblingPanels(gameState, 'profile');
       renderHud();
       return;
     }
@@ -866,6 +885,11 @@ const hud = createHud(hudRoot, {
     advanceStartupAfterProfile();
     renderHud();
   },
+  onProfilePhotoUpload(dataUrl) {
+    setCustomAvatar(gameState, dataUrl);
+    gameState.ui.editingProfile = true;
+    renderHud();
+  },
   onProfileNameDraft(name) {
     updateProfileDraftName(gameState, name);
   },
@@ -1108,6 +1132,7 @@ function ensureRuntimeState(state) {
   normalizeTransitionSettings(state);
   applyPerformanceSettings(state);
   normalizeAnimationLimits(state);
+  syncCompletedSpeciesStars(state);
   normalizeViewModeSettings(state);
   applyViewModeToDocument(state);
   normalizePanelStateForViewport(state);
