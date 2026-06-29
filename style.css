@@ -1817,35 +1817,28 @@ button:disabled {
 }
 
 .guide-card--time-note {
-  display: grid;
-  gap: 7px;
   background: linear-gradient(180deg, rgb(48 61 35 / 84%), rgb(15 24 19 / 72%));
 }
 
-.guide-card--time-note strong,
-.guide-card--time-note p {
+.guide-time-note__body p {
   margin: 0;
   min-width: 0;
-}
-
-.guide-card--time-note strong {
-  color: #ffe28a;
-  font-size: 0.84rem;
-}
-
-.guide-card--time-note p {
+  width: 100%;
   color: #dcece2;
   font-size: 0.78rem;
   line-height: 1.35;
+  overflow-wrap: normal;
 }
 
 .guide-time-note__rows {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  width: 100%;
 }
 
 .guide-time-note__rows span {
+  flex: 1 1 190px;
   min-width: min(100%, 190px);
   border: 1px solid rgb(243 196 95 / 18%);
   border-radius: 999px;

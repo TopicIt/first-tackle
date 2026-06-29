@@ -19,7 +19,7 @@ const locationImages = {
   lakeTurFallback: assetPath('/assets/locations/pond_location_concept.png'),
   miningLake: assetPath('/assets/locations/hirnytske-ozero.png'),
   miningLakeFallback: assetPath('/assets/locations/greada_location_concept.png'),
-  house: assetPath('/assets/locations/grandma-house.webp'),
+  house: assetPath('/assets/locations/grandma-house-dawn-dusk.png'),
   houseFallback: assetPath('/assets/locations/house_location_concept.png'),
 };
 

@@ -420,7 +420,7 @@ export function guideMarkup(state) {
       `).join('')}
     </div>
     <div class="guide-body">
-      ${tab === 'waters' || tab === 'fish' ? guideTimeNoteMarkup() : ''}
+      ${tab === 'waters' || tab === 'fish' ? guideTimeNoteMarkup(state) : ''}
       ${tab === 'waters' ? watersGuideAccordionMarkup(state) : tab === 'fish' ? fishGuideAccordionMarkup(state) : guideAccordionMarkup(tab, state)}
     </div>
   `;
@@ -977,16 +977,27 @@ function guideAccordionMarkup(tab, state = {}) {
   }).join('');
 }
 
-function guideTimeNoteMarkup() {
+function guideTimeNoteMarkup(state) {
+  const expanded = state.ui?.expandedGuideCards ?? {};
+  const key = 'time:periods';
   return `
-    <article class="guide-card guide-card--text guide-card--time-note">
-      <strong>${t('guideTimeTitle')}</strong>
-      <div class="guide-time-note__rows">
-        <span>${t('guideTimeDawnDusk')}</span>
-        <span>${t('guideTimeDay')}</span>
-        <span>${t('guideTimeNight')}</span>
-      </div>
-      <p>${t('guideTimeExplanation')}</p>
+    <article class="guide-card guide-card--accordion guide-card--time-note${expanded[key] ? ' is-open' : ''}">
+      <button class="guide-card__summary" data-action="guide:toggle:${key}" type="button">
+        <img src="${assetPath('/assets/items/fishing_float.png')}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
+        <span>
+          <h3>${t('guideTimeTitle')}</h3>
+          <small>${t('guideTimeSummary')}</small>
+        </span>
+        <strong class="guide-card__expand">${expanded[key] ? '-' : '+'}</strong>
+      </button>
+      ${expanded[key] ? `<div class="guide-card__body guide-time-note__body">
+        <div class="guide-time-note__rows">
+          <span>${t('guideTimeDawnDusk')}</span>
+          <span>${t('guideTimeDay')}</span>
+          <span>${t('guideTimeNight')}</span>
+        </div>
+        <p>${t('guideTimeExplanation')}</p>
+      </div>` : ''}
     </article>
   `;
 }

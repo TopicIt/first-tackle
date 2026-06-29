@@ -29,6 +29,11 @@ const backgroundSets = {
     day: '/assets/time-of-day/shluz_view/shluz_view_day.png',
     night: '/assets/time-of-day/shluz_view/shluz_view_night.png',
   },
+  grandma_house: {
+    dawn_dusk: '/assets/locations/grandma-house-dawn-dusk.png',
+    day: '/assets/locations/grandma-house-day.png',
+    night: '/assets/locations/grandma-house-night.png',
+  },
 };
 
 export function getTimeOfDayBackground(key, state, fallback = null) {

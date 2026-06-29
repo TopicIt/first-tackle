@@ -17,6 +17,7 @@ const sceneConfigs = {
     descriptionKey: 'sceneHouseDescription',
     image: getLocationImage('house'),
     fallbackImage: getLocationImageFallback('house'),
+    backgroundKey: 'grandma_house',
     bgClass: 'scene-bg--slow-zoom',
     effects: ['scene-light-sweep', 'scene-floating-dust', 'scene-cloud-shadow', 'scene-warm-haze'],
   },
