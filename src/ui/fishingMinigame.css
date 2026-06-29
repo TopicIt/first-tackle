@@ -88,6 +88,22 @@
   font-size: 1.5rem;
 }
 
+.fishing-minigame__time {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 5px;
+  border: 1px solid rgb(243 196 95 / 28%);
+  border-radius: 999px;
+  background: rgb(20 32 27 / 42%);
+  color: #ffe6a2;
+  font-size: 0.76rem;
+  font-weight: 850;
+  line-height: 1.1;
+  padding: 4px 8px;
+}
+
 .fishing-minigame__status {
   margin: 0;
   color: #d6ecea;
@@ -1389,13 +1405,27 @@
     padding: 6px 10px 6px 12px;
   }
 
+  .fishing-minigame__header > div:first-child {
+    min-width: 0;
+  }
+
   .fishing-minigame__header .section-label,
   .fishing-minigame__header h2 {
     display: none;
   }
 
+  .fishing-minigame__time {
+    max-width: 54vw;
+    margin: 0 0 2px;
+    overflow: hidden;
+    font-size: 0.68rem;
+    padding: 3px 7px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .fishing-minigame__status {
-    max-width: 62vw;
+    max-width: 54vw;
     overflow: hidden;
     color: #e7f3ec;
     font-size: 0.72rem;
@@ -1668,13 +1698,27 @@
   padding: 6px 10px 6px 12px;
 }
 
+:root[data-view-mode="mobile"] .fishing-minigame__header > div:first-child {
+  min-width: 0;
+}
+
 :root[data-view-mode="mobile"] .fishing-minigame__header .section-label,
 :root[data-view-mode="mobile"] .fishing-minigame__header h2 {
   display: none;
 }
 
+:root[data-view-mode="mobile"] .fishing-minigame__time {
+  max-width: 54vw;
+  margin: 0 0 2px;
+  overflow: hidden;
+  font-size: 0.68rem;
+  padding: 3px 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 :root[data-view-mode="mobile"] .fishing-minigame__status {
-  max-width: 62vw;
+  max-width: 54vw;
   overflow: hidden;
   color: #e7f3ec;
   font-size: 0.72rem;

@@ -1748,6 +1748,23 @@ button:disabled {
   color: #fff8df;
 }
 
+.quest-list-note {
+  margin: 2px 0 0;
+  border-top: 1px solid rgb(255 255 255 / 10%);
+  color: rgb(232 246 238 / 72%);
+  font-size: 0.76rem;
+  line-height: 1.25;
+  padding: 8px 4px 0;
+}
+
+.map-viewer-title {
+  margin: 0 0 8px;
+  color: #fff3c4;
+  font-size: 0.98rem;
+  line-height: 1.15;
+  text-align: center;
+}
+
 .map-viewer-tools {
   display: grid;
   grid-template-columns: 44px 1fr 44px;

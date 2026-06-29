@@ -334,6 +334,10 @@ export function createInitialState() {
     },
     stats: {
       totalFishCaught: 0,
+      biggestFishWeight: 0,
+      biggestFishSpecies: null,
+      biggestFishCaughtAtDay: null,
+      biggestFishCaughtAtTime: null,
     },
     catchJournal: {},
     trophies: [],

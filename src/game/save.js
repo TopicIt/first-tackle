@@ -273,6 +273,10 @@ function mergeState(base, saved) {
         saved.stats?.totalFishCaught ?? 0,
         saved.progress?.firstCatchDone ? 1 : 0,
       ),
+      biggestFishWeight: Math.max(0, saved.stats?.biggestFishWeight ?? 0),
+      biggestFishSpecies: saved.stats?.biggestFishSpecies ?? null,
+      biggestFishCaughtAtDay: saved.stats?.biggestFishCaughtAtDay ?? null,
+      biggestFishCaughtAtTime: saved.stats?.biggestFishCaughtAtTime ?? null,
     },
     catchJournal: {
       ...base.catchJournal,

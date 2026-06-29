@@ -38,6 +38,31 @@
   object-position: center 56%;
 }
 
+.illustrated-map__title {
+  position: absolute;
+  z-index: 3;
+  left: max(64px, env(safe-area-inset-left));
+  right: max(96px, env(safe-area-inset-right));
+  top: max(10px, env(safe-area-inset-top));
+  overflow: hidden;
+  border: 1px solid rgb(243 196 95 / 34%);
+  border-radius: 999px;
+  background: rgb(31 44 31 / 54%);
+  box-shadow: 0 8px 22px rgb(0 0 0 / 18%);
+  color: #fff3c4;
+  font-size: 0.86rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.05;
+  padding: 7px 12px;
+  pointer-events: none;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 9px rgb(0 0 0 / 62%);
+  white-space: nowrap;
+  backdrop-filter: blur(9px);
+}
+
 .illustrated-map[data-map-mode="desktop"] .illustrated-map__image {
   object-fit: contain;
   object-position: center;
@@ -148,7 +173,7 @@
   line-height: 1.08;
   padding: 8px 12px;
   opacity: 0.72;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) translate(calc(var(--label-dx, 0) * 1vw), calc(var(--label-dy, 0) * 1vh));
   backdrop-filter: blur(10px);
 }
 
@@ -282,6 +307,13 @@
 @media (max-width: 760px) {
   .illustrated-map__image {
     object-position: 56% 68%;
+  }
+
+  .illustrated-map__title {
+    left: 58px;
+    right: 86px;
+    font-size: 0.74rem;
+    padding: 6px 9px;
   }
 
   .map-hotspot__label {

@@ -13,7 +13,7 @@ import { normalizeWaterId } from './locations.js';
 import { markFirstCrucianCatchRewardSeen, queueFirstCrucianCatchReward } from './locationTransitions.js';
 import { pushFeedback, pushLog, queueSound } from './state.js';
 import { getTackleEffects } from './tackle.js';
-import { advanceTime, getTimePhase } from './time.js';
+import { advanceTime, formatGameTime, getTimePhase } from './time.js';
 import { getWaterFishIds, getWaterSizeRange } from './waterFishDistribution.js';
 import { classifyCatchSize, rollFishWeight } from './fishSizeProfiles.js';
 
@@ -336,6 +336,7 @@ export function strikeLine(state, nowMs) {
       bait: minigame.consumedBait ?? minigame.selectedBait,
       depth: minigame.selectedDepth ?? 'middle',
       waterId: normalizeWaterId(state.travel?.selectedWater),
+      caughtAtTime: formatGameTime(state),
     });
     if (entry?.trophyTier) {
       queueSound(state, 'trophy_fanfare');
@@ -930,10 +931,7 @@ function chooseFishCandidate(state, minigame) {
   }
 
   const spot = getCastSpot(minigame.selectedSpot);
-  const weights = Object.entries(biteProfiles).map(([fishId, profile]) => ({
-    fishId,
-    weight: getFishWeight(state, minigame, fishId, profile, spot),
-  })).filter((entry) => entry.weight > 0);
+  const weights = getFishCandidateWeights(state, minigame, spot);
 
   const baitSuitability = weights.reduce((best, entry) => Math.max(best, getBaitSuitability(entry.fishId, minigame.selectedBait)), 0);
   const noBiteWeight = weights.length === 0
@@ -1009,7 +1007,13 @@ function getFishWeight(state, minigame, fishId, profile, spot) {
     if (minigame.selectedBait !== 'live_bait') {
       return 0;
     }
-    score *= spot.zone === 'reed_edge' ? 1.85 : 1.45;
+    score *= spot.zone === 'reed_edge' ? 2.05 : spot.zone === 'mid_water' ? 1.78 : 1.18;
+    if (normalizeWaterId(state.travel?.selectedWater) === 'sluice') {
+      score *= 1.32;
+    }
+    if (state.tackle?.equipped?.hook === 'large_hook') {
+      score *= 1.18;
+    }
   }
 
   if (fishId === 'canadian_catfish' && normalizeWaterId(state.travel?.selectedWater) === 'greada') {
@@ -1041,6 +1045,13 @@ function getFishWeight(state, minigame, fishId, profile, spot) {
   }
 
   return score;
+}
+
+export function getFishCandidateWeights(state, minigame, spot = getCastSpot(minigame.selectedSpot)) {
+  return Object.entries(biteProfiles).map(([fishId, profile]) => ({
+    fishId,
+    weight: getFishWeight(state, minigame, fishId, profile, spot),
+  })).filter((entry) => entry.weight > 0);
 }
 
 function buildPattern(fishId) {

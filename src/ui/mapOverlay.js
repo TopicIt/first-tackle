@@ -19,6 +19,7 @@ export function mapOverlayMarkup(state) {
           aria-hidden="true"
           onerror="this.onerror=null;this.src='${fallback}'"
         />
+        <div class="illustrated-map__title" aria-hidden="true">${t('appTitle')}</div>
         <div class="illustrated-map__breath" aria-hidden="true"></div>
         <div class="illustrated-map__water" aria-hidden="true"></div>
         <div class="illustrated-map__hotspots">
@@ -93,17 +94,19 @@ function hotspotStyle(hotspot) {
   if (hotspot.type === 'polygon') {
     return [
       `--points: polygon(${hotspot.points})`,
-    `--label-x: ${hotspot.labelX}%`,
-    `--label-y: ${hotspot.labelY}%`,
+      `--label-dx: ${hotspot.labelDx ?? 0}`,
+      `--label-dy: ${hotspot.labelDy ?? 0}`,
     ].join(';');
   }
 
+  const labelDx = (hotspot.labelX ?? hotspot.x) - hotspot.x;
+  const labelDy = (hotspot.labelY ?? hotspot.y) - hotspot.y;
   return [
     `--x: ${hotspot.x}%`,
     `--y: ${hotspot.y}%`,
     `--w: ${hotspot.width}%`,
     `--h: ${hotspot.height}%`,
-    `--label-x: ${hotspot.x}%`,
-    `--label-y: ${hotspot.y}%`,
+    `--label-dx: ${labelDx}`,
+    `--label-dy: ${labelDy}`,
   ].join(';');
 }

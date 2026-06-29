@@ -149,6 +149,9 @@ const guideCardImages = {
   tackle: [
     '/assets/items/better_line.png',
     '/assets/items/hooks_box.png',
+    '/assets/items/hooks_box.png',
+    '/assets/items/tackle_components.png',
+    '/assets/items/sharp-hook.png',
     '/assets/items/proper_sinker.png',
     '/assets/items/float-proper.png',
     '/assets/items/proper_rod.png',
@@ -184,9 +187,11 @@ export function inventoryMarkup(state) {
 
 export function profileMarkup(state) {
   const profile = state.playerProfile ?? {};
-  const entries = getCatchJournal(state).filter((entry) => entry.discovered);
+  const keepnetSummary = getKeepnetSummary(state);
   const totalTrophies = (state.trophies ?? []).filter((entry) => entry.tier).length;
-  const biggest = entries.reduce((best, entry) => entry.bestWeight > (best?.bestWeight ?? 0) ? entry : best, null);
+  const biggestFishId = state.stats?.biggestFishSpecies;
+  const biggestWeight = state.stats?.biggestFishWeight ?? 0;
+  const biggestFish = fishData.find((fish) => fish.id === biggestFishId);
   const unlockedWaters = Object.entries(state.travel?.visitedWaters ?? {})
     .filter(([, visited]) => visited)
     .map(([waterId]) => waterGuide.find((water) => water.id === waterId)?.nameKey)
@@ -218,8 +223,9 @@ export function profileMarkup(state) {
     <dl class="profile-stats">
       <div><dt>${t('daysFishing')}</dt><dd>${state.day ?? 1}</dd></div>
       <div><dt>${t('totalFishCaught')}</dt><dd>${state.stats?.totalFishCaught ?? 0}</dd></div>
+      <div><dt>${t('fishInKeepnet')}</dt><dd>${keepnetSummary.totalFish}</dd></div>
       <div><dt>${t('totalTrophies')}</dt><dd>${totalTrophies}</dd></div>
-      <div><dt>${t('biggestFish')}</dt><dd>${biggest ? `${t(fishData.find((fish) => fish.id === biggest.fishId)?.nameKey ?? biggest.fishId)} ${biggest.bestWeight}g` : t('none')}</dd></div>
+      <div><dt>${t('biggestFish')}</dt><dd>${biggestFish && biggestWeight ? `${t(biggestFish.nameKey)} ${biggestWeight}g` : t('none')}</dd></div>
       <div><dt>${t('favoriteWater')}</dt><dd>${favoriteWaterLabel(state)}</dd></div>
       <div><dt>${t('unlockedWaters')}</dt><dd>${unlockedWaters.length ? unlockedWaters.map((key) => t(key)).join(', ') : t('waterCanal')}</dd></div>
     </dl>
@@ -350,6 +356,7 @@ export function questsMarkup(state) {
           </button>
         </article>
       `).join('')}
+      <p class="quest-list-note">${t('questsCafeNote')}</p>
     </div>
   `;
 }
@@ -358,6 +365,7 @@ export function mapViewerMarkup(state) {
   const zoom = state.ui?.mapViewerZoom ?? 1;
   const mapAsset = getWorldMapAsset('desktop', state, { useTimeOfDay: false });
   return `
+    <h3 class="map-viewer-title">${t('appTitle')}</h3>
     <div class="map-viewer-tools">
       <button data-action="mapViewer:zoomOut" type="button">-</button>
       <strong>${Math.round(zoom * 100)}%</strong>
@@ -726,13 +734,16 @@ function marketBuyCardMarkup(state, item) {
   return `
     <article class="market-card">
       <span class="market-card__image-wrap">
-        <img src="${itemImage(item.id)}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
+        <img src="${itemImage(item.id)}" loading="lazy" decoding="async" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
         ${item.amount && item.amount > 1 ? `<span class="market-card__qty-badge">x${item.amount}</span>` : ''}
       </span>
-      <div>
-        <h3>${getShopItemLabel(item.id)} ${item.amount ? `<span class="market-card__qty">x${item.amount}</span>` : ''}</h3>
+      <div class="market-card__content">
+        <h3>${getShopItemLabel(item.id)}</h3>
         <p>${t(shopDescriptionKey(item.id))}</p>
-        <strong>${owned ? t('owned') : `${item.price} ${t('coins').toLowerCase()}`}</strong>
+        <div class="market-card__meta">
+          <strong>${owned ? t('owned') : `${item.price} ${t('coins').toLowerCase()}`}</strong>
+          ${item.amount && item.amount > 1 ? `<span class="market-card__qty">x${item.amount}</span>` : ''}
+        </div>
       </div>
       <button data-action="buy:${item.id}" type="button"${owned || state.money < item.price ? ' disabled' : ''}>${owned ? t('owned') : t('buy')}</button>
       ${marketReasonMarkup(disabledReason)}
@@ -943,6 +954,9 @@ function guideAccordionMarkup(tab, state = {}) {
     tackle: [
       ['guideTackleCardLineTitle', 'guideTackleCardLineText'],
       ['guideTackleCardHookTitle', 'guideTackleCardHookText'],
+      ['componentSmallHook', 'guideTackleSmallHookText'],
+      ['componentMediumHook', 'guideTackleMediumHookText'],
+      ['componentLargeHook', 'guideTackleLargeHookText'],
       ['guideTackleCardSinkerTitle', 'guideTackleCardSinkerText'],
       ['guideTackleCardFloatTitle', 'guideTackleCardFloatText'],
       ['guideTackleCardRodTitle', 'guideTackleCardRodText'],
@@ -962,7 +976,7 @@ function guideAccordionMarkup(tab, state = {}) {
     return `
     <article class="guide-card guide-card--accordion guide-card--text${expanded[key] ? ' is-open' : ''}">
       <button class="guide-card__summary" data-action="guide:toggle:${key}" type="button">
-        <img src="${assetPath(guideCardImages[tab]?.[index] ?? guideTabIcons[tab] ?? '/assets/items/tackle_components.png')}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
+        <img src="${assetPath(guideCardImages[tab]?.[index] ?? guideTabIcons[tab] ?? '/assets/items/tackle_components.png')}" loading="lazy" decoding="async" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
         <span>
           <h3>${t(titleKey)}</h3>
           <small>${t(`guideTab${toPascalCase(tab)}`)}</small>

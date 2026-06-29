@@ -16,6 +16,7 @@ export function createFishEntry(catchResult, caughtAtDay, context = {}) {
     fishId: catchResult.id,
     weightGrams: catchResult.weightGrams,
     caughtAtDay,
+    caughtAtTime: context.caughtAtTime ?? null,
     catchSpotId: context.catchSpotId ?? null,
     method: context.method ?? null,
     bait: context.bait ?? null,
@@ -40,13 +41,13 @@ export function ensureFishState(state) {
   state.stats ??= {};
   state.progress.firstTackleReady = Boolean(state.progress.firstTackleReady);
   state.progress.firstCatchDone = Boolean(state.progress.firstCatchDone ?? state.stats.totalFishCaught > 0);
-  state.stats.totalFishCaught ??= 0;
+  ensureCatchStats(state);
   if (state.fishBasket.length === 0) {
     migrateLegacyFishInventory(state);
   }
   state.fishBasket = state.fishBasket.map((entry) => normalizeFishEntry(entry, state.day));
-  rebuildJournalFromBasket(state);
-  state.stats.totalFishCaught = state.fishBasket.length;
+  state.catchJournal = mergeCatchJournals(state.catchJournal, buildJournalFromEntries(state.fishBasket));
+  syncStatsFromJournal(state);
   if (state.stats.totalFishCaught > 0) {
     state.progress.firstCatchDone = true;
   }
@@ -61,7 +62,8 @@ export function addCaughtFish(state, catchResult, context = {}) {
   entry.trophyTier = classifyTrophyCatch(entry, fish);
   persistCatchCardImage(entry);
   state.fishBasket.push(entry);
-  state.stats.totalFishCaught = (state.stats.totalFishCaught ?? 0) + 1;
+  state.stats.totalFishCaught = Math.max(0, state.stats.totalFishCaught ?? 0) + 1;
+  updateAllTimeBiggestFish(state, entry);
   if (!state.progress.firstCatchDone) {
     state.progress.firstCatchDone = true;
     pushFeedback(state, 'feedbackFirstCatch', {}, 'trophy');
@@ -344,6 +346,7 @@ function normalizeFishEntry(entry, day) {
     weightGrams: entry.weightGrams ?? Math.round((fish.minWeight + fish.maxWeight) / 2),
     value: entry.value ?? fish.basePrice,
     caughtAtDay: entry.caughtAtDay ?? day,
+    caughtAtTime: entry.caughtAtTime ?? null,
     catchSpotId: entry.catchSpotId ?? null,
     method: entry.method ?? null,
     bait: entry.bait ?? null,
@@ -361,12 +364,81 @@ function normalizeFishEntry(entry, day) {
   return normalized;
 }
 
-function rebuildJournalFromBasket(state) {
+function buildJournalFromEntries(entries) {
   const journal = {};
-  for (const entry of state.fishBasket) {
+  for (const entry of entries) {
     updateJournalEntry(journal, entry);
   }
-  state.catchJournal = journal;
+  return journal;
+}
+
+function mergeCatchJournals(existing = {}, fromBasket = {}) {
+  const journal = { ...existing };
+  for (const [fishId, basketEntry] of Object.entries(fromBasket)) {
+    const current = journal[fishId] ?? {};
+    const bestFromBasket = basketEntry.bestWeight ?? 0;
+    const bestExisting = current.bestWeight ?? 0;
+    journal[fishId] = {
+      ...basketEntry,
+      ...current,
+      discovered: Boolean(current.discovered || basketEntry.discovered),
+      firstCatchDay: minNullable(current.firstCatchDay, basketEntry.firstCatchDay),
+      totalCaught: Math.max(current.totalCaught ?? 0, basketEntry.totalCaught ?? 0),
+      bestWeight: Math.max(bestExisting, bestFromBasket),
+      bestCatchSpotId: bestExisting >= bestFromBasket ? current.bestCatchSpotId ?? null : basketEntry.bestCatchSpotId ?? null,
+      bestBait: bestExisting >= bestFromBasket ? current.bestBait ?? null : basketEntry.bestBait ?? null,
+    };
+  }
+  return journal;
+}
+
+function ensureCatchStats(state) {
+  state.stats ??= {};
+  state.stats.totalFishCaught = Math.max(0, state.stats.totalFishCaught ?? 0);
+  state.stats.biggestFishWeight = Math.max(0, state.stats.biggestFishWeight ?? 0);
+  state.stats.biggestFishSpecies ??= null;
+  state.stats.biggestFishCaughtAtDay ??= null;
+  state.stats.biggestFishCaughtAtTime ??= null;
+}
+
+function syncStatsFromJournal(state) {
+  ensureCatchStats(state);
+  const journalRows = Object.entries(state.catchJournal ?? {});
+  const journalTotal = journalRows.reduce((total, [, entry]) => total + (entry.totalCaught ?? 0), 0);
+  state.stats.totalFishCaught = Math.max(
+    state.stats.totalFishCaught ?? 0,
+    journalTotal,
+    state.fishBasket?.length ?? 0,
+    state.progress?.firstCatchDone ? 1 : 0,
+  );
+
+  const journalBest = journalRows.reduce((best, [fishId, entry]) => {
+    const weight = entry.bestWeight ?? 0;
+    return weight > (best?.weight ?? 0) ? { fishId, weight, day: entry.firstCatchDay ?? null } : best;
+  }, null);
+  if ((journalBest?.weight ?? 0) > (state.stats.biggestFishWeight ?? 0)) {
+    state.stats.biggestFishWeight = journalBest.weight;
+    state.stats.biggestFishSpecies = journalBest.fishId;
+    state.stats.biggestFishCaughtAtDay = journalBest.day;
+    state.stats.biggestFishCaughtAtTime = null;
+  }
+}
+
+function updateAllTimeBiggestFish(state, entry) {
+  ensureCatchStats(state);
+  if ((entry.weightGrams ?? 0) < (state.stats.biggestFishWeight ?? 0)) {
+    return;
+  }
+  state.stats.biggestFishWeight = entry.weightGrams ?? 0;
+  state.stats.biggestFishSpecies = entry.fishId;
+  state.stats.biggestFishCaughtAtDay = entry.caughtAtDay ?? state.day ?? null;
+  state.stats.biggestFishCaughtAtTime = entry.caughtAtTime ?? null;
+}
+
+function minNullable(a, b) {
+  if (a == null) return b ?? null;
+  if (b == null) return a;
+  return Math.min(a, b);
 }
 
 function updateCatchJournal(state, entry) {

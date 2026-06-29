@@ -9,6 +9,7 @@ import { assetPath } from '../utils/assetPath.js';
 import { getFishingLocation } from '../game/locations.js';
 import { getLocationImage, getLocationImageFallback } from '../utils/locationAsset.js';
 import { getTimeOfDayBackground } from '../utils/timeOfDayBackgrounds.js';
+import { formatGameTime, getTimePhase } from '../game/time.js';
 
 const castZoneKeys = {
   near_bank: 'castZoneNearBank',
@@ -20,6 +21,13 @@ const methodKeys = {
   handline: 'fishingMethodHandline',
   stickRod: 'fishingMethodStickRod',
   liveBait: 'fishingMethodLiveBait',
+};
+
+const timePhaseKeys = {
+  morning: 'timePhaseMorning',
+  day: 'timePhaseDay',
+  evening: 'timePhaseEvening',
+  night: 'timePhaseNight',
 };
 
 const fishingLineFallbackAnchors = {
@@ -44,6 +52,8 @@ export function fishingMinigameMarkup(state) {
   const floatStyle = state.tackle?.equipped?.float ?? 'none';
   const activeFishing = isActiveFishingPhase(minigame.phase);
   const waterImage = getFishingWaterImage(state);
+  const timePhase = getTimePhase(state);
+  const timeLabel = `${t('dayLabel', { day: state.day ?? 1 })} · ${t(timePhaseKeys[timePhase] ?? 'timePhaseDay')} · ${formatGameTime(state)}`;
 
   return `
     <section class="fishing-minigame" aria-label="${t('fishingTitle')}">
@@ -61,11 +71,12 @@ export function fishingMinigameMarkup(state) {
           <div>
             <p class="section-label">${t('fishingTitle')}</p>
             <h2>${t(methodKeys[minigame.method])}</h2>
+            <p class="fishing-minigame__time">${timeLabel}</p>
             <p class="fishing-minigame__status">${t(minigame.statusKey)}</p>
           </div>
           <div class="fishing-minigame__header-actions">
-            <button class="fishing-minigame__map" data-action="minigame:menu" type="button">${t('backToMap')}</button>
             <button class="fishing-minigame__close" data-action="minigame:back" type="button" aria-label="${t('close')}" title="${t('close')}">&times;</button>
+            <button class="fishing-minigame__map" data-action="minigame:menu" type="button">${t('backToMap')}</button>
           </div>
         </header>
 

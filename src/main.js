@@ -1019,6 +1019,8 @@ function renderHud() {
   context.timeOfDayBucket = timeOfDayBucket;
   const hudSnapshot = JSON.stringify({
     timeOfDayBucket,
+    day: gameState.day,
+    timeMinutes: gameState.time?.minutes,
     money: gameState.money,
     language: getLanguage(),
     inventory: gameState.inventory,
@@ -1033,6 +1035,7 @@ function renderHud() {
     resolvedViewMode: gameState.ui.resolvedViewMode,
     fishBasket: gameState.fishBasket,
     catchJournal: gameState.catchJournal,
+    stats: gameState.stats,
     trophies: gameState.trophies,
     market: gameState.market,
     travel: gameState.travel,
@@ -1193,9 +1196,12 @@ function queueAutosave() {
   const signature = JSON.stringify({
     version: gameState.version,
     playerProfile: gameState.playerProfile,
+    day: gameState.day,
+    time: gameState.time,
     money: gameState.money,
     inventory: gameState.inventory,
     fishBasket: gameState.fishBasket,
+    stats: gameState.stats,
     tackle: gameState.tackle,
     travel: gameState.travel,
     trophyLog: gameState.trophies,
