@@ -1248,10 +1248,8 @@ function thresholdRowsMarkup(fishId) {
   }
 
   const unit = getLanguage() === 'uk' ? 'г' : 'g';
-  const toLabel = getLanguage() === 'uk' ? 'до' : 'up to';
   const trophy2 = Math.round(profile.trophyWeight * 1.45);
   const rows = [
-    ['0', `${t('catchCategorySmall')} / ${t('catchCategoryOrdinary')}`, `${toLabel} ${profile.common[0]} ${unit}`],
     ['★', t('trophyTierNormal'), `${profile.trophyWeight}-${trophy2 - 1} ${unit}`],
     ['★★', t('trophyTierVeryRare'), `${trophy2}-${profile.legendaryWeight - 1} ${unit}`],
     ['★★★', t('trophyTierRarest'), `${profile.legendaryWeight}+ ${unit}`],

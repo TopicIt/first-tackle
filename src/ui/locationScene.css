@@ -1445,6 +1445,28 @@
   backdrop-filter: none !important;
 }
 
+.location-scene--sluice_map .scene-shell,
+.location-scene--fire_ponds_map .scene-shell,
+.location-scene--sluice_map .scene-body,
+.location-scene--fire_ponds_map .scene-body {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  backdrop-filter: none !important;
+}
+
+.location-scene--sluice_map .scene-body,
+.location-scene--fire_ponds_map .scene-body {
+  pointer-events: none;
+}
+
+.location-scene--sluice_map .scene-header,
+.location-scene--sluice_map .scene-actions,
+.location-scene--fire_ponds_map .scene-header,
+.location-scene--fire_ponds_map .scene-actions {
+  pointer-events: auto;
+}
+
 .location-scene--sluice_map .scene-map,
 .location-scene--fire_ponds_map .scene-map,
 .location-scene--sluice_map .scene-action-grid button.scene-hotspot,

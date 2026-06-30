@@ -69,6 +69,15 @@ button:disabled {
   pointer-events: auto;
 }
 
+.hud[data-scene="sluice_map"] > .status-panel,
+.hud[data-scene="sluice_map"] > .actions-panel,
+.hud[data-scene="sluice_map"] > .log-panel,
+.hud[data-scene="fire_ponds_map"] > .status-panel,
+.hud[data-scene="fire_ponds_map"] > .actions-panel,
+.hud[data-scene="fire_ponds_map"] > .log-panel {
+  display: none !important;
+}
+
 .panel {
   pointer-events: auto;
   position: relative;
@@ -2318,7 +2327,7 @@ button:disabled {
 }
 
 .guide-depth-list li.is-preferred,
-.guide-threshold-table div:nth-child(n + 2) {
+.guide-threshold-table div {
   border-color: rgb(243 196 95 / 22%);
   background: rgb(243 196 95 / 9%);
 }
