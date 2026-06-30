@@ -183,12 +183,16 @@ export function skipTutorial(state) {
     skipped: true,
     closed: true,
   };
+  grantPrimitiveTackle(state, { logIfGranted: true });
   queueSound(state, 'ui_click');
 }
 
 export function grantPrimitiveTackle(state, options = {}) {
-  void options;
-  completeStarterTackleDrawer(state);
+  const completedNow = completeStarterTackleDrawer(state);
+  if (completedNow && options.logIfGranted) {
+    pushLog(state, 'logTutorialClosedStarterTackle');
+  }
+  return completedNow;
 }
 
 export function syncGrandmaTrust(state) {

@@ -233,10 +233,13 @@ export function createHud(root, handlers) {
       const claimableQuestCount = getQuestRows(state).filter((quest) => quest.complete && !quest.claimed).length;
       const mapOpen = !state.ui?.activeScene && !state.ui?.fishingMinigame?.open;
       const fishingOpen = Boolean(state.ui?.fishingMinigame?.open);
+      const transitionActive = Boolean(state.ui?.locationTransition) || state.ui?.startupStep === 'introVideo';
       const selectedStar = getSelectedProfileStar(state);
       const surface = fishingOpen ? 'fishing' : mapOpen ? 'map' : 'scene';
+      root.classList.toggle('is-transition-playing', transitionActive);
       root.dataset.surface = surface;
       root.dataset.scene = state.ui?.activeScene ?? '';
+      root.dataset.transitionActive = transitionActive ? 'true' : 'false';
       const coinHud = (modifier) => `
         <div class="coin-hud ${modifier}" aria-label="${t('coins')}">
           <span class="coin-hud__icon" aria-hidden="true"></span>

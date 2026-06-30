@@ -18,7 +18,7 @@ import {
   getSpeciesTrophyProgress,
   getUnlockedStars,
 } from '../game/achievementStars.js';
-import { t, translateEntry } from '../i18n/i18n.js';
+import { getLanguage, t, translateEntry } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
 import { getWorldMapAsset } from '../utils/worldMapAsset.js';
 
@@ -929,29 +929,51 @@ function getMarketableFishEntries(state) {
 function fishGuideAccordionMarkup(state) {
   const journal = state.catchJournal ?? {};
   const expanded = state.ui?.expandedGuideCards ?? {};
-  return getFishGuideEntries().map((entry) => `
-    <article class="guide-card guide-card--accordion${expanded[`fish:${entry.fishId}`] ? ' is-open' : ''}">
-      <button class="guide-card__summary" data-action="guide:toggle:fish:${entry.fishId}" type="button">
+  return getFishGuideEntries().map((entry) => {
+    const isOpen = expanded[`fish:${entry.fishId}`];
+    const discovered = Boolean(journal[entry.fishId]?.discovered);
+    return `
+      <article class="guide-card guide-card--accordion guide-card--fish${isOpen ? ' is-open' : ''}">
+        <button class="guide-card__summary" data-action="guide:toggle:fish:${entry.fishId}" type="button">
+          <img src="${guideSpeciesImage(entry.fishId)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
+          <span>
+            <h3>${t(entry.nameKey)}${discovered ? '' : ` - ${t('undiscoveredFish')}`}</h3>
+            <small>${t(entry.livesKey)}</small>
+          </span>
+          <strong class="guide-card__expand">${isOpen ? '-' : '+'}</strong>
+        </button>
+        ${isOpen ? fishGuideDetailMarkup(entry, discovered) : ''}
+      </article>
+    `;
+  }).join('');
+}
+
+function fishGuideDetailMarkup(entry, discovered) {
+  const fish = fishData.find((item) => item.id === entry.fishId);
+  const status = discovered ? t(fish?.rarityKey ?? 'known') : t('undiscoveredFish');
+  return `
+    <div class="guide-card__body guide-fish-detail">
+      <div class="guide-fish-detail__hero">
         <img src="${guideSpeciesImage(entry.fishId)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
-        <span>
-          <h3>${t(entry.nameKey)}${journal[entry.fishId]?.discovered ? '' : ` - ${t('undiscoveredFish')}`}</h3>
-          <small>${t(entry.livesKey)}</small>
-        </span>
-        <strong class="guide-card__expand">${expanded[`fish:${entry.fishId}`] ? '-' : '+'}</strong>
-      </button>
-      ${expanded[`fish:${entry.fishId}`] ? `<div class="guide-card__body">
-        <p>${t(entry.descriptionKey)}</p>
-        <dl>
-          <div><dt>${t('whereItLives')}</dt><dd>${t(entry.livesKey)}</dd></div>
-          <div><dt>${t('bestTime')}</dt><dd>${t(entry.timeKey)}</dd></div>
-          <div><dt>${t('preferredBait')}</dt><dd>${favoriteBaitsMarkup(entry.fishId)}</dd></div>
-          <div><dt>${t('weakerBaits')}</dt><dd>${weakerBaitsMarkup(entry.fishId)}</dd></div>
-          <div><dt>${t('depthPreference')}</dt><dd>${depthPreferenceMarkup(entry.fishId)}</dd></div>
-          <div><dt>${t('trophyThresholds')}</dt><dd>${thresholdMarkup(entry.fishId)}</dd></div>
-        </dl>
-      </div>` : ''}
-    </article>
-  `).join('');
+        <div>
+          <h4>${t(entry.nameKey)}</h4>
+          <span>${status}</span>
+          <p>${t(entry.descriptionKey)}</p>
+        </div>
+      </div>
+      <div class="guide-fish-detail__grid">
+        ${guideInfoBlockMarkup('whereItLives', [
+          guideChipGroupMarkup(fishWaterChips(entry.fishId), 'guide-chip--water'),
+          guideChipGroupMarkup(habitatChips(entry.livesKey), 'guide-chip--habitat'),
+        ].join(''))}
+        ${guideInfoBlockMarkup('bestTime', guideChipGroupMarkup(timeChips(entry.timeKey), 'guide-chip--time'))}
+        ${guideInfoBlockMarkup('preferredBait', guideBaitChipsMarkup(entry.fishId, true))}
+        ${guideInfoBlockMarkup('weakerBaits', guideBaitChipsMarkup(entry.fishId, false))}
+        ${guideInfoBlockMarkup('depthPreference', depthPreferenceDetailMarkup(entry.fishId))}
+        ${guideInfoBlockMarkup('trophyThresholds', thresholdRowsMarkup(entry.fishId), 'guide-fish-detail__block--trophies')}
+      </div>
+    </div>
+  `;
 }
 
 function watersGuideAccordionMarkup(state) {
@@ -1117,6 +1139,135 @@ function guideSimpleMarkup(tab) {
     processing: 'guideProcessingText',
   };
   return `<article class="guide-card guide-card--text"><p>${t(keys[tab])}</p></article>`;
+}
+
+function guideInfoBlockMarkup(titleKey, body, extraClass = '') {
+  return `
+    <section class="guide-fish-detail__block ${extraClass}">
+      <h5>${t(titleKey)}</h5>
+      ${body}
+    </section>
+  `;
+}
+
+function guideChipGroupMarkup(items, className = '') {
+  const chips = items.filter(Boolean).map((item) => `<span class="guide-chip ${className}">${item}</span>`).join('');
+  return chips ? `<div class="guide-chip-list">${chips}</div>` : `<p>${t('none')}</p>`;
+}
+
+function fishWaterChips(fishId) {
+  return waterGuide
+    .filter((water) => water.fishIds.includes(fishId))
+    .map((water) => t(water.nameKey));
+}
+
+function habitatChips(livesKey) {
+  const text = t(livesKey).replace(/[.!?]+$/g, '');
+  return text
+    .split(/,|\s[іiй]\s/iu)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+}
+
+function timeChips(timeKey) {
+  const text = t(timeKey).toLowerCase();
+  const chips = [];
+  if (/(morning|ранок|зранку|світан)/iu.test(text)) chips.push(t('timePhaseMorning'));
+  if (/(day|день|вдень)/iu.test(text)) chips.push(t('timePhaseDay'));
+  if (/(evening|вечір|ввечері|вечор)/iu.test(text)) chips.push(t('timePhaseEvening'));
+  if (/(night|ніч|вночі)/iu.test(text)) chips.push(t('timePhaseNight'));
+  return chips.length ? [...new Set(chips)] : [t(timeKey)];
+}
+
+function guideBaitChipsMarkup(fishId, favoritesOnly) {
+  const favorites = new Set(biteProfiles[fishId]?.preferred?.baits ?? []);
+  const predator = ['pike', 'sudak', 'som', 'eel'].includes(fishId);
+  const baitIds = favoritesOnly
+    ? [...favorites]
+    : ['worms', 'larvae', 'bread', 'dough', 'mastyrka', 'corn', 'nightcrawler', 'live_bait']
+      .filter((bait) => !favorites.has(bait))
+      .filter((bait) => !predator || ['worms', 'nightcrawler', 'live_bait'].includes(bait))
+      .slice(0, 4);
+
+  if (!baitIds.length) {
+    return `<p>${t('none')}</p>`;
+  }
+
+  return `
+    <div class="guide-bait-list">
+      ${baitIds.map((bait) => `
+        <span class="guide-bait-chip">
+          ${itemVisualMarkup(baitItemId(bait))}
+          <span>${t(`bait${toPascalCase(bait)}`)}</span>
+        </span>
+      `).join('')}
+    </div>
+  `;
+}
+
+function baitItemId(bait) {
+  return {
+    live_bait: 'rotan',
+    nightcrawler: 'nightcrawler',
+    small_worms: 'smallWorms',
+  }[bait] ?? bait;
+}
+
+function depthPreferenceDetailMarkup(fishId) {
+  const preference = fishData.find((entry) => entry.id === fishId)?.depthPreference ?? 'middle';
+  const preferred = preference === 'any' ? new Set(['surface', 'middle', 'bottom']) : new Set([preference]);
+  const rows = ['surface', 'middle', 'bottom'].map((depth) => {
+    const label = t(`depth${toPascalCase(depth)}`);
+    const note = depthNoteForFish(fishId, depth, preferred.has(depth));
+    return `<li class="${preferred.has(depth) ? 'is-preferred' : ''}"><strong>${label}</strong><span>${note}</span></li>`;
+  }).join('');
+  return `<ul class="guide-depth-list">${rows}</ul>`;
+}
+
+function depthNoteForFish(fishId, depth, preferred) {
+  if (fishId === 'crucian') {
+    return {
+      surface: `${t('catchCategorySmall')}`,
+      middle: `${t('catchCategoryOrdinary')}`,
+      bottom: `${t('catchCategoryTrophy')}`,
+    }[depth];
+  }
+
+  if (preferred) {
+    return getLanguage() === 'uk' ? 'найкраща глибина' : 'best depth';
+  }
+
+  return depth === 'surface' ? t('catchCategorySmall') : t('catchCategoryOrdinary');
+}
+
+function thresholdRowsMarkup(fishId) {
+  const profile = fishSizeProfiles[fishId];
+  if (!profile) {
+    return `<p>${t('none')}</p>`;
+  }
+
+  const unit = getLanguage() === 'uk' ? 'г' : 'g';
+  const toLabel = getLanguage() === 'uk' ? 'до' : 'up to';
+  const trophy2 = Math.round(profile.trophyWeight * 1.45);
+  const rows = [
+    ['0', `${t('catchCategorySmall')} / ${t('catchCategoryOrdinary')}`, `${toLabel} ${profile.common[0]} ${unit}`],
+    ['★', t('trophyTierNormal'), `${profile.trophyWeight}-${trophy2 - 1} ${unit}`],
+    ['★★', t('trophyTierVeryRare'), `${trophy2}-${profile.legendaryWeight - 1} ${unit}`],
+    ['★★★', t('trophyTierRarest'), `${profile.legendaryWeight}+ ${unit}`],
+  ];
+
+  return `
+    <div class="guide-threshold-table">
+      ${rows.map(([stars, label, range]) => `
+        <div>
+          <strong>${stars}</strong>
+          <span>${label}</span>
+          <em>${range}</em>
+        </div>
+      `).join('')}
+    </div>
+  `;
 }
 
 function favoriteBaitsMarkup(fishId) {

@@ -1417,9 +1417,9 @@
 .location-scene--sluice_map .scene-bg,
 .location-scene--fire_ponds_map .scene-bg {
   inset: 0;
-  filter: none;
-  transform: none;
-  animation: none;
+  filter: none !important;
+  transform: none !important;
+  animation: none !important;
   will-change: auto;
 }
 
@@ -1427,7 +1427,7 @@
 .location-scene--fire_ponds_map .scene-vignette {
   background:
     radial-gradient(circle at 50% 42%, transparent 0 68%, rgb(0 0 0 / 10%) 100%),
-    linear-gradient(90deg, rgb(5 12 10 / 8%), transparent 46%, rgb(5 12 10 / 8%));
+    linear-gradient(90deg, rgb(5 12 10 / 8%), transparent 46%, rgb(5 12 10 / 8%)) !important;
 }
 
 .location-scene--sluice_map .scene-water-ripples,
@@ -1440,16 +1440,16 @@
 .location-scene--sluice_map .scene-header,
 .location-scene--fire_ponds_map .scene-header {
   border-color: rgb(243 196 95 / 22%);
-  background: rgb(7 14 13 / 20%);
+  background: rgb(7 14 13 / 20%) !important;
   box-shadow: none;
-  backdrop-filter: none;
+  backdrop-filter: none !important;
 }
 
 .location-scene--sluice_map .scene-map,
 .location-scene--fire_ponds_map .scene-map,
 .location-scene--sluice_map .scene-action-grid button.scene-hotspot,
 .location-scene--fire_ponds_map .scene-action-grid button.scene-hotspot {
-  backdrop-filter: none;
+  backdrop-filter: none !important;
 }
 
 .location-scene--sluice_map .scene-action-grid button.scene-hotspot,
@@ -1496,11 +1496,15 @@
 
   .location-scene--sluice_map .scene-map,
   .location-scene--fire_ponds_map .scene-map {
-    right: calc(max(8px, env(safe-area-inset-right)) + 140px);
-    top: max(8px, env(safe-area-inset-top));
-    min-width: 64px;
-    min-height: 42px;
-    padding: 7px 10px;
+    position: fixed !important;
+    left: auto !important;
+    right: calc(max(8px, env(safe-area-inset-right)) + 140px) !important;
+    top: max(8px, env(safe-area-inset-top)) !important;
+    z-index: 330 !important;
+    min-width: 64px !important;
+    min-height: 42px !important;
+    padding: 7px 10px !important;
+    transform: none !important;
   }
 
   .location-scene--sluice_map .scene-action-grid button.scene-hotspot,

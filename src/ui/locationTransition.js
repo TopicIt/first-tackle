@@ -30,7 +30,7 @@ export function locationTransitionMarkup(transition) {
         ${sources}
       </video>
       <div class="location-transition__shade" aria-hidden="true"></div>
-      <button class="location-transition__toggle icon-toggle is-on" data-action="transitions:toggle" type="button" aria-label="${t('transitionAnimations')}">●</button>
+      <button class="location-transition__toggle icon-toggle is-on" data-action="transitions:toggle" type="button" aria-label="${t('transitionAnimations')}">&#9679;</button>
       <button class="location-transition__skip" data-action="transition:skip" type="button">${t('skipTransition')}</button>
       <span class="location-transition__fallback-note">${label}</span>
     </section>

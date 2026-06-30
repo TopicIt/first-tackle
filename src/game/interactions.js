@@ -414,10 +414,6 @@ function getSceneActions(state, zoneId) {
         label: t('fishAtSluice'),
         variant: 'secondary scene-hotspot scene-hotspot--left',
       },
-      {
-        id: 'scene:map',
-        label: t('backToMap'),
-      },
     ];
   }
 
@@ -427,10 +423,6 @@ function getSceneActions(state, zoneId) {
         id: 'submap:fish:fire_ponds',
         label: t('fishAtFirePonds'),
         variant: 'secondary scene-hotspot scene-hotspot--right',
-      },
-      {
-        id: 'scene:map',
-        label: t('backToMap'),
       },
     ];
   }
