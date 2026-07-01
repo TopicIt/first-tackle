@@ -1,8 +1,9 @@
-const DEFAULT_API_BASE_URL = 'http://127.0.0.1:8000';
+export const FIRST_TACKLE_API_BASE_URL = 'https://first-tackle-api-production.up.railway.app';
+const CLOUD_SESSION_KEY = 'first-tackle-cloud-session-v1';
 
 export const apiConfig = {
-  baseUrl: (import.meta.env.VITE_FIRST_TACKLE_API_URL ?? DEFAULT_API_BASE_URL).replace(/\/$/, ''),
-  accessToken: null,
+  baseUrl: (import.meta.env.VITE_FIRST_TACKLE_API_URL ?? FIRST_TACKLE_API_BASE_URL).replace(/\/$/, ''),
+  accessToken: loadCloudSession()?.accessToken ?? null,
 };
 
 export function setApiAccessToken(token) {
@@ -11,6 +12,51 @@ export function setApiAccessToken(token) {
 
 export function getApiAccessToken() {
   return apiConfig.accessToken;
+}
+
+export function loadCloudSession() {
+  try {
+    return JSON.parse(localStorage.getItem(CLOUD_SESSION_KEY) ?? 'null');
+  } catch {
+    return null;
+  }
+}
+
+export function saveCloudSession(session) {
+  const nextSession = {
+    ...(loadCloudSession() ?? {}),
+    ...(session ?? {}),
+    updatedAt: new Date().toISOString(),
+  };
+  if (!nextSession.accessToken && !nextSession.refreshToken) {
+    clearCloudSession();
+    return null;
+  }
+  try {
+    localStorage.setItem(CLOUD_SESSION_KEY, JSON.stringify(nextSession));
+    setApiAccessToken(nextSession.accessToken);
+    return nextSession;
+  } catch {
+    setApiAccessToken(nextSession.accessToken);
+    return nextSession;
+  }
+}
+
+export function updateCloudSessionProfile(profile) {
+  const session = loadCloudSession();
+  if (!session) {
+    return null;
+  }
+  return saveCloudSession({ ...session, profile });
+}
+
+export function clearCloudSession() {
+  try {
+    localStorage.removeItem(CLOUD_SESSION_KEY);
+  } catch {
+    // Storage can be unavailable in private or restricted browser contexts.
+  }
+  setApiAccessToken(null);
 }
 
 export class ApiError extends Error {
@@ -61,4 +107,3 @@ function formatApiDetail(detail) {
   }
   return 'API request failed';
 }
-

@@ -74,6 +74,7 @@ function cleanForSave(state) {
       starterTackleDrawerMessage: null,
       locationTransition: null,
       activeSubMap: null,
+      cloudSave: null,
     },
   };
 }

@@ -82,6 +82,9 @@ import {
 import { getLanguage, t, toggleLanguage } from './i18n/i18n.js';
 import { assetPath } from './utils/assetPath.js';
 import { getWorldMapAsset } from './utils/worldMapAsset.js';
+import { ApiError, loadCloudSession, saveCloudSession } from './api/client.js';
+import { getProfile, login, logout, register } from './api/authApi.js';
+import { getSaveStatus, loadSave as loadCloudSave, syncSave as syncCloudSave } from './api/saveApi.js';
 
 const canvas = document.querySelector('#game');
 const hudRoot = document.querySelector('#hud');
@@ -329,6 +332,11 @@ const hud = createHud(hudRoot, {
       }
       resetToFreshState();
       renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('cloud:')) {
+      handleCloudAction(actionId);
       return;
     }
 
@@ -895,6 +903,9 @@ const hud = createHud(hudRoot, {
   onProfileNameDraft(name) {
     updateProfileDraftName(gameState, name);
   },
+  onCloudAuth(payload) {
+    handleCloudAuth(payload);
+  },
   onImportSave(rawText) {
     try {
       gameState = importSave(rawText);
@@ -1255,6 +1266,139 @@ function exportCurrentSave() {
   anchor.remove();
   URL.revokeObjectURL(url);
   pushLog(gameState, 'logExportedSave');
+}
+
+async function handleCloudAuth(payload) {
+  setCloudBusy(true, payload.mode === 'register' ? 'Реєструємо акаунт...' : 'Входимо...');
+  renderHud();
+  try {
+    if (payload.mode === 'register') {
+      await register(
+        String(payload.email ?? '').trim(),
+        String(payload.password ?? ''),
+        String(payload.displayName ?? '').trim() || undefined,
+      );
+    } else {
+      await login(String(payload.email ?? '').trim(), String(payload.password ?? ''));
+    }
+    const profile = await getProfile();
+    const status = await getSaveStatus().catch(() => null);
+    saveCloudSession({
+      profile,
+      saveMetadata: status?.exists ? status : null,
+      lastMessage: 'Вхід виконано. Хмарне збереження доступне вручну.',
+    });
+    setCloudBusy(false, 'Вхід виконано. Хмарне збереження доступне вручну.');
+  } catch (error) {
+    setCloudBusy(false, cloudErrorMessage(error));
+  }
+  renderHud();
+}
+
+async function handleCloudAction(actionId) {
+  if (actionId === 'cloud:logout') {
+    logout();
+    setCloudBusy(false, 'Ви вийшли з хмарного акаунта.');
+    renderHud();
+    return;
+  }
+
+  if (actionId === 'cloud:upload') {
+    await uploadLocalSaveToCloud();
+    return;
+  }
+
+  if (actionId === 'cloud:download') {
+    await downloadCloudSave();
+  }
+}
+
+async function uploadLocalSaveToCloud() {
+  setCloudBusy(true, 'Завантажуємо локальний сейв на сервер...');
+  renderHud();
+  try {
+    syncPlayerToState();
+    saveGame(gameState);
+    const exported = JSON.parse(exportSave(gameState));
+    const payload = exported.save;
+    const session = loadCloudSession() ?? {};
+    const currentRevision = Number(session.saveMetadata?.revision ?? session.serverRevision ?? 0);
+    const result = await syncCloudSave({
+      saveVersion: payload.version ?? gameState.version ?? exported.version ?? 1,
+      revision: Number.isFinite(currentRevision) ? currentRevision : 0,
+      clientUpdatedAt: new Date().toISOString(),
+      payload,
+    });
+    saveCloudSession({
+      ...session,
+      saveMetadata: result.metadata,
+      lastMessage: `Локальний сейв завантажено. Ревізія сервера: ${result.metadata?.revision ?? '?'}.`,
+    });
+    setCloudBusy(false, `Локальний сейв завантажено. Ревізія сервера: ${result.metadata?.revision ?? '?'}.`);
+  } catch (error) {
+    setCloudBusy(false, cloudErrorMessage(error));
+  }
+  renderHud();
+}
+
+async function downloadCloudSave() {
+  setCloudBusy(true, 'Перевіряємо сейв на сервері...');
+  renderHud();
+  try {
+    const result = await loadCloudSave();
+    if (!result.metadata?.exists || !result.payload) {
+      saveCloudSession({
+        ...(loadCloudSession() ?? {}),
+        saveMetadata: result.metadata,
+        lastMessage: 'На сервері ще немає збереження.',
+      });
+      setCloudBusy(false, 'На сервері ще немає збереження.');
+      renderHud();
+      return;
+    }
+
+    const revisionText = result.metadata?.revision ? `Ревізія ${result.metadata.revision}. ` : '';
+    if (!window.confirm(`${revisionText}Завантажити сейв із сервера і перезаписати локальне збереження?`)) {
+      setCloudBusy(false, 'Завантаження із сервера скасовано.');
+      renderHud();
+      return;
+    }
+
+    gameState = importSave(JSON.stringify(result.payload));
+    ensureRuntimeState(gameState);
+    player.restore(gameState.player);
+    audio.syncSettings(gameState.settings.audio);
+    saveCloudSession({
+      ...(loadCloudSession() ?? {}),
+      saveMetadata: result.metadata,
+      lastMessage: 'Сейв із сервера завантажено.',
+    });
+    setCloudBusy(false, 'Сейв із сервера завантажено.');
+    pushLog(gameState, 'logLoaded');
+  } catch (error) {
+    setCloudBusy(false, cloudErrorMessage(error));
+  }
+  renderHud();
+}
+
+function setCloudBusy(busy, message = '') {
+  gameState.ui ??= {};
+  gameState.ui.cloudSave = {
+    ...(gameState.ui.cloudSave ?? {}),
+    busy,
+    message,
+  };
+}
+
+function cloudErrorMessage(error) {
+  if (error instanceof ApiError && error.status === 409) {
+    return 'На сервері є новіша версія збереження. Спочатку завантаж її або підтвердь перезапис.';
+  }
+  if (error instanceof ApiError && error.status === 401) {
+    logout();
+    return 'Сесія закінчилася. Увійди ще раз.';
+  }
+  return error?.message || 'Не вдалося виконати дію з хмарним збереженням.';
 }
 
 function queueAutosave() {

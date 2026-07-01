@@ -14,6 +14,7 @@ import {
 import { locationSceneMarkup } from './locationScene.js';
 import { locationTransitionMarkup } from './locationTransition.js';
 import { mapOverlayMarkup } from './mapOverlay.js';
+import { cloudSavePanelMarkup } from './cloudSavePanel.js';
 import { syncFishingLineOverlay } from './fishingMinigame.js';
 import { syncFishingPrototype3d } from './fishingPrototype3d.js';
 import { getLanguage, t } from '../i18n/i18n.js';
@@ -121,6 +122,20 @@ export function createHud(root, handlers) {
       const data = new FormData(profileForm);
       handlers.onProfileSubmit?.({
         name: data.get('name'),
+      });
+      return;
+    }
+
+    const cloudAuthForm = event.target.closest('[data-cloud-auth-form]');
+    if (cloudAuthForm) {
+      event.preventDefault();
+      const data = new FormData(cloudAuthForm);
+      const mode = event.submitter?.value === 'register' ? 'register' : 'login';
+      handlers.onCloudAuth?.({
+        mode,
+        email: data.get('email'),
+        password: data.get('password'),
+        displayName: data.get('displayName'),
       });
       return;
     }
@@ -525,6 +540,7 @@ export function createHud(root, handlers) {
                 <button class="danger" data-action="save:reset" type="button">${t('resetProgress')}</button>
               </div>
             </section>
+            ${cloudSavePanelMarkup(state)}
             <section class="settings-block">
               <p class="section-label">${t('cheats')}</p>
               <div class="settings-action-row settings-action-row--stack">

@@ -1,4 +1,4 @@
-import { apiRequest, setApiAccessToken } from './client.js';
+import { apiRequest, clearCloudSession, saveCloudSession, setApiAccessToken, updateCloudSessionProfile } from './client.js';
 
 export async function register(email, password, displayName) {
   const response = await apiRequest('/auth/register', {
@@ -6,6 +6,10 @@ export async function register(email, password, displayName) {
     body: { email, password, displayName },
   });
   setApiAccessToken(response.accessToken);
+  saveCloudSession({
+    accessToken: response.accessToken,
+    refreshToken: response.refreshToken,
+  });
   return response;
 }
 
@@ -15,6 +19,10 @@ export async function login(email, password) {
     body: { email, password },
   });
   setApiAccessToken(response.accessToken);
+  saveCloudSession({
+    accessToken: response.accessToken,
+    refreshToken: response.refreshToken,
+  });
   return response;
 }
 
@@ -25,10 +33,19 @@ export async function refreshAuth(refreshToken) {
     token: null,
   });
   setApiAccessToken(response.accessToken);
+  saveCloudSession({
+    accessToken: response.accessToken,
+    refreshToken: response.refreshToken,
+  });
   return response;
 }
 
 export async function getProfile() {
-  return apiRequest('/profile/me');
+  const profile = await apiRequest('/profile/me');
+  updateCloudSessionProfile(profile);
+  return profile;
 }
 
+export function logout() {
+  clearCloudSession();
+}
