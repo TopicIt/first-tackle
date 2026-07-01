@@ -1,4 +1,4 @@
-import { biteProfiles, castSpots, getBiteProfile, getCastSpot, stateDurationsMs } from './bitePatterns.js';
+import { biteProfiles, biteTuning, castSpots, getBiteProfile, getCastSpot, stateDurationsMs } from './bitePatterns.js';
 import { getFishData, getFreshFishValue, rollFishById } from './fishData.js';
 import {
   addCaughtFish,
@@ -9,9 +9,13 @@ import {
   syncInventoryFromFishBasket,
 } from './fishInventory.js';
 import { countItem, hasItem, removeItem } from './inventory.js';
+import { normalizeWaterId } from './locations.js';
+import { markFirstCrucianCatchRewardSeen, queueFirstCrucianCatchReward } from './locationTransitions.js';
 import { pushFeedback, pushLog, queueSound } from './state.js';
 import { getTackleEffects } from './tackle.js';
-import { advanceTime, getTimePhase } from './time.js';
+import { advanceTime, formatGameTime, getTimePhase } from './time.js';
+import { getWaterFishIds, getWaterSizeRange } from './waterFishDistribution.js';
+import { classifyCatchSize, rollFishWeight } from './fishSizeProfiles.js';
 
 const ambientLogKeys = ['logAmbientBird', 'logAmbientRings', 'logAmbientDrift'];
 
@@ -20,6 +24,7 @@ export function createFishingMinigameState(method) {
     open: true,
     method,
     selectedBait: null,
+    selectedDepth: null,
     selectedZone: null,
     selectedSpot: null,
     phase: 'setup',
@@ -41,16 +46,25 @@ export function createFishingMinigameState(method) {
     rareInsectAt: 0,
     rareInsectActiveUntil: 0,
     falseActivityCount: 0,
+    biteChecks: [],
+    biteCheckIndex: 0,
     biteCycle: 0,
     biteCycleTotal: 0,
     biteCyclePattern: [],
     biteCyclePatternIndex: 0,
+    stillnessUntil: 0,
   };
 }
 
 export function openFishingMinigame(state, method) {
   if (!hasItem(state, 'primitiveTackle')) {
-    pushLog(state, 'logStarterTackleReady');
+    pushLog(state, 'logNeedTutorialTackle');
+    return;
+  }
+
+  const effects = getTackleEffects(state);
+  if (!effects.hasCompleteStarterSet) {
+    pushLog(state, 'logNeedCompleteTackle');
     return;
   }
 
@@ -68,19 +82,16 @@ export function openFishingMinigame(state, method) {
   state.ui.collapsedPanels = {
     ...(state.ui.collapsedPanels ?? {}),
     inventory: true,
-    shop: true,
-    fishPrices: true,
     keepnet: true,
     tackle: true,
     guide: true,
     journal: true,
-    market: true,
-    profile: true,
     settings: true,
-    fishingControls: false,
+    fishingControls: true,
     fishingResult: true,
   };
   state.ui.fishingMinigame = createFishingMinigameState(method);
+  state.ui.fishingMinigame.selectedDepth = state.settings?.fishing?.lastDepth ?? 'middle';
   state.ui.fishingMinigame.rareInsectAt = (globalThis.performance?.now?.() ?? 0) + randomBetween(330000, 390000);
   autoSelectFirstAvailableBait(state, state.ui.fishingMinigame);
   if (method === 'liveBait' && getFishEntries(state, 'live_bait').length > 0) {
@@ -153,6 +164,19 @@ export function selectFishingSpot(state, spotId) {
   queueSound(state, 'ui_click');
 }
 
+export function selectFishingDepth(state, depth) {
+  const minigame = state.ui.fishingMinigame;
+  if (!minigame?.open || !['bottom', 'middle', 'surface'].includes(depth)) {
+    return;
+  }
+
+  minigame.selectedDepth = depth;
+  state.settings.fishing ??= {};
+  state.settings.fishing.lastDepth = depth;
+  minigame.statusKey = 'fishingDepthSelected';
+  queueSound(state, 'ui_click');
+}
+
 export function castLine(state, nowMs) {
   const minigame = state.ui.fishingMinigame;
   if (!minigame?.open) {
@@ -197,16 +221,20 @@ export function castLine(state, nowMs) {
   minigame.fishCandidateId = chooseFishCandidate(state, minigame);
   minigame.currentPattern = minigame.fishCandidateId ? buildPattern(minigame.fishCandidateId) : [];
   minigame.patternIndex = 0;
+  minigame.biteChecks = [];
+  minigame.biteCheckIndex = 0;
   minigame.biteCycle = 0;
   minigame.biteCycleTotal = minigame.fishCandidateId ? getBiteCycleTotal(minigame.fishCandidateId) : 0;
   minigame.biteCyclePattern = [];
   minigame.biteCyclePatternIndex = 0;
+  minigame.stillnessUntil = minigame.fishCandidateId && Math.random() < 0.28 ? nowMs + randomBetween(10000, 15000) : 0;
   minigame.castTarget = rollCastTarget(state, minigame, getCastSpot(minigame.selectedSpot));
   minigame.falseActivityCount = 0;
   minigame.idleEventAt = nowMs + randomBetween(2500, 5200);
   minigame.ambientEventAt = nowMs + randomBetween(5000, 11000);
   autoSelectFirstAvailableBait(state, minigame);
   state.ui.catchResult = null;
+  state.ui.questProgressUpdates = [];
   queueSound(state, 'cast_whoosh');
 }
 
@@ -222,7 +250,7 @@ export function strikeLine(state, nowMs) {
     minigame.statusKey = 'fishingTooEarly';
     minigame.result = { outcome: 'too_early' };
     minigame.bobberState = 'missed';
-    if (!tutorialCatchActive && minigame.fishCandidateId && Math.random() < 0.32) {
+    if (!tutorialCatchActive && minigame.fishCandidateId && Math.random() < 0.18) {
       resolveMinigameResult(state, { outcome: 'escaped', statusKey: 'fishingScaredFish', sound: 'fish_escape' });
     } else {
       minigame.phase = 'waiting';
@@ -237,22 +265,59 @@ export function strikeLine(state, nowMs) {
   const reactionQuality = Math.max(0, 1 - Math.abs(nowMs - timingCenter) / timingSpread);
   const tackleBonus = getTackleBonus(state, minigame.method);
   const baitBonus = getBaitSuitability(minigame.fishCandidateId, minigame.selectedBait);
+  const fishDifficulty = fishProfile.difficulty ?? 0.5;
   const successChance = tutorialCatchActive
     ? 1
-    : clamp(0.2 + reactionQuality * 0.38 + tackleBonus + baitBonus * 0.16 - fishProfile.difficulty * 0.28, 0.08, 0.95);
+    : clamp(0.52 + reactionQuality * 0.26 + tackleBonus * 0.65 + baitBonus * 0.12 - fishDifficulty * 0.12, 0.34, 0.9);
   const roll = Math.random();
+  const effects = getTackleEffects(state);
 
   queueSound(state, 'strike');
 
-  if (!tutorialCatchActive && ['pike', 'canadian_catfish'].includes(minigame.fishCandidateId) && getTackleEffects(state).breakPenalty > 0 && roll < 0.42) {
+  if (!tutorialCatchActive && ['pike', 'sudak', 'som', 'canadian_catfish', 'eel'].includes(minigame.fishCandidateId)) {
+    const breakChance = clamp(
+      0.07 + Math.max(0, effects.breakPenalty) * 0.4 - effects.hookBonus * 0.28 - effects.stabilityBonus * 0.2,
+      0.015,
+      0.16,
+    );
+    if (roll < breakChance) {
+      resolveMinigameResult(state, { outcome: 'line_broke', statusKey: 'fishingLineBroke', sound: 'line_break' });
+      return;
+    }
+  }
+
+  if (!tutorialCatchActive && minigame.method === 'handline') {
+    const handlineBreakChance = clamp(
+      0.02 + Math.max(0, effects.breakPenalty) * 0.18 - effects.hookBonus * 0.1,
+      0.005,
+      0.08,
+    );
+    if (roll > 1 - handlineBreakChance) {
+      resolveMinigameResult(state, { outcome: 'line_broke', statusKey: 'fishingLineBroke', sound: 'line_break' });
+      return;
+    }
+  }
+
+  if (minigame.fishCandidateId === 'eel' && !['nightcrawler', 'live_bait'].includes(minigame.consumedBait ?? minigame.selectedBait)) {
     resolveMinigameResult(state, { outcome: 'line_broke', statusKey: 'fishingLineBroke', sound: 'line_break' });
     return;
   }
 
   if (roll <= successChance) {
-    const catchResult = rollFishById(minigame.fishCandidateId);
+    const baitFits = getBaitSuitability(minigame.fishCandidateId, minigame.consumedBait ?? minigame.selectedBait) >= 1;
+    const catchResult = rollFishById(minigame.fishCandidateId, {
+      rollWeight: rollFishWeight,
+      baitId: minigame.consumedBait ?? minigame.selectedBait,
+      baitFits,
+      waterId: normalizeWaterId(state.travel?.selectedWater),
+      tackleTrophyBonus: effects.trophyBonus ?? 0,
+      depth: minigame.selectedDepth ?? 'middle',
+      minWeight: minigame.consumedBait === 'live_bait' ? 350 : 0,
+    });
+    applyDepthCatchAdjustments(catchResult, minigame.selectedDepth ?? 'middle');
     adjustCatchForWater(state, catchResult);
     catchResult.value = getFreshFishValue(catchResult);
+    catchResult.catchCategory = classifyCatchSize(catchResult.id, catchResult.weightGrams);
     if (!tutorialCatchActive && shouldBreakHomemadeRod(state, catchResult)) {
       removeItem(state, 'stickRod');
       state.tackle.owned.simple_stick_rod = false;
@@ -262,11 +327,20 @@ export function strikeLine(state, nowMs) {
       resolveMinigameResult(state, { outcome: 'rod_broke', statusKey: 'fishingRodBroke', sound: 'line_break' });
       return;
     }
+    const shouldShowFirstCrucianReward = catchResult.id === 'crucian'
+      && !state.progress?.firstCrucianCatchRewardShown
+      && !state.catchJournal?.crucian?.discovered;
     const entry = addCaughtFish(state, catchResult, {
       catchSpotId: minigame.selectedSpot,
       method: minigame.method,
       bait: minigame.consumedBait ?? minigame.selectedBait,
+      depth: minigame.selectedDepth ?? 'middle',
+      waterId: normalizeWaterId(state.travel?.selectedWater),
+      caughtAtTime: formatGameTime(state),
     });
+    if (entry?.trophyTier) {
+      queueSound(state, 'trophy_fanfare');
+    }
     state.ui.catchResult = catchResult;
     minigame.currentCatchEntryId = entry?.id ?? null;
     resolveMinigameResult(state, {
@@ -275,12 +349,16 @@ export function strikeLine(state, nowMs) {
       sound: 'catch_success',
       catchResult,
     });
+    const shouldShowTrophyCrucianReward = catchResult.id === 'crucian' && Boolean(entry?.trophyTier);
+    if (shouldShowTrophyCrucianReward) {
+      if (shouldShowFirstCrucianReward) {
+        markFirstCrucianCatchRewardSeen(state);
+      }
+      queueFirstCrucianCatchReward(state, { repeat: true });
+    } else if (shouldShowFirstCrucianReward && !queueFirstCrucianCatchReward(state)) {
+      markFirstCrucianCatchRewardSeen(state);
+    }
     minigame.bobberState = 'hooked';
-    return;
-  }
-
-  if (!tutorialCatchActive && minigame.method === 'handline' && roll > 0.82) {
-    resolveMinigameResult(state, { outcome: 'line_broke', statusKey: 'fishingLineBroke', sound: 'line_break' });
     return;
   }
 
@@ -356,8 +434,11 @@ export function castAgain(state) {
   minigame.patternIndex = 0;
   minigame.biteCycle = 0;
   minigame.biteCycleTotal = 0;
+  minigame.biteChecks = [];
+  minigame.biteCheckIndex = 0;
   minigame.biteCyclePattern = [];
   minigame.biteCyclePatternIndex = 0;
+  minigame.stillnessUntil = 0;
   minigame.nextStepAt = 0;
   minigame.strikeWindowStartAt = 0;
   minigame.strikeWindowEndAt = 0;
@@ -389,8 +470,11 @@ export function recastLine(state) {
   minigame.patternIndex = 0;
   minigame.biteCycle = 0;
   minigame.biteCycleTotal = 0;
+  minigame.biteChecks = [];
+  minigame.biteCheckIndex = 0;
   minigame.biteCyclePattern = [];
   minigame.biteCyclePatternIndex = 0;
+  minigame.stillnessUntil = 0;
   minigame.nextStepAt = 0;
   minigame.strikeWindowStartAt = 0;
   minigame.strikeWindowEndAt = 0;
@@ -431,7 +515,9 @@ export function tickFishingMinigame(state, nowMs) {
     minigame.phase = 'waiting';
     minigame.bobberState = 'idle';
     minigame.statusKey = 'fishingWaiting';
-    minigame.nextStepAt = nowMs + getNaturalWaitMs();
+    minigame.biteChecks = buildBiteChecks(state, minigame, nowMs);
+    minigame.biteCheckIndex = 0;
+    minigame.nextStepAt = minigame.biteChecks[0]?.at ?? (nowMs + 5200);
     queueSound(state, 'bobber_plop');
     return;
   }
@@ -443,13 +529,21 @@ export function tickFishingMinigame(state, nowMs) {
   tickRareInsect(state, minigame, nowMs);
 
   if (minigame.phase === 'waiting' && nowMs >= minigame.nextStepAt) {
-    if (!minigame.fishCandidateId) {
+    if (runBiteCheck(state, minigame, nowMs)) {
+      startBiteCycle(state, minigame, nowMs);
+      return;
+    }
+
+    if (minigame.biteCheckIndex >= minigame.biteChecks.length) {
       resolveMinigameResult(state, { outcome: 'no_bite', statusKey: 'fishingNoBite', sound: 'water_ripple' });
       minigame.bobberState = 'idle';
       return;
     }
 
-    advancePatternStep(state, minigame, nowMs);
+    minigame.bobberState = minigame.biteCheckIndex % 2 === 0 ? 'tiny_nibble' : 'idle';
+    minigame.statusKey = getWaitingStatusKey(state);
+    minigame.nextStepAt = minigame.biteChecks[minigame.biteCheckIndex].at;
+    queueSound(state, minigame.bobberState === 'tiny_nibble' ? 'tiny_nibble' : 'water_ripple');
     return;
   }
 
@@ -466,8 +560,14 @@ export function tickFishingMinigame(state, nowMs) {
 export function getAvailableBaits(state) {
   const liveBaitCount = getFishEntries(state, 'live_bait').length;
   return [
+    { id: 'small_worms', count: countItem(state, 'smallWorms'), disabled: countItem(state, 'smallWorms') === 0 },
     { id: 'worms', count: countItem(state, 'worms'), disabled: countItem(state, 'worms') === 0 },
     { id: 'larvae', count: countItem(state, 'larvae'), disabled: countItem(state, 'larvae') === 0 },
+    { id: 'bread', count: countItem(state, 'bread'), disabled: countItem(state, 'bread') === 0 },
+    { id: 'mastyrka', count: countItem(state, 'mastyrka'), disabled: countItem(state, 'mastyrka') === 0 },
+    { id: 'corn', count: countItem(state, 'corn'), disabled: countItem(state, 'corn') === 0 },
+    { id: 'dough', count: countItem(state, 'dough'), disabled: countItem(state, 'dough') === 0 },
+    { id: 'nightcrawler', count: countItem(state, 'nightcrawler'), disabled: countItem(state, 'nightcrawler') === 0 },
     { id: 'live_bait', count: liveBaitCount, disabled: liveBaitCount === 0 },
   ];
 }
@@ -477,10 +577,8 @@ export function getCastSpotTarget(spotId) {
 }
 
 export function getAvailableCastSpots(state, method) {
-  const selectedWater = state.travel?.selectedWater ?? 'canal';
-  const waterSpots = selectedWater === 'greada'
-    ? castSpots.filter((spot) => spot.waterId === 'greada')
-    : castSpots.filter((spot) => !spot.waterId);
+  const selectedWater = normalizeWaterId(state.travel?.selectedWater);
+  const waterSpots = castSpots.filter((spot) => (spot.waterId ?? 'canal') === selectedWater);
   return waterSpots.map((spot) => ({
     ...spot,
     scatterRadius: getCastScatterRadius(state, method, spot),
@@ -536,9 +634,9 @@ export function getFishingContextAction(state) {
 
   if (minigame.phase === 'strike_window') {
     return {
-      labelKey: hintMode === 'off' ? 'action' : 'strike',
+      labelKey: hintMode === 'off' ? 'strike' : 'strikeNow',
       enabled: true,
-      variant: hintMode === 'beginner' ? 'strike' : 'action',
+      variant: 'strike',
     };
   }
 
@@ -546,7 +644,7 @@ export function getFishingContextAction(state) {
     return {
       labelKey: hintMode === 'off' ? 'action' : 'strike',
       enabled: true,
-      variant: 'action',
+      variant: 'wait',
     };
   }
 
@@ -605,7 +703,7 @@ function canContextCast(minigame) {
 }
 
 function hasUsableRod(state) {
-  return hasItem(state, 'stickRod') || getTackleEffects(state).hasProperRod;
+  return getTackleEffects(state).hasRod || hasItem(state, 'stickRod');
 }
 
 function startBiteCycle(state, minigame, nowMs) {
@@ -616,6 +714,43 @@ function startBiteCycle(state, minigame, nowMs) {
   minigame.bobberState = 'idle';
   minigame.statusKey = getCycleStatusKey(state, minigame);
   minigame.nextStepAt = nowMs + randomBetween(550, 1100);
+}
+
+function buildBiteChecks(state, minigame, startMs) {
+  const tutorialBonus = state.progress?.firstCatchDone ? 0 : 0.2;
+  const profile = minigame.fishCandidateId ? getBiteProfile(minigame.fishCandidateId) : null;
+  const fishActivity = profile ? clamp(0.04 + (profile.activity ?? 0.5) * 0.08, 0, 0.12) : 0;
+  const spot = minigame.selectedSpot ? getCastSpot(minigame.selectedSpot) : null;
+  const spotActivity = spot?.zone === 'mid_water' ? 0.04 : spot?.zone === 'reed_edge' ? 0.025 : 0.015;
+  const baitActivity = minigame.fishCandidateId ? clamp((getBaitSuitability(minigame.fishCandidateId, minigame.selectedBait) - 0.28) * 0.08, -0.04, 0.08) : -0.02;
+  const waterActivity = normalizeWaterId(state.travel?.selectedWater) === 'canal' ? 0 : 0.025;
+  const baseChances = [0.14, 0.24, 0.38, 0.54, 0.68];
+  const canFastNibble = ['bleak', 'gudgeon', 'rotan'].includes(minigame.fishCandidateId) && Math.random() < 0.32;
+  const firstCheck = canFastNibble ? 1700 : 2800;
+  const intervals = [firstCheck, 4300, 6500, 8900, 11600];
+  const stillnessDelay = Math.max(0, (minigame.stillnessUntil ?? 0) - startMs);
+
+  return baseChances.map((chance, index) => ({
+    at: startMs + stillnessDelay + intervals[index] + randomBetween(-220, 260),
+    chance: clamp(chance + tutorialBonus + fishActivity + spotActivity + baitActivity + waterActivity, 0.04, 0.88),
+  }));
+}
+
+function runBiteCheck(state, minigame, nowMs) {
+  const check = minigame.biteChecks[minigame.biteCheckIndex];
+  minigame.biteCheckIndex += 1;
+
+  if (!check || !minigame.fishCandidateId) {
+    return false;
+  }
+
+  const lateBoost = minigame.biteCheckIndex >= minigame.biteChecks.length ? biteTuning.lateBiteBoost : 0;
+  if (Math.random() <= clamp(check.chance + lateBoost, 0, 0.9)) {
+    return true;
+  }
+
+  minigame.nextStepAt = nowMs + randomBetween(700, 1150);
+  return false;
 }
 
 function advanceMissedBiteCycle(state, minigame, nowMs) {
@@ -724,8 +859,14 @@ function resolveMinigameResult(state, result) {
 }
 
 function tickWaitingAmbience(state, minigame, nowMs) {
+  if ((minigame.stillnessUntil ?? 0) > nowMs) {
+    minigame.bobberState = 'idle';
+    minigame.statusKey = 'fishingWaiting';
+    return;
+  }
+
   if (nowMs >= minigame.idleEventAt) {
-    const falseActivity = Math.random() < 0.42 && minigame.falseActivityCount < 2;
+    const falseActivity = Math.random() < biteTuning.falseActivityChance && minigame.falseActivityCount < 2;
     if (falseActivity) {
       minigame.bobberState = Math.random() < 0.55 ? 'tiny_nibble' : 'idle';
       minigame.statusKey = getWaitingStatusKey(state);
@@ -757,7 +898,11 @@ function tickRareInsect(state, minigame, nowMs) {
 }
 
 function consumeBait(state, baitId) {
-  if (baitId === 'worms' || baitId === 'larvae') {
+  if (baitId === 'small_worms') {
+    return removeItem(state, 'smallWorms', 1);
+  }
+
+  if (['worms', 'larvae', 'bread', 'mastyrka', 'corn', 'dough', 'nightcrawler'].includes(baitId)) {
     return removeItem(state, baitId, 1);
   }
 
@@ -767,6 +912,8 @@ function consumeBait(state, baitId) {
       return false;
     }
     state.fishBasket = state.fishBasket.filter((entry) => entry.id !== liveBait.id);
+    state.ui.fishingMinigame.consumedLiveBaitSourceFishId = liveBait.liveBaitSourceFishId ?? liveBait.fishId;
+    state.ui.fishingMinigame.consumedLiveBaitQuality = liveBait.liveBaitQuality ?? 'small';
     syncInventoryFromFishBasket(state);
     return true;
   }
@@ -776,16 +923,20 @@ function consumeBait(state, baitId) {
 
 function chooseFishCandidate(state, minigame) {
   if (!state.progress?.firstCatchDone) {
+    if (normalizeWaterId(state.travel?.selectedWater) !== 'canal') {
+      const spot = getCastSpot(minigame.selectedSpot);
+      return Object.entries(spot.weights).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'crucian';
+    }
     return Math.random() < 0.65 ? 'rotan' : 'crucian';
   }
 
   const spot = getCastSpot(minigame.selectedSpot);
-  const weights = Object.entries(biteProfiles).map(([fishId, profile]) => ({
-    fishId,
-    weight: getFishWeight(state, minigame, fishId, profile, spot),
-  })).filter((entry) => entry.weight > 0);
+  const weights = getFishCandidateWeights(state, minigame, spot);
 
-  const noBiteWeight = weights.length === 0 ? 1 : 2.35;
+  const baitSuitability = weights.reduce((best, entry) => Math.max(best, getBaitSuitability(entry.fishId, minigame.selectedBait)), 0);
+  const noBiteWeight = weights.length === 0
+    ? 1
+    : biteTuning.noBiteWeight + (baitSuitability < 1 ? biteTuning.calmNoBiteWeight : 0) + (spot.zone === 'near_bank' ? -0.25 : 0.2);
   const totalWeight = weights.reduce((total, entry) => total + entry.weight, noBiteWeight);
   const roll = Math.random() * totalWeight;
 
@@ -810,6 +961,18 @@ function getFishWeight(state, minigame, fishId, profile, spot) {
     return 0;
   }
 
+  if (!canBiteAtDepth(fishId, minigame.selectedDepth ?? 'middle')) {
+    return 0;
+  }
+
+  if (fishId === 'eel' && !['nightcrawler', 'live_bait'].includes(minigame.selectedBait)) {
+    return 0;
+  }
+
+  if (minigame.selectedBait === 'live_bait' && !canCatchOnLiveBait(fishId)) {
+    return 0;
+  }
+
   if (profile.preferred.methods.includes(minigame.method)) {
     score *= 1.18;
   }
@@ -818,23 +981,22 @@ function getFishWeight(state, minigame, fishId, profile, spot) {
     score *= 1.16;
   }
 
-  if (profile.preferred.baits.includes(minigame.selectedBait)) {
-    score *= 1.22;
+  const baitSuitability = getBaitSuitability(fishId, minigame.selectedBait);
+  if (baitSuitability <= 0) {
+    return 0;
   }
+  score *= baitSuitability;
+  score *= getDepthMultiplier(fishId, minigame.selectedDepth ?? 'middle');
+  score *= getLiveBaitSourceMultiplier(fishId, minigame);
 
   score *= 1 + Math.max(0, 1 - getTackleEffects(state).scatterScale) * 0.14;
 
   score *= getTimeMultiplier(state, fishId);
 
-  if (state.travel?.selectedWater === 'greada') {
-    if (fishId === 'crucian') score *= 1.24;
-    if (fishId === 'rotan') score *= 0.62;
-    if (fishId === 'loach') score *= 0.72;
-    if (fishId === 'canadian_catfish') score *= ['evening', 'night'].includes(getTimePhase(state)) ? 1.55 : 0.42;
-  }
+  score *= getWaterFishMultiplier(state, fishId);
 
   if (fishId === 'rotan' && minigame.selectedZone === 'near_bank' && minigame.method === 'handline') {
-    score *= 1.25;
+    score *= 0.82;
   }
 
   if (fishId === 'crucian' && minigame.selectedZone !== 'near_bank') {
@@ -842,13 +1004,54 @@ function getFishWeight(state, minigame, fishId, profile, spot) {
   }
 
   if (fishId === 'pike') {
+    if (minigame.selectedBait !== 'live_bait') {
+      return 0;
+    }
+    score *= spot.zone === 'reed_edge' ? 1.95 : spot.zone === 'mid_water' ? 1.52 : 1.12;
+    if (normalizeWaterId(state.travel?.selectedWater) === 'sluice') {
+      score *= 1.25;
+    }
+    if (state.tackle?.equipped?.hook === 'large_hook') {
+      score *= 1.2;
+    }
+  }
+
+  if (fishId === 'canadian_catfish' && normalizeWaterId(state.travel?.selectedWater) === 'greada') {
+    score *= (minigame.selectedDepth ?? 'middle') === 'bottom' ? 1.42 : 1.16;
+    if (['worms', 'nightcrawler', 'larvae', 'live_bait'].includes(minigame.selectedBait)) {
+      score *= 1.18;
+    }
+  }
+
+  if (fishId === 'sudak') {
     if (minigame.selectedBait !== 'live_bait' || getTackleEffects(state).reachBonus <= 0) {
       return 0;
     }
-    score *= 1.35;
+    score *= 1.28;
+  }
+
+  if (fishId === 'som') {
+    if (getTackleEffects(state).reachBonus <= 0 || getTackleEffects(state).stabilityBonus <= 0) {
+      return 0;
+    }
+    score *= minigame.selectedBait === 'live_bait' ? 1.18 : 0.82;
+  }
+
+  if (fishId === 'eel') {
+    if (getTackleEffects(state).reachBonus <= 0 || !['nightcrawler', 'live_bait'].includes(minigame.selectedBait)) {
+      return 0;
+    }
+    score *= minigame.selectedBait === 'live_bait' ? 1.3 : 1.08;
   }
 
   return score;
+}
+
+export function getFishCandidateWeights(state, minigame, spot = getCastSpot(minigame.selectedSpot)) {
+  return Object.entries(biteProfiles).map(([fishId, profile]) => ({
+    fishId,
+    weight: getFishWeight(state, minigame, fishId, profile, spot),
+  })).filter((entry) => entry.weight > 0);
 }
 
 function buildPattern(fishId) {
@@ -865,9 +1068,25 @@ function buildCyclePattern(fishId, cycle, total) {
     rudd: ['tiny_nibble', 'sideways_pull', 'strike_window'],
     loach: cycle === total ? ['slow_dip', 'submerged', 'strike_window'] : ['idle', 'slow_dip', 'strike_window'],
     pike: ['sideways_pull', 'hard_dip', 'strike_window'],
+    okun: cycle === total ? ['tiny_nibble', 'hard_dip', 'strike_window'] : ['tiny_nibble', 'sideways_pull', 'strike_window'],
+    lynok: cycle === total ? ['lift', 'slow_dip', 'strike_window'] : ['tiny_nibble', 'slow_dip', 'strike_window'],
+    sudak: ['sideways_pull', 'hard_dip', 'strike_window'],
+    som: cycle === total ? ['slow_dip', 'submerged', 'strike_window'] : ['idle', 'slow_dip', 'hard_dip', 'strike_window'],
     canadian_catfish: cycle === total ? ['slow_dip', 'submerged', 'strike_window'] : ['idle', 'slow_dip', 'strike_window'],
+    carp: cycle === total ? ['slow_dip', 'hard_dip', 'strike_window'] : ['tiny_nibble', 'slow_dip', 'strike_window'],
+    grass_carp: ['sideways_pull', 'hard_dip', 'strike_window'],
+    silver_carp: ['slow_dip', 'submerged', 'strike_window'],
+    white_bream: cycle === total ? ['lift', 'slow_dip', 'strike_window'] : ['tiny_nibble', 'slow_dip', 'strike_window'],
+    bream: cycle === total ? ['lift', 'slow_dip', 'submerged', 'strike_window'] : ['tiny_nibble', 'slow_dip', 'strike_window'],
+    plotytsia: ['tiny_nibble', 'slow_dip', 'strike_window'],
+    gudgeon: ['tiny_nibble', 'hard_dip', 'strike_window'],
+    eel: cycle === total ? ['idle', 'slow_dip', 'submerged', 'strike_window'] : ['idle', 'sideways_pull', 'strike_window'],
   };
-  return profiles[fishId] ?? ['tiny_nibble', 'strike_window'];
+  const profile = profiles[fishId] ?? ['tiny_nibble', 'strike_window'];
+  if (cycle < total && Math.random() < biteTuning.weakBiteChance) {
+    return Math.random() < 0.5 ? ['tiny_nibble', 'idle'] : ['lift', 'idle'];
+  }
+  return profile;
 }
 
 function getBiteCycleTotal(fishId) {
@@ -878,48 +1097,63 @@ function getBiteCycleTotal(fishId) {
 
 function getBaitSuitability(fishId, baitId) {
   const profile = getBiteProfile(fishId);
-  return profile.preferred.baits.includes(baitId) ? 1 : 0.55;
+  if (!baitId || !profile) {
+    return 0;
+  }
+
+  if (profile.preferred.baits.includes(baitId)) {
+    return 1.24;
+  }
+
+  const animalBaits = ['worms', 'small_worms', 'larvae', 'nightcrawler', 'live_bait'];
+  const predators = ['pike', 'sudak', 'som', 'eel', 'okun', 'canadian_catfish'];
+  if (baitId === 'live_bait') {
+    if (fishId === 'rotan') return 0.1;
+    return predators.includes(fishId) ? 1.18 : 0;
+  }
+  if (predators.includes(fishId)) {
+    if (baitId === 'small_worms') return fishId === 'okun' ? 0.22 : 0.06;
+    return animalBaits.includes(baitId) ? 0.16 : 0;
+  }
+
+  if (baitId === 'small_worms') {
+    return ['bleak', 'roach', 'plotytsia', 'gudgeon', 'crucian', 'okun'].includes(fishId) ? 0.92 : 0.18;
+  }
+
+  const neutralBaits = {
+    crucian: ['larvae'],
+    bleak: ['dough'],
+    roach: ['corn'],
+    rudd: ['mastyrka', 'corn'],
+    loach: ['larvae'],
+    lynok: ['larvae', 'mastyrka'],
+    carp: ['worms'],
+    grass_carp: ['mastyrka', 'dough'],
+    silver_carp: ['bread'],
+    white_bream: ['larvae'],
+    bream: ['larvae', 'corn'],
+    plotytsia: ['larvae'],
+    gudgeon: ['larvae'],
+  }[fishId] ?? [];
+
+  return neutralBaits.includes(baitId) ? 0.28 : 0.05;
 }
 
 function getTackleBonus(state, method) {
   const effects = getTackleEffects(state);
   let bonus = method === 'stickRod' ? 0.18 : 0.08;
-  bonus += effects.hookBonus + effects.floatBonus + effects.stabilityBonus;
+  bonus += effects.hookBonus + effects.floatBonus + effects.stabilityBonus + effects.controlBonus + effects.escapeReduction;
   return bonus;
 }
 
 function canUseCastSpot(state, method, spot) {
-  const effects = getTackleEffects(state);
-  const selectedWater = state.travel?.selectedWater ?? 'canal';
-  if (spot.waterId && spot.waterId !== selectedWater) {
-    return { allowed: false, reasonKey: 'requiresBicycle' };
+  const selectedWater = normalizeWaterId(state.travel?.selectedWater);
+  if ((spot.waterId ?? 'canal') !== selectedWater) {
+    return { allowed: false, reasonKey: 'wrongWater' };
   }
 
-  if (spot.id === 'far_shadow' && effects.reachBonus <= 0) {
-    return { allowed: false, reasonKey: 'requiresBetterRodOrLine' };
-  }
-
-  if (spot.id === 'greada_mud' && !state.travel?.greadaUnlocked) {
-    return { allowed: false, reasonKey: 'logNeedBicycleForTravel' };
-  }
-
-  if (method === 'handline' && !spot.allowedMethods.includes('handline')) {
-    return { allowed: false, reasonKey: 'tooFarForHandline' };
-  }
-
-  if ((method === 'stickRod' || method === 'liveBait') && !spot.allowedMethods.includes('stickRod') && !['far_shadow', 'greada_mud'].includes(spot.id)) {
-    return { allowed: false, reasonKey: 'requiresStickRod' };
-  }
-
+  void method;
   return { allowed: true, reasonKey: null };
-}
-
-function getNaturalWaitMs() {
-  const roll = Math.random();
-  if (roll > 0.88) {
-    return randomBetween(18000, 30000);
-  }
-  return randomBetween(6000, 18000);
 }
 
 function getTimeMultiplier(state, fishId) {
@@ -932,9 +1166,22 @@ function getTimeMultiplier(state, fishId) {
     rudd: ['day', 'evening'],
     loach: ['evening', 'night'],
     pike: ['morning', 'evening'],
+    okun: ['morning', 'day'],
+    lynok: ['morning', 'evening'],
+    sudak: ['evening', 'night'],
+    som: ['evening', 'night'],
     canadian_catfish: ['evening', 'night'],
+    carp: ['morning', 'evening'],
+    grass_carp: ['day', 'evening'],
+    silver_carp: ['day', 'evening'],
+    white_bream: ['morning', 'evening'],
+    bream: ['morning', 'evening'],
+    plotytsia: ['morning', 'day'],
+    gudgeon: ['day'],
+    eel: ['evening', 'night'],
   }[fishId] ?? ['day'];
   if (preferred.includes(phase)) return 1.25;
+  if ((fishId === 'sudak' || fishId === 'som') && phase === 'day') return 0.35;
   if (fishId === 'canadian_catfish' && phase === 'day') return 0.12;
   return 0.72;
 }
@@ -996,24 +1243,111 @@ function shouldBreakHomemadeRod(state, catchResult) {
     return false;
   }
 
-  const breakChance = catchResult.weightGrams > 650 ? 0.85 : 0.55;
+  const breakChance = catchResult.weightGrams > 650 ? 0.28 : 0.14;
   return Math.random() < breakChance;
 }
 
 function adjustCatchForWater(state, catchResult) {
-  if (state.travel?.selectedWater !== 'greada') {
-    return;
+  const waterId = normalizeWaterId(state.travel?.selectedWater);
+  const multipliers = {
+    sluice: { bleak: [1.05, 1.18], roach: [1.08, 1.2] },
+    fire_ponds: { crucian: [1.12, 1.28], rudd: [1.08, 1.22], lynok: [1.02, 1.12] },
+    greada: { crucian: [1.12, 1.32], lynok: [1.06, 1.18], canadian_catfish: [1.08, 1.24] },
+    lake_tur: { okun: [1.1, 1.24], lynok: [1.12, 1.26], sudak: [1.08, 1.22], rudd: [1.12, 1.28], pike: [1.1, 1.22] },
+    mining_lake: { pike: [1.18, 1.34], okun: [1.12, 1.26], lynok: [1.12, 1.3], sudak: [1.2, 1.38], som: [1.18, 1.42], canadian_catfish: [1.18, 1.38] },
+  };
+  const range = multipliers[waterId]?.[catchResult.id];
+  const centralizedRange = getWaterSizeRange(waterId, catchResult.id);
+  if (centralizedRange || range) {
+    catchResult.weightGrams = Math.round(catchResult.weightGrams * randomBetween(...(centralizedRange ?? range)));
   }
-
-  if (catchResult.id === 'crucian') {
-    catchResult.weightGrams = Math.round(catchResult.weightGrams * randomBetween(1.12, 1.32));
+  if (state.ui?.fishingMinigame?.consumedBait === 'live_bait') {
+    catchResult.weightGrams = Math.max(350, catchResult.weightGrams);
   }
-
-  if (catchResult.id === 'canadian_catfish') {
-    catchResult.weightGrams = Math.round(catchResult.weightGrams * randomBetween(1.08, 1.24));
-  }
-
   catchResult.weightGrams = Math.max(1, catchResult.weightGrams);
+}
+
+function canCatchOnLiveBait(fishId) {
+  return ['pike', 'okun', 'som', 'eel', 'canadian_catfish', 'rotan', 'sudak'].includes(fishId);
+}
+
+function canBiteAtDepth(fishId, depth) {
+  if (depth !== 'surface') {
+    return true;
+  }
+  const fish = getFishData(fishId);
+  return fish?.surfaceBite !== false;
+}
+
+function getDepthMultiplier(fishId, depth) {
+  if (depth === 'middle') {
+    return 1;
+  }
+
+  const fish = getFishData(fishId);
+  const preference = fish?.depthPreference ?? 'middle';
+  if (fishId === 'crucian') {
+    return depth === 'surface' ? 0.82 : 1.12;
+  }
+  if (depth === 'surface') {
+    if (preference === 'surface') return 1.42;
+    if (preference === 'bottom') return 0.18;
+    return 0.55;
+  }
+  if (preference === 'bottom') return 1.38;
+  if (preference === 'surface') return 0.24;
+  return 0.82;
+}
+
+function getLiveBaitSourceMultiplier(fishId, minigame) {
+  if (minigame.selectedBait !== 'live_bait') {
+    return 1;
+  }
+  const source = minigame.consumedLiveBaitSourceFishId;
+  if (fishId === 'pike' && source === 'crucian') return 1.28;
+  if ((fishId === 'som' || fishId === 'eel' || fishId === 'canadian_catfish') && source === 'loach') return 1.24;
+  if (fishId === 'okun' && ['gudgeon', 'bleak', 'plotytsia'].includes(source)) return 1.18;
+  if (fishId === 'rotan') return 0.32;
+  return 1.06;
+}
+
+function applyDepthCatchAdjustments(catchResult, depth) {
+  if (depth === 'surface') {
+    catchResult.weightGrams = Math.max(1, Math.round(catchResult.weightGrams * 0.88));
+  }
+}
+
+function getWaterFishMultiplier(state, fishId) {
+  const waterId = normalizeWaterId(state.travel?.selectedWater);
+  if (!getWaterFishIds(waterId).includes(fishId)) {
+    return 0;
+  }
+  const phase = getTimePhase(state);
+  const multipliers = {
+    canal: { rotan: 1.15, crucian: 1.02, pike: 0.75, canadian_catfish: 0 },
+    sluice: { bleak: 1.35, roach: 1.22, rudd: 0.92, pike: ['morning', 'evening'].includes(phase) ? 1.18 : 0.76, loach: 0.55, canadian_catfish: 0 },
+    fire_ponds: { crucian: 1.24, rudd: 1.3, roach: 1.12, rotan: 0.62, canadian_catfish: 0 },
+    greada: {
+      crucian: 1.24,
+      rotan: 0.62,
+      loach: 0.82,
+      canadian_catfish: ['evening', 'night'].includes(phase) ? 1.55 : 0.42,
+      pike: 0.35,
+    },
+    lake_tur: { roach: 1.12, rudd: 1.16, okun: 1.32, lynok: 1.24, sudak: ['evening', 'night'].includes(phase) ? 1.28 : 0.72, pike: 1.12, rotan: 0.2, canadian_catfish: 0, som: 0.18 },
+    mining_lake: {
+      pike: 1.45,
+      okun: 1.24,
+      lynok: 1.22,
+      sudak: ['evening', 'night'].includes(phase) ? 1.65 : 0.8,
+      som: ['evening', 'night'].includes(phase) ? 1.55 : 0.58,
+      canadian_catfish: ['evening', 'night'].includes(phase) ? 1.65 : 0.72,
+      eel: ['evening', 'night'].includes(phase) ? 1.45 : 0.44,
+      loach: 1.18,
+      rotan: 0.2,
+    },
+  };
+  return multipliers[waterId]?.[fishId] ?? 1;
 }
 
 function resetAfterResult(state, minigame) {
@@ -1026,12 +1360,17 @@ function resetAfterResult(state, minigame) {
   minigame.nextStepAt = 0;
   minigame.strikeWindowStartAt = 0;
   minigame.strikeWindowEndAt = 0;
+  minigame.biteChecks = [];
+  minigame.biteCheckIndex = 0;
   minigame.currentCatchEntryId = null;
   minigame.consumedBait = null;
+  minigame.consumedLiveBaitSourceFishId = null;
+  minigame.consumedLiveBaitQuality = null;
+  minigame.stillnessUntil = 0;
   state.ui.catchResult = null;
   state.ui.collapsedPanels = {
     ...(state.ui.collapsedPanels ?? {}),
-    fishingControls: false,
+    fishingControls: true,
   };
   autoSelectFirstAvailableBait(state, minigame);
   autoSelectFirstAvailableSpot(state, minigame);

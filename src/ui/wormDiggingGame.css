@@ -1,0 +1,250 @@
+.worm-digging {
+  pointer-events: auto;
+  position: fixed;
+  inset: 0;
+  z-index: 94;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: rgb(7 12 10 / 56%);
+  backdrop-filter: blur(7px);
+}
+
+.worm-digging__panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  width: min(760px, 100%);
+  max-height: min(680px, calc(100dvh - 24px));
+  border: 1px solid rgb(255 255 255 / 15%);
+  border-radius: 8px;
+  background: rgb(38 44 26 / 86%);
+  box-shadow: 0 24px 64px rgb(0 0 0 / 34%);
+  color: #fff8df;
+  padding: 14px;
+  overflow: hidden;
+}
+
+.worm-digging__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.worm-digging__header h2,
+.worm-digging__header p {
+  margin: 0;
+}
+
+.worm-digging__header p:last-child {
+  color: #e6e0bd;
+  font-size: 0.86rem;
+}
+
+.worm-digging__mode {
+  display: inline-block;
+  width: fit-content;
+  margin: 4px 0;
+  border: 1px solid rgb(243 196 95 / 32%);
+  border-radius: 999px;
+  background: rgb(8 16 15 / 28%);
+  color: #fff8df;
+  font-size: 0.76rem;
+  padding: 4px 9px;
+}
+
+.worm-digging__close {
+  width: 36px;
+  min-height: 36px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 14%);
+  color: #fff8df;
+  padding: 0;
+}
+
+.worm-digging__field {
+  position: relative;
+  min-height: 360px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 8px;
+  background:
+    linear-gradient(rgb(31 44 25 / 14%), rgb(31 44 25 / 14%)),
+    url('/assets/minigames/worm-search/worm-search-bg.png') center / cover no-repeat,
+    radial-gradient(circle at 18% 26%, rgb(172 130 79 / 48%), transparent 18%),
+    radial-gradient(circle at 70% 72%, rgb(72 96 44 / 44%), transparent 22%),
+    radial-gradient(circle at 86% 18%, rgb(32 70 32 / 72%), transparent 17%),
+    repeating-linear-gradient(12deg, rgb(66 45 28 / 32%) 0 8px, rgb(92 61 36 / 28%) 8px 15px),
+    linear-gradient(160deg, #55743b, #725036 48%, #3d522d);
+  cursor: url('/assets/items/item_shovel.png') 8 28, pointer;
+  overflow: hidden;
+}
+
+.worm-digging__field--stone {
+  background:
+    linear-gradient(rgb(31 44 25 / 8%), rgb(31 44 25 / 8%)),
+    url('/assets/minigames/worm-search/worm-search-bg.png') center / cover no-repeat,
+    radial-gradient(circle at 22% 34%, rgb(92 91 76 / 58%), transparent 10%),
+    radial-gradient(circle at 72% 66%, rgb(115 101 80 / 50%), transparent 12%),
+    radial-gradient(circle at 86% 18%, rgb(32 70 32 / 72%), transparent 17%),
+    repeating-linear-gradient(12deg, rgb(66 45 28 / 24%) 0 8px, rgb(92 61 36 / 20%) 8px 15px),
+    linear-gradient(160deg, #5e7542, #6f5a3e 48%, #3d522d);
+  cursor: pointer;
+}
+
+.worm-digging__field::before,
+.worm-digging__field::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+.worm-digging__field::before {
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgb(55 111 48 / 34%), transparent 24%),
+    radial-gradient(circle at 74% 62%, rgb(38 28 18 / 42%), transparent 18%);
+}
+
+.worm-digging__field::after {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 34px;
+  background: repeating-linear-gradient(90deg, rgb(70 118 46 / 82%) 0 4px, transparent 4px 10px);
+  opacity: 0.72;
+}
+
+.worm-digging__furrow {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  height: 34px;
+  border-radius: 50%;
+  border-top: 6px solid rgb(46 31 20 / 34%);
+  opacity: 0.8;
+  transform: rotate(-7deg);
+}
+
+.worm-digging__furrow--one { top: 28%; }
+.worm-digging__furrow--two { top: 52%; transform: rotate(6deg); }
+.worm-digging__furrow--three { top: 74%; transform: rotate(-3deg); }
+
+.worm-digging__shovel {
+  position: absolute;
+  right: 8%;
+  top: 14%;
+  z-index: 2;
+  width: 18px;
+  height: 96px;
+  border-radius: 999px;
+  background: #b88648;
+  transform: rotate(34deg);
+  box-shadow: 0 8px 16px rgb(0 0 0 / 28%);
+}
+
+.worm-digging__shovel::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -18px;
+  width: 34px;
+  height: 26px;
+  border: 5px solid #b88648;
+  border-bottom: 0;
+  border-radius: 18px 18px 0 0;
+  transform: translateX(-50%);
+}
+
+.worm-digging__shovel::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -34px;
+  width: 44px;
+  height: 48px;
+  border-radius: 8px 8px 26px 26px;
+  background: linear-gradient(#c7c1aa, #747260);
+  transform: translateX(-50%);
+}
+
+.worm-digging__field--stone .worm-digging__shovel {
+  display: none;
+}
+
+.worm-digging__hole {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 38px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgb(30 18 12 / 88%) 0 42%, rgb(83 52 31 / 74%) 43% 70%, transparent 72%);
+  transform: translate(-50%, -50%);
+  animation: wormDigPop 180ms ease-out;
+}
+
+.worm-digging__hole span {
+  width: 26px;
+  height: 8px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.worm-digging__hole.has-worms span {
+  background: #d59a74;
+  box-shadow: 11px 1px 0 #e7c066, -8px 3px 0 #c88464;
+}
+
+.worm-digging__footer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+}
+
+@keyframes wormDigPop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.62);
+  }
+}
+
+:root.low-power-mode .worm-digging__hole {
+  animation: none !important;
+}
+
+.worm-digging__footer span {
+  color: #e6e0bd;
+  font-size: 0.84rem;
+}
+
+.worm-digging__footer button {
+  min-height: 40px;
+  border-radius: 999px;
+  background: #f3c45f;
+  padding: 9px 12px;
+}
+
+@media (max-width: 640px) {
+  .worm-digging {
+    align-items: stretch;
+    padding: 8px;
+  }
+
+  .worm-digging__panel {
+    max-height: calc(100dvh - 16px);
+    padding: 10px;
+  }
+
+  .worm-digging__field {
+    min-height: 330px;
+  }
+
+  .worm-digging__footer {
+    grid-template-columns: 1fr;
+  }
+}

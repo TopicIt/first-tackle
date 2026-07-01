@@ -7,18 +7,18 @@ import { addItem } from './inventory.js';
 
 export function sellAllFish(state) {
   ensureMarketState(state);
-  completeSale(state, sellFishByStatus(state, 'fresh'), 'logNoFishToSell', 'logSoldFish');
+  completeSale(state, takeFishEntries(state, (entry) => ['fresh', 'cleaned'].includes(entry.status)), 'logNoFishToSell', 'logSoldFish');
 }
 
 export function sellSingleFish(state, fishEntryId) {
   ensureMarketState(state);
-  const entry = takeFishEntry(state, fishEntryId, (fish) => fish.status === 'fresh');
+  const entry = takeFishEntry(state, fishEntryId, (fish) => ['fresh', 'cleaned'].includes(fish.status));
   completeSale(state, entry ? [entry] : [], 'logNoFishToSell', 'logSoldFish');
 }
 
 export function sellFishSpecies(state, fishId) {
   ensureMarketState(state);
-  const soldEntries = takeFishEntries(state, (entry) => entry.status === 'fresh' && entry.fishId === fishId);
+  const soldEntries = takeFishEntries(state, (entry) => ['fresh', 'cleaned'].includes(entry.status) && entry.fishId === fishId);
   completeSale(state, soldEntries, 'logNoFishToSell', 'logSoldFish');
 }
 
@@ -38,7 +38,7 @@ export function buyShopItem(state, itemId) {
     return;
   }
 
-  const alreadyOwned = itemId === 'smoker' ? state.hasSmoker : state.purchased[itemId];
+  const alreadyOwned = state.purchased[itemId];
   if (item.type !== 'consumable' && alreadyOwned) {
     pushLog(state, 'logAlreadyOwned', { itemKey: getShopItemKey(itemId) });
     return;
@@ -59,19 +59,47 @@ export function buyShopItem(state, itemId) {
   }
 
   state.purchased[itemId] = true;
-  if (itemId === 'smoker') {
-    state.hasSmoker = true;
-  }
-  if (itemId === 'bicycle') {
+  if (itemId === 'scooter') {
     state.travel ??= {};
+    state.travel.sluiceUnlocked = true;
+    state.travel.visitedWaters = {
+      ...(state.travel.visitedWaters ?? {}),
+      canal: true,
+    };
+  }
+  if (['bicycle', 'betterBicycle', 'bestBicycle'].includes(itemId)) {
+    state.travel ??= {};
+    const tier = {
+      bicycle: 'used',
+      betterBicycle: 'better',
+      bestBicycle: 'best',
+    }[itemId];
+    const trips = {
+      bicycle: 20,
+      betterBicycle: 120,
+      bestBicycle: 9999,
+    }[itemId];
+    state.travel.bicycleTier = tier;
+    state.travel.bicycleTripsLeft = trips;
+    state.purchased.bicycle = true;
+    if (itemId === 'bestBicycle') {
+      state.purchased.betterBicycle = true;
+    }
     state.travel.farWatersUnlocked = true;
     state.travel.greadaUnlocked = true;
+    state.travel.visitedWaters = {
+      ...(state.travel.visitedWaters ?? {}),
+      canal: true,
+    };
   }
   const componentByItem = {
     betterLine: 'better_line',
     simpleFloat: 'cheap_float',
     properFloat: 'proper_float',
     properSinker: 'proper_sinker',
+    smallHook: 'small_hook',
+    mediumHook: 'medium_hook',
+    largeHook: 'large_hook',
     sharperHook: 'sharper_hook',
     properRod: 'proper_rod',
   };
@@ -90,12 +118,25 @@ function getShopItemKey(itemId) {
     simpleFloat: 'itemSimpleFloat',
     properFloat: 'componentProperFloat',
     properSinker: 'componentProperSinker',
+    smallHook: 'componentSmallHook',
+    mediumHook: 'componentMediumHook',
+    largeHook: 'componentLargeHook',
     sharperHook: 'componentSharperHook',
     properRod: 'componentProperRod',
     bicycle: 'itemBicycle',
-    smoker: 'itemSmoker',
+    scooter: 'itemScooter',
+    betterBicycle: 'itemBetterBicycle',
+    bestBicycle: 'itemBestBicycle',
     salt: 'itemSalt',
     hooksPack: 'itemHooksPack',
+    baitSmallWorms: 'itemSmallWorms',
+    baitBread: 'itemBread',
+    baitWorms: 'itemWorms',
+    baitMastyrka: 'itemMastyrka',
+    baitCorn: 'itemCorn',
+    baitDough: 'itemDough',
+    baitNightcrawler: 'itemNightcrawler',
+    baitLarvae: 'itemLarvae',
   };
   return labels[itemId] ?? itemId;
 }

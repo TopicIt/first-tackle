@@ -1,8 +1,14 @@
 export const itemLabels = {
   thread: 'itemThread',
   simpleHook: 'itemSimpleHook',
+  smallWorms: 'itemSmallWorms',
   worms: 'itemWorms',
   larvae: 'itemLarvae',
+  bread: 'itemBread',
+  mastyrka: 'itemMastyrka',
+  corn: 'itemCorn',
+  dough: 'itemDough',
+  nightcrawler: 'itemNightcrawler',
   primitiveTackle: 'itemPrimitiveTackle',
   stickRod: 'itemStickRod',
   bicycle: 'itemBicycle',
@@ -15,7 +21,7 @@ export const itemLabels = {
   hooksPack: 'itemHooksPack',
 };
 
-export const fishIds = ['rotan', 'crucian', 'bleak', 'roach', 'rudd', 'loach', 'pike', 'canadian_catfish'];
+export const fishIds = ['rotan', 'crucian', 'bleak', 'roach', 'rudd', 'loach', 'pike', 'okun', 'lynok', 'sudak', 'som', 'canadian_catfish', 'carp', 'grass_carp', 'silver_carp', 'white_bream', 'bream', 'plotytsia', 'gudgeon', 'eel'];
 
 export function countItem(state, itemId) {
   return state.inventory[itemId] ?? 0;

@@ -1,27 +1,29 @@
 import * as THREE from 'three';
-import { worldMapAsset } from '../utils/worldMapAsset.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { assetPath } from '../utils/assetPath.js';
+import { getWorldMapAsset } from '../utils/worldMapAsset.js';
 
 const zoneColors = {
   house: 0xe3c173,
   garden: 0x627c4b,
-  pond: 0x4d8aa1,
-  greada: 0x526f55,
+  canal: 0x4d8aa1,
   market: 0xb98e5d,
+  bus_station: 0x7d90a8,
 };
 
 export const interactionZones = {
   house: {
-    label: 'House',
+    label: 'Grandma',
     position: new THREE.Vector3(-7.6, 0, 1.6),
     radius: 1.7,
   },
   garden: {
-    label: 'Garden',
+    label: 'Beds',
     position: new THREE.Vector3(-7.1, 0, -3.6),
     radius: 1.65,
   },
-  pond: {
-    label: 'Pond',
+  canal: {
+    label: 'Canal',
     position: new THREE.Vector3(5.2, 0, -1.8),
     radius: 3,
   },
@@ -30,11 +32,20 @@ export const interactionZones = {
     position: new THREE.Vector3(1.5, 0, 6.1),
     radius: 2.5,
   },
-  greada: {
-    label: 'Greada',
-    position: new THREE.Vector3(10.3, 0, -7.2),
-    radius: 1.8,
+  bus_station: {
+    label: 'Bus',
+    position: new THREE.Vector3(4.25, 0, 8.2),
+    radius: 1.35,
   },
+};
+
+// Temporary prototype fisherman GLB. Adjust these values while tuning the Blender export in game.
+const prototypeFishermanModel = {
+  path: assetPath('/assets/models/fisher_boy_base.glb'),
+  scale: 1,
+  targetHeight: 1.65,
+  position: new THREE.Vector3(3.65, 0.02, -0.15),
+  rotation: new THREE.Euler(0, Math.PI * 0.72, 0),
 };
 
 export function createWorld() {
@@ -65,11 +76,14 @@ export function createWorld() {
   addGarden(scene);
   addPond(scene);
   addMarket(scene);
+  addBusStation(scene);
   addTrees(scene);
   addZoneMarkers(scene);
+  loadPrototypeFisherman(scene);
 
   const windObjects = addReeds(scene);
   const animatedMapObjects = addMapLife(scene);
+  let loadedMapTexturePath = null;
   const bounds = {
     minX: -12.5,
     maxX: 12.5,
@@ -94,7 +108,62 @@ export function createWorld() {
       animatedMapObjects.waterShimmer.scale.setScalar(1 + Math.sin(time * 2.2) * 0.04);
       animatedMapObjects.waterShimmer.material.opacity = 0.18 + Math.sin(time * 2.5) * 0.07;
     },
+    updateMapTexture(mapAsset) {
+      if (!mapAsset?.primary || mapAsset.primary === loadedMapTexturePath) {
+        return;
+      }
+      loadedMapTexturePath = mapAsset.primary;
+      loadMapTexture(animatedMapObjects.mapPlaneMaterial, mapAsset.primary, mapAsset.fallback);
+    },
   };
+}
+
+function loadPrototypeFisherman(scene) {
+  const loader = new GLTFLoader();
+
+  loader.load(
+    prototypeFishermanModel.path,
+    (gltf) => {
+      const model = gltf.scene;
+
+      // Prototype model transform knobs: tweak path, scale, position, and rotation above.
+      model.name = 'prototype-fisher-boy';
+      normalizePrototypeFishermanModel(model);
+      model.rotation.copy(prototypeFishermanModel.rotation);
+
+      model.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+
+      scene.add(model);
+    },
+    undefined,
+    (error) => {
+      console.warn(`Prototype fisherman model failed to load: ${prototypeFishermanModel.path}`, error);
+    },
+  );
+}
+
+function normalizePrototypeFishermanModel(model) {
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const heightScale = size.y > 0 ? prototypeFishermanModel.targetHeight / size.y : 1;
+  const finalScale = prototypeFishermanModel.scale * heightScale;
+
+  // Prototype scale/grounding: targetHeight keeps Blender test exports mobile-sized.
+  model.scale.setScalar(finalScale);
+
+  const scaledCenter = center.multiplyScalar(finalScale);
+  const scaledMinY = box.min.y * finalScale;
+  model.position.set(
+    prototypeFishermanModel.position.x - scaledCenter.x,
+    prototypeFishermanModel.position.y - scaledMinY,
+    prototypeFishermanModel.position.z - scaledCenter.z,
+  );
 }
 
 function addRoad(scene) {
@@ -234,12 +303,36 @@ function addMarket(scene) {
   scene.add(sign);
   scene.add(createTextLabel('FISH', new THREE.Vector3(-1, 1.42, 6.02), 0.9));
 
-  const stop = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.12, 0.12, 2.2, 10),
+}
+
+function addBusStation(scene) {
+  const stop = new THREE.Group();
+  stop.position.set(4.25, 0, 8.2);
+
+  const post = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.1, 0.1, 2.2, 10),
     new THREE.MeshStandardMaterial({ color: 0x3d5365 }),
   );
-  stop.position.set(3.35, 1.1, 6.55);
-  stop.castShadow = true;
+  post.position.y = 1.1;
+  post.castShadow = true;
+  stop.add(post);
+
+  const sign = new THREE.Mesh(
+    new THREE.BoxGeometry(0.9, 0.5, 0.08),
+    new THREE.MeshStandardMaterial({ color: 0xe9f0d8, roughness: 0.72 }),
+  );
+  sign.position.set(0, 1.95, 0);
+  sign.castShadow = true;
+  stop.add(sign);
+
+  const bench = new THREE.Mesh(
+    new THREE.BoxGeometry(1.5, 0.22, 0.45),
+    new THREE.MeshStandardMaterial({ color: 0x7a5a3d, roughness: 0.82 }),
+  );
+  bench.position.set(0.95, 0.45, 0.15);
+  bench.castShadow = true;
+  stop.add(bench);
+
   scene.add(stop);
 }
 
@@ -385,7 +478,8 @@ function addMapLife(scene) {
   mapPlane.rotation.x = -Math.PI / 2;
   mapPlane.position.set(0, 0.065, -0.7);
   scene.add(mapPlane);
-  loadMapTexture(mapPlaneMaterial, worldMapAsset.primary, worldMapAsset.fallback);
+  const initialMapAsset = getWorldMapAsset('mobile');
+  loadMapTexture(mapPlaneMaterial, initialMapAsset.primary, initialMapAsset.fallback);
 
   const waterShimmer = new THREE.Mesh(
     new THREE.RingGeometry(1.15, 1.34, 32),
@@ -401,25 +495,30 @@ function addMapLife(scene) {
   waterShimmer.position.set(5.2, 0.18, -1.8);
   scene.add(waterShimmer);
 
-  return { waterShimmer };
+  return { mapPlaneMaterial, waterShimmer };
 }
 
 function loadMapTexture(material, primaryPath, fallbackPath) {
   const loader = new THREE.TextureLoader();
+  const applyTexture = (texture) => {
+    if (material.map) {
+      material.map.dispose();
+    }
+    texture.colorSpace = THREE.SRGBColorSpace;
+    material.map = texture;
+    material.needsUpdate = true;
+  };
   loader.load(
     primaryPath,
-    (texture) => {
-      texture.colorSpace = THREE.SRGBColorSpace;
-      material.map = texture;
-      material.needsUpdate = true;
-    },
+    applyTexture,
     undefined,
     () => {
-      loader.load(fallbackPath, (texture) => {
-        texture.colorSpace = THREE.SRGBColorSpace;
-        material.map = texture;
-        material.needsUpdate = true;
-      });
+      if (fallbackPath) {
+        if (import.meta.env.DEV) {
+          console.warn(`Map background failed to load: ${primaryPath}. Falling back to ${fallbackPath}.`);
+        }
+        loader.load(fallbackPath, applyTexture);
+      }
     },
   );
 }

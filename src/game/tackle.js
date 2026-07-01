@@ -1,15 +1,20 @@
 export const tackleComponents = {
-  line: ['grandma_thread', 'better_line'],
-  hook: ['old_dull_hook', 'sharper_hook'],
-  sinker: ['small_stone', 'proper_sinker'],
+  line: ['none', 'grandma_thread', 'better_line'],
+  hook: ['none', 'old_dull_hook', 'small_hook', 'medium_hook', 'large_hook', 'sharper_hook'],
+  sinker: ['none', 'small_stone', 'proper_sinker'],
   float: ['none', 'goose_feather_float', 'cheap_float', 'proper_float'],
   rod: ['none', 'simple_stick_rod', 'proper_rod'],
 };
+
+export const requiredTackleSlots = ['line', 'hook', 'sinker'];
 
 export const componentLabels = {
   grandma_thread: 'componentGrandmaThread',
   better_line: 'componentBetterLine',
   old_dull_hook: 'componentOldDullHook',
+  small_hook: 'componentSmallHook',
+  medium_hook: 'componentMediumHook',
+  large_hook: 'componentLargeHook',
   sharper_hook: 'componentSharperHook',
   small_stone: 'componentSmallStone',
   proper_sinker: 'componentProperSinker',
@@ -21,52 +26,66 @@ export const componentLabels = {
   proper_rod: 'componentProperRod',
 };
 
-export const tackleRigs = [
-  {
-    id: 'handline',
-    labelKey: 'rigPrimitiveHandline',
-    descriptionKey: 'rigPrimitiveHandlineDesc',
-    method: 'handline',
-  },
-  {
-    id: 'first_rod',
-    labelKey: 'rigFirstRod',
-    descriptionKey: 'rigFirstRodDesc',
-    method: 'stickRod',
-  },
-  {
-    id: 'proper_rod',
-    labelKey: 'rigProperRod',
-    descriptionKey: 'rigProperRodDesc',
-    method: 'stickRod',
-  },
-];
+export const componentDescriptions = {
+  none: 'componentNoneDesc',
+  grandma_thread: 'componentGrandmaThreadDesc',
+  better_line: 'componentBetterLineDesc',
+  old_dull_hook: 'componentOldDullHookDesc',
+  small_hook: 'componentSmallHookDesc',
+  medium_hook: 'componentMediumHookDesc',
+  large_hook: 'componentLargeHookDesc',
+  sharper_hook: 'componentSharperHookDesc',
+  small_stone: 'componentSmallStoneDesc',
+  proper_sinker: 'componentProperSinkerDesc',
+  goose_feather_float: 'componentGooseFeatherFloatDesc',
+  cheap_float: 'componentCheapFloatDesc',
+  proper_float: 'componentProperFloatDesc',
+  simple_stick_rod: 'componentSimpleStickRodDesc',
+  proper_rod: 'componentProperRodDesc',
+};
+
+export const componentEffects = {
+  grandma_thread: { breakPenalty: 0.12, trophyBonus: 0 },
+  better_line: { breakPenalty: -0.16, reachBonus: 1, trophyBonus: 0.015 },
+  old_dull_hook: { hookBonus: -0.08 },
+  small_hook: { hookBonus: 0.03, escapeReduction: 0.01 },
+  medium_hook: { hookBonus: 0.07, escapeReduction: 0.03 },
+  large_hook: { hookBonus: 0.09, escapeReduction: 0.05, trophyBonus: 0.01 },
+  sharper_hook: { hookBonus: 0.12, escapeReduction: 0.08 },
+  small_stone: { stabilityBonus: -0.04 },
+  proper_sinker: { stabilityBonus: 0.08, scatterBonus: -0.08 },
+  none: { floatBonus: -0.08 },
+  goose_feather_float: { floatBonus: 0.05 },
+  cheap_float: { floatBonus: 0.08, scatterBonus: -0.06 },
+  proper_float: { floatBonus: 0.12, scatterBonus: -0.1 },
+  simple_stick_rod: { controlBonus: 0.08, scatterBase: 0.82 },
+  proper_rod: { controlBonus: 0.16, reachBonus: 1, scatterBase: 0.62, escapeReduction: 0.08 },
+};
 
 export function createInitialTackleState() {
   return {
-    activeRig: 'handline',
+    activeRig: null,
     owned: {
-      grandma_thread: true,
-      old_dull_hook: true,
-      small_stone: true,
       none: true,
     },
     equipped: {
-      line: 'grandma_thread',
-      hook: 'old_dull_hook',
-      sinker: 'small_stone',
+      line: 'none',
+      hook: 'none',
+      sinker: 'none',
       float: 'none',
       rod: 'none',
     },
+    migratedLegacyRig: false,
   };
 }
 
 export function ensureTackleState(state) {
   state.tackle ??= createInitialTackleState();
   state.progress ??= {};
-  if (state.progress.firstTackleReady !== false) {
-    state.progress.firstTackleReady = true;
-    state.inventory ??= {};
+  state.inventory ??= {};
+  const firstTackleReady = Boolean(state.progress.firstTackleReady || state.progress.starterTackleDrawerCompleted);
+  state.progress.firstTackleReady = firstTackleReady;
+  if (firstTackleReady) {
     state.inventory.primitiveTackle = Math.max(1, state.inventory.primitiveTackle ?? 0);
   }
   state.tackle.owned = {
@@ -77,12 +96,16 @@ export function ensureTackleState(state) {
     ...createInitialTackleState().equipped,
     ...(state.tackle.equipped ?? {}),
   };
-  state.tackle.activeRig = getRigAvailable(state, state.tackle.activeRig) ? state.tackle.activeRig : getBestAvailableRig(state).id;
+  migrateOldRigSelectionOnce(state);
 
   if (state.inventory?.primitiveTackle > 0) {
     state.tackle.owned.grandma_thread = true;
     state.tackle.owned.old_dull_hook = true;
     state.tackle.owned.small_stone = true;
+  }
+  if (state.progress?.starterTackleDrawerCompleted) {
+    state.tackle.owned.goose_feather_float = true;
+    state.tackle.owned.simple_stick_rod = true;
   }
   if (state.inventory?.stickRod > 0) {
     state.tackle.owned.simple_stick_rod = true;
@@ -99,13 +122,23 @@ export function ensureTackleState(state) {
   if (state.purchased?.properSinker) {
     state.tackle.owned.proper_sinker = true;
   }
+  if (state.purchased?.smallHook) {
+    state.tackle.owned.small_hook = true;
+  }
+  if (state.purchased?.mediumHook) {
+    state.tackle.owned.medium_hook = true;
+  }
+  if (state.purchased?.largeHook) {
+    state.tackle.owned.large_hook = true;
+  }
   if (state.purchased?.sharperHook) {
     state.tackle.owned.sharper_hook = true;
   }
   if (state.purchased?.properRod) {
     state.tackle.owned.proper_rod = true;
   }
-  state.tackle.activeRig = getRigAvailable(state, state.tackle.activeRig) ? state.tackle.activeRig : getBestAvailableRig(state).id;
+  repairEquippedComponents(state);
+  state.tackle.activeRig = null;
 }
 
 export function ownTackleComponent(state, componentId) {
@@ -118,85 +151,79 @@ export function equipTackleComponent(state, slot, componentId) {
   if (!tackleComponents[slot]?.includes(componentId) || !state.tackle.owned[componentId]) {
     return false;
   }
+  if (requiredTackleSlots.includes(slot) && componentId === 'none') {
+    return false;
+  }
   state.tackle.equipped[slot] = componentId;
+  state.tackle.activeRig = null;
   return true;
 }
 
 export function selectActiveRig(state, rigId) {
   ensureTackleState(state);
-  if (!getRigAvailable(state, rigId)) {
-    return false;
-  }
-  state.tackle.activeRig = rigId;
-  return true;
+  state.tackle.activeRig = null;
+  return ['handline', 'first_rod', 'proper_rod'].includes(rigId);
 }
 
 export function getActiveRig(state) {
   ensureTackleState(state);
-  return tackleRigs.find((rig) => rig.id === state.tackle.activeRig) ?? getBestAvailableRig(state);
+  const id = getLegacyRigIdFromComponents(state);
+  return {
+    id,
+    labelKey: id === 'handline' ? 'activeTackleHandline' : 'activeTackleComponents',
+    descriptionKey: 'activeTackleComponentsDesc',
+    method: getRigMethod(state),
+  };
 }
 
 export function getAvailableRigs(state) {
   ensureTackleState(state);
-  return tackleRigs.map((rig) => ({
-    ...rig,
-    available: getRigAvailable(state, rig.id),
-  }));
+  return [];
 }
 
-export function getRigMethod(state, rigId = state.tackle?.activeRig) {
-  const rig = tackleRigs.find((entry) => entry.id === rigId) ?? getActiveRig(state);
-  return rig.method;
+export function getRigMethod(state, rigId = null) {
+  ensureTackleState(state);
+  return state.tackle.equipped?.rod && state.tackle.equipped.rod !== 'none' ? 'stickRod' : 'handline';
 }
 
 export function getTackleEffects(state) {
   ensureTackleState(state);
   const equipped = state.tackle.equipped;
-  const rig = getActiveRig(state);
-  const usesRod = rig.id === 'first_rod' || rig.id === 'proper_rod';
-  const usesProperRod = rig.id === 'proper_rod';
-  const usesFloat = usesRod && equipped.float !== 'none';
-  const line = usesProperRod ? equipped.line : rig.id === 'first_rod' ? equipped.line : 'grandma_thread';
-  const hook = usesRod ? equipped.hook : 'old_dull_hook';
-  const sinker = usesRod ? equipped.sinker : 'small_stone';
-  const float = usesFloat ? equipped.float : 'none';
+  const rod = equipped.rod ?? 'none';
+  const usesRod = rod !== 'none';
+  const usesProperRod = rod === 'proper_rod';
+  const line = equipped.line ?? 'none';
+  const hook = equipped.hook ?? 'none';
+  const sinker = equipped.sinker ?? 'none';
+  const float = equipped.float ?? 'none';
+  const lineEffects = componentEffects[line] ?? {};
+  const hookEffects = componentEffects[hook] ?? {};
+  const sinkerEffects = componentEffects[sinker] ?? {};
+  const floatEffects = componentEffects[float] ?? {};
+  const rodEffects = componentEffects[rod] ?? {};
   return {
-    activeRigId: rig.id,
-    reachBonus: line === 'better_line' || usesProperRod ? 1 : 0,
-    hookBonus: hook === 'sharper_hook' ? 0.12 : -0.08,
-    stabilityBonus: sinker === 'proper_sinker' ? 0.08 : -0.04,
-    floatBonus: float === 'proper_float' ? 0.12 : float === 'cheap_float' ? 0.08 : float === 'goose_feather_float' ? 0.05 : -0.08,
-    hasFloat: usesFloat,
+    activeRigId: getLegacyRigIdFromComponents(state),
+    reachBonus: Math.max(lineEffects.reachBonus ?? 0, rodEffects.reachBonus ?? 0),
+    hookBonus: hookEffects.hookBonus ?? 0,
+    stabilityBonus: sinkerEffects.stabilityBonus ?? 0,
+    floatBonus: floatEffects.floatBonus ?? 0,
+    controlBonus: rodEffects.controlBonus ?? 0,
+    escapeReduction: (hookEffects.escapeReduction ?? 0) + (rodEffects.escapeReduction ?? 0),
+    trophyBonus: (lineEffects.trophyBonus ?? 0) + (hookEffects.trophyBonus ?? 0),
+    hasCompleteStarterSet: Boolean(line !== 'none' && hook !== 'none' && sinker !== 'none'),
+    hasFloat: float !== 'none',
     hasRod: usesRod,
     hasProperRod: usesProperRod,
-    breakPenalty: line === 'grandma_thread' ? 0.12 : -0.16,
+    breakPenalty: lineEffects.breakPenalty ?? 0,
     scatterScale: getScatterScale({
       ...equipped,
       line,
       hook,
       sinker,
       float,
-      rod: usesProperRod ? 'proper_rod' : usesRod ? 'simple_stick_rod' : 'none',
+      rod,
     }),
   };
-}
-
-function getRigAvailable(state, rigId) {
-  const owned = state.tackle?.owned ?? {};
-  if (rigId === 'handline') {
-    return (state.inventory?.primitiveTackle ?? 0) > 0;
-  }
-  if (rigId === 'first_rod') {
-    return (state.inventory?.stickRod ?? 0) > 0 || owned.simple_stick_rod;
-  }
-  if (rigId === 'proper_rod') {
-    return Boolean(owned.proper_rod || state.purchased?.properRod);
-  }
-  return false;
-}
-
-function getBestAvailableRig(state) {
-  return [...tackleRigs].reverse().find((rig) => getRigAvailable(state, rig.id)) ?? tackleRigs[0];
 }
 
 function getScatterScale(equipped) {
@@ -206,4 +233,45 @@ function getScatterScale(equipped) {
   else if (equipped.float === 'cheap_float') scale -= 0.06;
   if (equipped.sinker === 'proper_sinker') scale -= 0.08;
   return Math.max(0.48, scale);
+}
+
+function migrateOldRigSelectionOnce(state) {
+  if (state.tackle?.migratedLegacyRig) {
+    return;
+  }
+
+  const rigId = state.tackle?.activeRig;
+  const currentRod = state.tackle?.equipped?.rod ?? 'none';
+  if (currentRod !== 'none') {
+    state.tackle.migratedLegacyRig = true;
+    return;
+  }
+
+  if (rigId === 'proper_rod' && (state.tackle.owned?.proper_rod || state.purchased?.properRod)) {
+    state.tackle.equipped.rod = 'proper_rod';
+  } else if (rigId === 'first_rod' && (state.tackle.owned?.simple_stick_rod || (state.inventory?.stickRod ?? 0) > 0)) {
+    state.tackle.equipped.rod = 'simple_stick_rod';
+  }
+  state.tackle.migratedLegacyRig = true;
+}
+
+function repairEquippedComponents(state) {
+  for (const [slot, components] of Object.entries(tackleComponents)) {
+    const selected = state.tackle.equipped[slot];
+    if (!components.includes(selected) || !state.tackle.owned[selected]) {
+      state.tackle.equipped[slot] = components.find((component) => component !== 'none' && state.tackle.owned[component])
+        ?? 'none';
+    }
+  }
+}
+
+function getLegacyRigIdFromComponents(state) {
+  const rod = state.tackle?.equipped?.rod;
+  if (rod === 'proper_rod') {
+    return 'proper_rod';
+  }
+  if (rod === 'simple_stick_rod') {
+    return 'first_rod';
+  }
+  return 'handline';
 }

@@ -11,22 +11,6 @@ export const musicTracks = [
       assetPath('/assets/audio/music/ambient_day.mp3.mp3'),
     ],
   },
-  {
-    id: 'ambient_evening',
-    labelKey: 'musicTrackAmbientEvening',
-    sources: [
-      assetPath('/assets/audio/music/ambient_evening.mp3'),
-      assetPath('/assets/audio/music/ambient_evening.mp3.mp3'),
-    ],
-  },
-  {
-    id: 'theme',
-    labelKey: 'musicTrackTheme',
-    sources: [
-      assetPath('/assets/audio/music/theme.mp3'),
-      assetPath('/assets/audio/music/theme.mp3.mp3'),
-    ],
-  },
 ];
 
 export function getMusicTrack(trackId) {
@@ -37,6 +21,7 @@ export const availableAudioAssets = {
   music: Object.fromEntries(musicTracks.map((track) => [track.id, track.sources[0]])),
   sfx: {
     catch_success: assetPath('/assets/audio/music/sfx/catch%20success.mp3'),
+    trophy_fanfare: assetPath('/assets/audio/trophy-fanfare.mp3'),
   },
 };
 
@@ -82,6 +67,12 @@ export const fallbackSoundPresets = {
   catch_success: [
     { type: 'sine', frequency: 520, duration: 0.12, gain: 0.08 },
     { type: 'sine', frequency: 720, duration: 0.14, gain: 0.06, delay: 0.08 },
+  ],
+  trophy_fanfare: [
+    { type: 'triangle', frequency: 523, duration: 0.12, gain: 0.09 },
+    { type: 'triangle', frequency: 659, duration: 0.13, gain: 0.08, delay: 0.1 },
+    { type: 'triangle', frequency: 784, duration: 0.18, gain: 0.08, delay: 0.22 },
+    { type: 'sine', frequency: 1046, duration: 0.2, gain: 0.06, delay: 0.38 },
   ],
   fish_escape: [
     { type: 'triangle', frequency: 360, duration: 0.14, gain: 0.07 },
