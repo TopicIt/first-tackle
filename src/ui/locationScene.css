@@ -467,13 +467,14 @@
   min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
-  padding-bottom: 18px;
+  padding-bottom: 14px;
 }
 
 .market-buy-categories {
   display: grid;
   grid-template-columns: repeat(3, minmax(180px, 1fr));
-  gap: 10px;
+  gap: 8px;
+  margin-top: -4px;
 }
 
 .market-buy-category {
@@ -483,7 +484,7 @@
   min-width: 0;
 }
 
-.market-buy-category h3 {
+.market-buy-category > h3 {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -701,17 +702,47 @@
 @media (max-width: 820px) {
   .market-buy-categories {
     grid-template-columns: 1fr;
+    gap: 7px;
+    margin-top: -6px;
   }
 
   .scene-market .market-card {
-    grid-template-columns: 48px minmax(0, 1fr);
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    gap: 7px;
+    padding: 6px;
   }
 
-  .scene-market .market-card button,
+  .scene-market .market-card img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .scene-market .market-card button {
+    grid-column: 3;
+    justify-self: end;
+    min-width: 68px;
+    min-height: 32px;
+    padding: 6px 9px;
+  }
+
   .market-card__meta {
     grid-column: 2;
     justify-self: start;
     justify-content: flex-start;
+    min-width: 0;
+  }
+
+  .scene-market .market-card__reason {
+    grid-column: 2 / -1;
+  }
+
+  .market-card h3 {
+    font-size: 0.82rem;
+  }
+
+  .market-card p {
+    font-size: 0.69rem;
+    line-height: 1.18;
   }
 
   .scene-market .market-summary {
@@ -1440,7 +1471,7 @@
 .location-scene--sluice_map .scene-header,
 .location-scene--fire_ponds_map .scene-header {
   border-color: rgb(243 196 95 / 22%);
-  background: rgb(7 14 13 / 20%) !important;
+  background: rgb(7 14 13 / 14%) !important;
   box-shadow: none;
   backdrop-filter: none !important;
 }
@@ -1458,6 +1489,9 @@
 .location-scene--sluice_map .scene-body,
 .location-scene--fire_ponds_map .scene-body {
   pointer-events: none;
+  display: contents !important;
+  padding: 0 !important;
+  overflow: visible !important;
 }
 
 .location-scene--sluice_map .scene-header,
@@ -1472,6 +1506,7 @@
 .location-scene--sluice_map .scene-action-grid button.scene-hotspot,
 .location-scene--fire_ponds_map .scene-action-grid button.scene-hotspot {
   backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .location-scene--sluice_map .scene-action-grid button.scene-hotspot,
@@ -1503,6 +1538,12 @@
 }
 
 @media (max-width: 760px) {
+  .location-scene--sluice_map .scene-shell,
+  .location-scene--fire_ponds_map .scene-shell {
+    display: block !important;
+    overflow: visible !important;
+  }
+
   .location-scene--sluice_map .scene-header,
   .location-scene--fire_ponds_map .scene-header {
     width: min(140px, calc(100vw - 224px));

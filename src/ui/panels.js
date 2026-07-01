@@ -792,7 +792,6 @@ function marketBuyCardMarkup(state, item) {
         <p>${t(shopDescriptionKey(item.id))}</p>
         <div class="market-card__meta">
           <strong>${owned ? t('owned') : `${item.price} ${t('coins').toLowerCase()}`}</strong>
-          ${item.amount && item.amount > 1 ? `<span class="market-card__qty">×${item.amount}</span>` : ''}
         </div>
       </div>
       <button data-action="buy:${item.id}" type="button"${owned || state.money < item.price ? ' disabled' : ''}>${owned ? t('owned') : t('buy')}</button>

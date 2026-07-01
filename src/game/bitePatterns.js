@@ -86,7 +86,7 @@ export const castSpots = [
     scale: 1.12,
     allowedMethods: ['handline', 'stickRod'],
     waterId: 'sluice',
-    weights: getWaterFishWeights('sluice', { okun: 0.8, pike: 0.12, crucian: 1.4, gudgeon: 1.65, plotytsia: 1.1, white_bream: 0.65 }),
+    weights: getWaterFishWeights('sluice', { okun: 0.8, pike: 0.16, crucian: 1.4, gudgeon: 1.65, plotytsia: 1.1, roach: 0.9, rudd: 0.55, white_bream: 0.65 }),
   },
   {
     id: 'sluice_lilies',
@@ -97,7 +97,7 @@ export const castSpots = [
     scale: 1.02,
     allowedMethods: ['handline', 'stickRod'],
     waterId: 'sluice',
-    weights: getWaterFishWeights('sluice', { okun: 1.15, pike: 0.8, crucian: 1.35, gudgeon: 1.05, plotytsia: 1.2, white_bream: 0.8 }),
+    weights: getWaterFishWeights('sluice', { okun: 1.15, pike: 1.05, crucian: 1.35, gudgeon: 1.05, plotytsia: 1.2, roach: 1.18, rudd: 1.16, white_bream: 0.8 }),
   },
   {
     id: 'sluice_middle_left',
@@ -108,7 +108,7 @@ export const castSpots = [
     scale: 0.94,
     allowedMethods: ['stickRod'],
     waterId: 'sluice',
-    weights: getWaterFishWeights('sluice', { okun: 1.25, pike: 0.9, crucian: 0.82, gudgeon: 1.2, plotytsia: 1.45, white_bream: 1.05 }),
+    weights: getWaterFishWeights('sluice', { okun: 1.25, pike: 1.15, crucian: 0.82, gudgeon: 1.2, plotytsia: 1.45, roach: 1.28, rudd: 0.72, white_bream: 1.05 }),
   },
   {
     id: 'sluice_middle',
@@ -119,7 +119,7 @@ export const castSpots = [
     scale: 0.88,
     allowedMethods: ['stickRod'],
     waterId: 'sluice',
-    weights: getWaterFishWeights('sluice', { okun: 1.35, pike: 1.15, crucian: 0.72, gudgeon: 1.05, plotytsia: 1.55, white_bream: 1.2 }),
+    weights: getWaterFishWeights('sluice', { okun: 1.35, pike: 1.45, crucian: 0.72, gudgeon: 1.05, plotytsia: 1.55, roach: 1.22, rudd: 0.68, white_bream: 1.2 }),
   },
   {
     id: 'sluice_middle_right',
@@ -130,7 +130,7 @@ export const castSpots = [
     scale: 0.84,
     allowedMethods: ['stickRod', 'betterLine'],
     waterId: 'sluice',
-    weights: getWaterFishWeights('sluice', { okun: 1.45, pike: 1.35, crucian: 0.58, gudgeon: 0.9, plotytsia: 1.35, white_bream: 1.2 }),
+    weights: getWaterFishWeights('sluice', { okun: 1.45, pike: 1.7, crucian: 0.58, gudgeon: 0.9, plotytsia: 1.35, roach: 1.12, rudd: 0.82, white_bream: 1.2 }),
   },
   {
     id: 'sluice_pit',
@@ -141,7 +141,7 @@ export const castSpots = [
     scale: 0.78,
     allowedMethods: ['stickRod', 'betterLine'],
     waterId: 'sluice',
-    weights: getWaterFishWeights('sluice', { okun: 1.55, pike: 1.75, crucian: 0.42, gudgeon: 0.72, plotytsia: 1.0, white_bream: 1.35 }),
+    weights: getWaterFishWeights('sluice', { okun: 1.55, pike: 2.15, crucian: 0.42, gudgeon: 0.72, plotytsia: 1.0, roach: 0.82, rudd: 0.72, white_bream: 1.35 }),
   },
   {
     id: 'fire_pond_reeds',
@@ -152,7 +152,7 @@ export const castSpots = [
     scale: 0.86,
     allowedMethods: ['stickRod', 'betterLine'],
     waterId: 'fire_ponds',
-    weights: getWaterFishWeights('fire_ponds', { crucian: 1.2, carp: 0.95, grass_carp: 1.1, silver_carp: 0.8 }),
+    weights: getWaterFishWeights('fire_ponds', { crucian: 1.2, roach: 1.05, rudd: 1.45, carp: 0.95, grass_carp: 1.1, silver_carp: 0.8 }),
   },
   {
     id: 'fire_pond_middle',
@@ -163,7 +163,7 @@ export const castSpots = [
     scale: 0.92,
     allowedMethods: ['stickRod'],
     waterId: 'fire_ponds',
-    weights: getWaterFishWeights('fire_ponds', { crucian: 1.35, carp: 1.18, grass_carp: 0.9, silver_carp: 1.05 }),
+    weights: getWaterFishWeights('fire_ponds', { crucian: 1.35, roach: 1.18, rudd: 1.15, carp: 1.18, grass_carp: 0.9, silver_carp: 1.05 }),
   },
   {
     id: 'greada_mud',

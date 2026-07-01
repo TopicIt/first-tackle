@@ -5,13 +5,13 @@ export const waterFishDistribution = {
     size: { crucian: [0.92, 1.08], rotan: [0.9, 1.05] },
   },
   sluice: {
-    fishIds: ['okun', 'pike', 'crucian', 'gudgeon', 'plotytsia', 'white_bream'],
-    weights: { okun: 2.9, pike: 0.36, crucian: 1.35, gudgeon: 1.8, plotytsia: 2.25, white_bream: 1.35 },
+    fishIds: ['okun', 'pike', 'crucian', 'gudgeon', 'plotytsia', 'roach', 'rudd', 'white_bream'],
+    weights: { okun: 2.9, pike: 0.62, crucian: 1.35, gudgeon: 1.8, plotytsia: 2.25, roach: 1.25, rudd: 0.72, white_bream: 1.35 },
     size: { okun: [1.02, 1.16], pike: [1.04, 1.16] },
   },
   fire_ponds: {
-    fishIds: ['crucian', 'carp', 'grass_carp', 'silver_carp'],
-    weights: { crucian: 5.6, carp: 0.46, grass_carp: 0.12, silver_carp: 0.1 },
+    fishIds: ['crucian', 'roach', 'rudd', 'carp', 'grass_carp', 'silver_carp'],
+    weights: { crucian: 5.6, roach: 1.15, rudd: 1.65, carp: 0.46, grass_carp: 0.12, silver_carp: 0.1 },
     size: { crucian: [1.14, 1.34], carp: [1.08, 1.24], grass_carp: [1.08, 1.22], silver_carp: [1.08, 1.22] },
   },
   greada: {

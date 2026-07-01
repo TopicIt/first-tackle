@@ -73,7 +73,6 @@ import {
   searchWormDigSpot,
 } from './game/wormDigging.js';
 import { createHud } from './ui/hud.js';
-import { updateMapOverlayMotion } from './ui/mapOverlay.js';
 import {
   applyViewModeToDocument,
   loadStoredViewMode,
@@ -1117,7 +1116,6 @@ function renderHud() {
     lastHudSnapshot = hudSnapshot;
     world.updateMapTexture(getWorldMapAsset(gameState.ui.resolvedViewMode ?? 'mobile', gameState));
     hud.render(gameState, context);
-    updateMapOverlayMotion(performance.now());
     queueAutosave();
   }
 }
@@ -1219,7 +1217,8 @@ function advanceStartupAfterProfile() {
 function preloadCriticalAssets() {
   const assets = [
     assetPath('/assets/logo/logo-mark.png'),
-    assetPath('/assets/logo/logo-ua.png'),
+    assetPath('/assets/logo/Logo-ukr.png'),
+    assetPath('/assets/logo/logo-eng.png'),
     assetPath('/assets/locations/world_map_concept1.png'),
     assetPath('/assets/locations/fishing-canal.webp'),
     assetPath('/assets/items/primitive_tackle.png'),
@@ -1406,12 +1405,6 @@ window.addEventListener('keyup', (event) => {
 });
 resize();
 renderHud();
-window.setInterval(() => {
-  if (gameState.settings?.performance?.lowPower) {
-    return;
-  }
-  updateMapOverlayMotion(performance.now());
-}, 250);
 
 function animate() {
   requestAnimationFrame(animate);
@@ -1432,9 +1425,6 @@ function animate() {
     }
   }
   tickFishingMinigame(gameState, performance.now());
-  if (!activeSceneOpen && !gameState.settings?.performance?.lowPower) {
-    updateMapOverlayMotion(performance.now());
-  }
   gameState.settings.audio.musicTrackId = audio.getCurrentTrackId();
   syncPlayerToState();
   const now = performance.now();

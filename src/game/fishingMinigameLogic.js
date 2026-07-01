@@ -1007,12 +1007,12 @@ function getFishWeight(state, minigame, fishId, profile, spot) {
     if (minigame.selectedBait !== 'live_bait') {
       return 0;
     }
-    score *= spot.zone === 'reed_edge' ? 2.05 : spot.zone === 'mid_water' ? 1.78 : 1.18;
+    score *= spot.zone === 'reed_edge' ? 1.95 : spot.zone === 'mid_water' ? 1.52 : 1.12;
     if (normalizeWaterId(state.travel?.selectedWater) === 'sluice') {
-      score *= 1.32;
+      score *= 1.25;
     }
     if (state.tackle?.equipped?.hook === 'large_hook') {
-      score *= 1.18;
+      score *= 1.2;
     }
   }
 
@@ -1325,7 +1325,7 @@ function getWaterFishMultiplier(state, fishId) {
   const phase = getTimePhase(state);
   const multipliers = {
     canal: { rotan: 1.15, crucian: 1.02, pike: 0.75, canadian_catfish: 0 },
-    sluice: { bleak: 1.35, roach: 1.2, pike: 1.05, loach: 0.55, canadian_catfish: 0 },
+    sluice: { bleak: 1.35, roach: 1.22, rudd: 0.92, pike: ['morning', 'evening'].includes(phase) ? 1.18 : 0.76, loach: 0.55, canadian_catfish: 0 },
     fire_ponds: { crucian: 1.24, rudd: 1.3, roach: 1.12, rotan: 0.62, canadian_catfish: 0 },
     greada: {
       crucian: 1.24,

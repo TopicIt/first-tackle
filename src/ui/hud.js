@@ -647,9 +647,8 @@ function startupOverlayMarkup(state) {
   if (step === 'loading') {
     return `
       <section class="startup-flow" aria-label="${t('loading')}">
-        <div class="startup-flow__panel">
+        <div class="startup-flow__panel startup-flow__panel--loading">
           <img class="startup-flow__logo" src="${assetPath('/assets/logo/logo-mark.png')}" onerror="this.style.display='none'" alt="" />
-          <h1>${GAME_TITLE}</h1>
           <span class="startup-flow__loader" aria-hidden="true"></span>
         </div>
       </section>

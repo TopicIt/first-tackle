@@ -71,11 +71,11 @@ export const fishData = [
   {
     id: 'pike',
     nameKey: 'fishPike',
-    rarityKey: 'rarityRare',
+    rarityKey: 'rarityUncommon',
     minWeight: 300,
     maxWeight: 900,
     basePrice: 22,
-    weight: 1,
+    weight: 1.45,
     descriptionKey: 'descPike',
     depthPreference: 'middle',
   },
