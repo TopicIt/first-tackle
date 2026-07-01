@@ -3227,7 +3227,7 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet * {
 }
 
 :root[data-view-mode="mobile"] .market-card {
-  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-columns: 42px minmax(0, 1fr) 74px;
   gap: 7px;
   align-items: center;
   padding: 6px;
@@ -3248,12 +3248,13 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet * {
 }
 
 :root[data-view-mode="mobile"] .market-card p {
-  display: -webkit-box;
+  display: block;
   font-size: 0.69rem;
   line-height: 1.18;
+  max-width: 100%;
   overflow: hidden;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 :root[data-view-mode="mobile"] .market-card__qty-badge {
@@ -3286,8 +3287,8 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet * {
 :root[data-view-mode="mobile"] .market-card__reason {
   grid-column: 3;
   justify-self: end;
-  width: auto;
-  min-width: 68px;
+  width: 74px;
+  min-width: 74px;
   min-height: 32px;
   padding: 6px 9px;
 }
