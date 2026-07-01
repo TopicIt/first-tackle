@@ -26,7 +26,7 @@ import {
   useCatchAsLiveBait,
 } from './game/fishingMinigameLogic.js';
 import { getInteractionContext, getLocationSceneContext, runAction } from './game/interactions.js';
-import { exportSave, importSave, loadGame, resetGame, saveGame } from './game/save.js';
+import { backupLocalSave, exportSave, importSave, loadGame, resetGame, saveGame } from './game/save.js';
 import { createAudioManager } from './audio/audioManager.js';
 import { ensureMarketState, freshFishAtRisk } from './game/market.js';
 import { addItem } from './game/inventory.js';
@@ -126,6 +126,15 @@ let rememberedMarketScrollTop = 0;
 let lastAutosaveAt = 0;
 let lastAutosaveSignature = '';
 let autosaveTimer = null;
+let lastCloudAutosaveSignature = '';
+let cloudAutosaveTimer = null;
+let cloudAutosaveInFlight = false;
+let cloudAutosavePending = false;
+let lastCloudAutosaveStartedAt = 0;
+
+const CLOUD_SAVE_HINT_DISMISSED_KEY = 'first-tackle-cloud-save-hint-dismissed-v1';
+const CLOUD_AUTOSAVE_DELAY_MS = 18000;
+const CLOUD_AUTOSAVE_MIN_INTERVAL_MS = 30000;
 
 const hud = createHud(hudRoot, {
   onAction(actionId) {
@@ -331,6 +340,18 @@ const hud = createHud(hudRoot, {
         return;
       }
       resetToFreshState();
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'cloud:open') {
+      openCloudSaveSettings();
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'cloud:dismissHint') {
+      dismissCloudSaveHint();
       renderHud();
       return;
     }
@@ -921,6 +942,11 @@ const hud = createHud(hudRoot, {
 });
 
 startBootFlow();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && cloudAutosaveTimer) {
+    queueCloudAutosave({ immediate: true });
+  }
+});
 
 function syncPlayerToState() {
   gameState.player = player.snapshot();
@@ -976,6 +1002,7 @@ function resetLaunchUiState(state) {
   state.ui.startupTitleDismissed = false;
   state.ui.startupStep = 'loading';
   state.ui.editingProfile = false;
+  state.ui.cloudSaveHintDismissed = isCloudSaveHintDismissed();
 }
 
 function dismissStartupTitle() {
@@ -985,6 +1012,34 @@ function dismissStartupTitle() {
   gameState.ui ??= {};
   gameState.ui.startupTitleDismissed = true;
   lastHudSnapshot = '';
+}
+
+function isCloudSaveHintDismissed() {
+  try {
+    return localStorage.getItem(CLOUD_SAVE_HINT_DISMISSED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function dismissCloudSaveHint() {
+  gameState.ui ??= {};
+  gameState.ui.cloudSaveHintDismissed = true;
+  try {
+    localStorage.setItem(CLOUD_SAVE_HINT_DISMISSED_KEY, 'true');
+  } catch {
+    // Storage can be unavailable in private or restricted browser contexts.
+  }
+}
+
+function openCloudSaveSettings() {
+  gameState.ui ??= {};
+  gameState.ui.collapsedPanels = {
+    ...(gameState.ui.collapsedPanels ?? {}),
+    settings: false,
+  };
+  closeSiblingPanels(gameState, 'settings');
+  dismissCloudSaveHint();
 }
 
 function normalizeTransitionSettings(state) {
@@ -1286,9 +1341,9 @@ async function handleCloudAuth(payload) {
     saveCloudSession({
       profile,
       saveMetadata: status?.exists ? status : null,
-      lastMessage: 'Вхід виконано. Хмарне збереження доступне вручну.',
+      lastMessage: 'Вхід виконано. Автозбереження в хмару увімкнеться після змін у грі.',
     });
-    setCloudBusy(false, 'Вхід виконано. Хмарне збереження доступне вручну.');
+    setCloudBusy(false, 'Вхід виконано. Автозбереження в хмару увімкнеться після змін у грі.');
   } catch (error) {
     setCloudBusy(false, cloudErrorMessage(error));
   }
@@ -1298,6 +1353,8 @@ async function handleCloudAuth(payload) {
 async function handleCloudAction(actionId) {
   if (actionId === 'cloud:logout') {
     logout();
+    clearCloudAutosaveQueue();
+    lastCloudAutosaveSignature = '';
     setCloudBusy(false, 'Ви вийшли з хмарного акаунта.');
     renderHud();
     return;
@@ -1317,23 +1374,13 @@ async function uploadLocalSaveToCloud() {
   setCloudBusy(true, 'Завантажуємо локальний сейв на сервер...');
   renderHud();
   try {
-    syncPlayerToState();
-    saveGame(gameState);
-    const exported = JSON.parse(exportSave(gameState));
-    const payload = exported.save;
-    const session = loadCloudSession() ?? {};
-    const currentRevision = Number(session.saveMetadata?.revision ?? session.serverRevision ?? 0);
-    const result = await syncCloudSave({
-      saveVersion: payload.version ?? gameState.version ?? exported.version ?? 1,
-      revision: Number.isFinite(currentRevision) ? currentRevision : 0,
-      clientUpdatedAt: new Date().toISOString(),
-      payload,
-    });
+    const result = await syncCurrentSaveToCloud();
     saveCloudSession({
-      ...session,
+      ...(loadCloudSession() ?? {}),
       saveMetadata: result.metadata,
       lastMessage: `Локальний сейв завантажено. Ревізія сервера: ${result.metadata?.revision ?? '?'}.`,
     });
+    lastCloudAutosaveSignature = getCloudSaveSignature();
     setCloudBusy(false, `Локальний сейв завантажено. Ревізія сервера: ${result.metadata?.revision ?? '?'}.`);
   } catch (error) {
     setCloudBusy(false, cloudErrorMessage(error));
@@ -1364,6 +1411,7 @@ async function downloadCloudSave() {
       return;
     }
 
+    backupLocalSave('before-cloud-download');
     gameState = importSave(JSON.stringify(result.payload));
     ensureRuntimeState(gameState);
     player.restore(gameState.player);
@@ -1374,11 +1422,27 @@ async function downloadCloudSave() {
       lastMessage: 'Сейв із сервера завантажено.',
     });
     setCloudBusy(false, 'Сейв із сервера завантажено.');
+    lastCloudAutosaveSignature = getCloudSaveSignature();
     pushLog(gameState, 'logLoaded');
   } catch (error) {
     setCloudBusy(false, cloudErrorMessage(error));
   }
   renderHud();
+}
+
+async function syncCurrentSaveToCloud() {
+  syncPlayerToState();
+  saveGame(gameState);
+  const exported = JSON.parse(exportSave(gameState));
+  const payload = exported.save;
+  const session = loadCloudSession() ?? {};
+  const currentRevision = Number(session.saveMetadata?.revision ?? session.serverRevision ?? 0);
+  return syncCloudSave({
+    saveVersion: payload.version ?? gameState.version ?? exported.version ?? 1,
+    revision: Number.isFinite(currentRevision) ? currentRevision : 0,
+    clientUpdatedAt: new Date().toISOString(),
+    payload,
+  });
 }
 
 function setCloudBusy(busy, message = '') {
@@ -1396,6 +1460,7 @@ function cloudErrorMessage(error) {
   }
   if (error instanceof ApiError && error.status === 401) {
     logout();
+    clearCloudAutosaveQueue();
     return 'Сесія закінчилася. Увійди ще раз.';
   }
   return error?.message || 'Не вдалося виконати дію з хмарним збереженням.';
@@ -1437,6 +1502,7 @@ function queueAutosave() {
     lastAutosaveAt = performance.now();
     gameState.player = player.snapshot();
     saveGame(gameState);
+    queueCloudAutosave();
   };
 
   if (now - lastAutosaveAt > 1200) {
@@ -1446,6 +1512,85 @@ function queueAutosave() {
 
   if (!autosaveTimer) {
     autosaveTimer = window.setTimeout(saveNow, 1200);
+  }
+}
+
+function queueCloudAutosave({ immediate = false } = {}) {
+  const session = loadCloudSession();
+  if (!session?.accessToken) {
+    clearCloudAutosaveQueue();
+    return;
+  }
+
+  const signature = getCloudSaveSignature();
+  if (!signature || signature === lastCloudAutosaveSignature) {
+    return;
+  }
+
+  if (cloudAutosaveInFlight) {
+    cloudAutosavePending = true;
+    return;
+  }
+
+  const now = performance.now();
+  const waitForInterval = Math.max(0, CLOUD_AUTOSAVE_MIN_INTERVAL_MS - (now - lastCloudAutosaveStartedAt));
+  const delay = immediate ? waitForInterval : Math.max(CLOUD_AUTOSAVE_DELAY_MS, waitForInterval);
+
+  if (cloudAutosaveTimer) {
+    window.clearTimeout(cloudAutosaveTimer);
+  }
+
+  cloudAutosaveTimer = window.setTimeout(() => {
+    cloudAutosaveTimer = null;
+    runCloudAutosave(signature);
+  }, delay);
+}
+
+async function runCloudAutosave(signature) {
+  const session = loadCloudSession();
+  if (!session?.accessToken || cloudAutosaveInFlight) {
+    return;
+  }
+
+  cloudAutosaveInFlight = true;
+  cloudAutosavePending = false;
+  lastCloudAutosaveStartedAt = performance.now();
+  setCloudBusy(true, 'Автозбереження...');
+  renderHud();
+
+  try {
+    const result = await syncCurrentSaveToCloud();
+    saveCloudSession({
+      ...(loadCloudSession() ?? {}),
+      saveMetadata: result.metadata,
+      lastMessage: 'Збережено в хмару',
+    });
+    lastCloudAutosaveSignature = signature;
+    setCloudBusy(false, 'Збережено в хмару');
+  } catch (error) {
+    setCloudBusy(false, cloudErrorMessage(error) || 'Не вдалося зберегти в хмару');
+  } finally {
+    cloudAutosaveInFlight = false;
+    renderHud();
+    if (cloudAutosavePending) {
+      queueCloudAutosave();
+    }
+  }
+}
+
+function clearCloudAutosaveQueue() {
+  if (cloudAutosaveTimer) {
+    window.clearTimeout(cloudAutosaveTimer);
+    cloudAutosaveTimer = null;
+  }
+  cloudAutosavePending = false;
+}
+
+function getCloudSaveSignature() {
+  try {
+    return JSON.stringify(JSON.parse(exportSave(gameState)).save);
+  } catch {
+    return '';
   }
 }
 

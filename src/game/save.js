@@ -42,6 +42,20 @@ export function resetGame() {
   }
 }
 
+export function backupLocalSave(label = 'manual') {
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (!raw) {
+    return false;
+  }
+
+  localStorage.setItem(`${SAVE_KEY}-backup-${label}`, JSON.stringify({
+    createdAt: new Date().toISOString(),
+    saveKey: SAVE_KEY,
+    raw,
+  }));
+  return true;
+}
+
 export function exportSave(state) {
   return JSON.stringify({
     game: 'first-tackle',

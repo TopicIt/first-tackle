@@ -11,9 +11,52 @@ export function cloudSavePanelMarkup(state) {
   return `
     <section class="settings-block cloud-save-panel">
       <p class="section-label">Хмарне збереження</p>
+      <p class="cloud-save-panel__note">Після входу локальний прогрес періодично автозберігається в хмару. Гра без акаунта працює як раніше.</p>
       ${loggedIn ? loggedInMarkup(profile, metadata, message, isBusy) : loggedOutMarkup(message, isBusy)}
       <small class="cloud-save-panel__endpoint">${FIRST_TACKLE_API_BASE_URL}</small>
     </section>
+  `;
+}
+
+export function cloudSaveShortcutMarkup(state) {
+  const session = loadCloudSession();
+  const profile = session?.profile;
+  const metadata = session?.saveMetadata;
+  const message = state.ui?.cloudSave?.message ?? session?.lastMessage ?? '';
+  const loggedIn = Boolean(session?.accessToken);
+  const account = profile?.email || profile?.displayName || 'акаунт активний';
+  const status = loggedIn
+    ? `${account}${metadata?.serverUpdatedAt ? ` · ${formatServerTime(metadata.serverUpdatedAt)}` : ''}`
+    : 'Увійди, щоб додати хмарне автозбереження';
+
+  return `
+    <section class="cloud-save-shortcut" aria-label="Хмарне збереження">
+      <div>
+        <strong>Хмарне збереження</strong>
+        <span>${escapeHtml(status)}</span>
+        ${message ? `<small>${escapeHtml(message)}</small>` : ''}
+      </div>
+      <button data-action="cloud:open" type="button">Відкрити</button>
+    </section>
+  `;
+}
+
+export function cloudSaveHintMarkup(state) {
+  if (state.ui?.cloudSaveHintDismissed) {
+    return '';
+  }
+
+  return `
+    <aside class="cloud-save-hint" aria-label="Хмарне збереження">
+      <div>
+        <strong>Хмарне збереження доступне</strong>
+        <span>Можна грати без входу. Акаунт лише додає ручну синхронізацію та безпечне автозбереження.</span>
+      </div>
+      <div class="cloud-save-hint__actions">
+        <button data-action="cloud:open" type="button">Відкрити</button>
+        <button data-action="cloud:dismissHint" type="button" aria-label="Приховати підказку">&times;</button>
+      </div>
+    </aside>
   `;
 }
 
@@ -51,6 +94,7 @@ function loggedInMarkup(profile, metadata, message, isBusy) {
     <dl class="cloud-save-panel__status">
       <div><dt>Ревізія сервера</dt><dd>${metadata?.revision ?? 'немає'}</dd></div>
       <div><dt>Оновлено</dt><dd>${formatServerTime(metadata?.serverUpdatedAt)}</dd></div>
+      <div><dt>Автозбереження</dt><dd>увімкнено</dd></div>
     </dl>
     <div class="settings-action-row settings-action-row--stack">
       <button data-action="cloud:upload" type="button"${isBusy ? ' disabled' : ''}>Завантажити локальний сейв на сервер</button>
@@ -90,4 +134,3 @@ function escapeHtml(value) {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 }
-
