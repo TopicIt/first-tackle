@@ -14,7 +14,7 @@ import {
 import { locationSceneMarkup } from './locationScene.js';
 import { locationTransitionMarkup } from './locationTransition.js';
 import { mapOverlayMarkup } from './mapOverlay.js';
-import { cloudSaveHintMarkup, cloudSavePanelMarkup } from './cloudSavePanel.js';
+import { cloudSaveHintMarkup, cloudSaveMenuMarkup, cloudSavePanelMarkup } from './cloudSavePanel.js';
 import { syncFishingLineOverlay } from './fishingMinigame.js';
 import { syncFishingPrototype3d } from './fishingPrototype3d.js';
 import { getLanguage, t } from '../i18n/i18n.js';
@@ -315,9 +315,9 @@ export function createHud(root, handlers) {
                   ${menuButton('mapViewer', 'map', collapsedPanels)}
                   ${menuButton('settings', 'settings', collapsedPanels)}
                 </nav>
+                ${cloudSaveMenuMarkup(state)}
                 <div class="mobile-menu__service">
                   <button data-action="save" type="button">${t('save')}</button>
-                  <button data-action="panel:toggle:settings" type="button">Хмарне збереження</button>
                   <button data-action="load" type="button">${t('load')}</button>
                   <button data-action="reset" type="button">${t('reset')}</button>
                   <button data-language-toggle="true" type="button" aria-label="Switch language">${getLanguage().toUpperCase()} / ${t('languageToggle')}</button>
@@ -336,9 +336,9 @@ export function createHud(root, handlers) {
               ${menuButton('mapViewer', 'map', collapsedPanels)}
               ${menuButton('settings', 'settings', collapsedPanels)}
             </nav>
+            ${cloudSaveMenuMarkup(state)}
             <div class="save-row">
               <button data-action="save" type="button">${t('save')}</button>
-              <button data-action="panel:toggle:settings" type="button">Cloud Save</button>
               <button data-action="load" type="button">${t('load')}</button>
               <button data-action="reset" type="button">${t('reset')}</button>
               <button data-language-toggle="true" type="button" aria-label="Switch language">${getLanguage().toUpperCase()} / ${t('languageToggle')}</button>

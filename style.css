@@ -736,11 +736,22 @@ button:disabled {
   margin-top: 10px;
 }
 
+.cloud-save-shortcut--menu {
+  margin: 10px 0 0;
+}
+
 .cloud-save-shortcut div,
 .cloud-save-hint div {
   display: grid;
   min-width: 0;
   gap: 2px;
+}
+
+.cloud-save-shortcut__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .cloud-save-shortcut strong,
@@ -774,6 +785,15 @@ button:disabled {
   font-size: 0.72rem;
   font-weight: 850;
   padding: 6px 8px;
+}
+
+.cloud-save-shortcut__actions button {
+  flex: 1 1 86px;
+}
+
+.cloud-save-shortcut.is-connected {
+  border-color: rgb(132 216 169 / 28%);
+  background: rgb(22 60 48 / 46%);
 }
 
 .cloud-save-hint {
@@ -3066,6 +3086,7 @@ button:disabled {
   }
 
   .cloud-save-shortcut button,
+  .cloud-save-shortcut__actions,
   .cloud-save-hint__actions {
     justify-self: stretch;
   }
@@ -3497,6 +3518,7 @@ button:disabled {
 }
 
 :root[data-view-mode="mobile"] .cloud-save-shortcut button,
+:root[data-view-mode="mobile"] .cloud-save-shortcut__actions,
 :root[data-view-mode="mobile"] .cloud-save-hint__actions {
   justify-self: stretch;
 }

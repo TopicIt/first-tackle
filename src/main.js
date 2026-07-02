@@ -1006,6 +1006,16 @@ function resetLaunchUiState(state) {
   state.ui.cloudSaveHintDismissed = isCloudSaveHintDismissed();
 }
 
+function hasOpenMenuOverlay(state) {
+  if (state.ui?.startupStep || state.ui?.starterTackleDrawerOpen) {
+    return true;
+  }
+
+  const panels = state.ui?.collapsedPanels ?? {};
+  return ['profile', 'inventory', 'keepnet', 'tackle', 'guide', 'journal', 'quests', 'achievements', 'mapViewer', 'settings']
+    .some((panelId) => panels[panelId] === false);
+}
+
 function dismissStartupTitle() {
   if (gameState.ui?.startupTitleDismissed) {
     return;
@@ -1709,10 +1719,11 @@ function animate() {
   const delta = Math.min(clock.getDelta(), 0.05);
   const minigameOpen = Boolean(gameState.ui?.fishingMinigame?.open);
   const activeSceneOpen = Boolean(gameState.ui?.activeScene);
+  const menuOverlayOpen = hasOpenMenuOverlay(gameState);
   if (!activeSceneOpen || minigameOpen) {
     player.update(delta, world.bounds);
     world.updateCamera(player.position);
-    if (!gameState.settings?.performance?.lowPower) {
+    if (!gameState.settings?.performance?.lowPower && !menuOverlayOpen) {
       world.animate(delta);
     }
   }

@@ -41,6 +41,46 @@ export function cloudSaveShortcutMarkup(state) {
   `;
 }
 
+export function cloudSaveMenuMarkup(state) {
+  const session = loadCloudSession();
+  const profile = session?.profile;
+  const metadata = session?.saveMetadata;
+  const cloudState = state.ui?.cloudSave ?? {};
+  const message = cloudState.message ?? session?.lastMessage ?? '';
+  const busy = Boolean(cloudState.busy);
+  const loggedIn = Boolean(session?.accessToken);
+  const account = profile?.email || profile?.displayName || 'акаунт активний';
+  const lastSave = formatServerTime(metadata?.serverUpdatedAt);
+  const primaryStatus = busy
+    ? 'Автозбереження...'
+    : loggedIn
+      ? (message === 'Збережено в хмару' ? 'Збережено в хмару' : 'Хмарне автозбереження увімкнено')
+      : 'Гість: прогрес зберігається локально';
+  const secondaryStatus = loggedIn
+    ? `${account}${lastSave !== 'немає' ? ` · Останнє збереження: ${lastSave}` : ' · Останнє збереження: ще немає'}`
+    : 'Увійдіть, щоб увімкнути хмарне автозбереження';
+
+  return `
+    <section class="cloud-save-shortcut cloud-save-shortcut--menu${loggedIn ? ' is-connected' : ''}${busy ? ' is-syncing' : ''}" aria-label="Хмарне збереження">
+      <div>
+        <strong>Хмарне збереження</strong>
+        <span>${escapeHtml(primaryStatus)}</span>
+        <small>${escapeHtml(secondaryStatus)}</small>
+      </div>
+      <div class="cloud-save-shortcut__actions">
+        <button data-action="save" type="button">Зберегти локально</button>
+        ${loggedIn ? `
+          <button data-action="cloud:upload" type="button"${busy ? ' disabled' : ''}>Зберегти в хмару</button>
+          <button data-action="cloud:download" type="button"${busy ? ' disabled' : ''}>Завантажити</button>
+          <button data-action="cloud:logout" type="button"${busy ? ' disabled' : ''}>Вийти</button>
+        ` : `
+          <button data-action="cloud:open" type="button"${busy ? ' disabled' : ''}>Увійти / Хмара</button>
+        `}
+      </div>
+    </section>
+  `;
+}
+
 export function cloudSaveHintMarkup(state) {
   if (state.ui?.cloudSaveHintDismissed) {
     return '';
