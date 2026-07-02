@@ -1,0 +1,27 @@
+{
+  "pack": "first_tackle_drawer_minigame_assets_pack",
+  "created": "2026-06-27T23:22:01",
+  "drop_into": "D:\\first-tackle\\",
+  "paths": {
+    "drawer_backgrounds": [
+      "public/assets/minigames/grandma-drawer/drawer-bg-1.png",
+      "public/assets/minigames/grandma-drawer/drawer-bg-2.png"
+    ],
+    "items": [
+      "public/assets/minigames/grandma-drawer/items/old-hook.png",
+      "public/assets/minigames/grandma-drawer/items/embroidery-thread.png",
+      "public/assets/minigames/grandma-drawer/items/stone-sinkers.png",
+      "public/assets/minigames/grandma-drawer/items/goose-feather-float.png",
+      "public/assets/minigames/grandma-drawer/items/old-button.png",
+      "public/assets/minigames/grandma-drawer/items/old-key.png",
+      "public/assets/minigames/grandma-drawer/items/bottle-cap.png",
+      "public/assets/minigames/grandma-drawer/items/fabric-scrap.png"
+    ]
+  },
+  "recommended_usage": {
+    "background": "Use drawer-bg-1.png or drawer-bg-2.png as the mini-game background.",
+    "clickable_items": "Place transparent item PNGs as absolutely positioned buttons/hotspots over the drawer background.",
+    "fallback": "If automatic cutout edges are imperfect, use them as small card icons first; Photoshop is not required for v1."
+  },
+  "missing_sources": []
+}

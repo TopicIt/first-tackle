@@ -1,4 +1,14 @@
+import { getWaterFishWeights } from './waterFishDistribution.js';
+
 export const castZones = ['near_bank', 'mid_water', 'reed_edge'];
+
+export const biteTuning = {
+  noBiteWeight: 2.7,
+  calmNoBiteWeight: 0.55,
+  lateBiteBoost: 0.06,
+  falseActivityChance: 0.48,
+  weakBiteChance: 0.18,
+};
 
 export const castSpots = [
   {
@@ -9,7 +19,8 @@ export const castSpots = [
     radius: { x: 9, y: 6 },
     scale: 1.18,
     allowedMethods: ['handline', 'stickRod'],
-    weights: { rotan: 4.8, crucian: 1.2, loach: 0.18, bleak: 0.45 },
+    waterId: 'canal',
+    weights: getWaterFishWeights('canal', { rotan: 1.55, crucian: 0.72, bleak: 0.35, roach: 0.25, loach: 0.8 }),
   },
   {
     id: 'shallow_weeds',
@@ -19,7 +30,8 @@ export const castSpots = [
     radius: { x: 10, y: 7 },
     scale: 1.04,
     allowedMethods: ['handline', 'stickRod'],
-    weights: { rotan: 2.4, crucian: 2.2, rudd: 1.8, roach: 0.7 },
+    waterId: 'canal',
+    weights: getWaterFishWeights('canal', { rotan: 1.05, crucian: 1.18, bleak: 0.35, roach: 0.82, loach: 0.5 }),
   },
   {
     id: 'open_middle',
@@ -29,7 +41,8 @@ export const castSpots = [
     radius: { x: 13, y: 8 },
     scale: 0.92,
     allowedMethods: ['stickRod'],
-    weights: { crucian: 3.8, roach: 2.1, bleak: 1.8, rudd: 0.6 },
+    waterId: 'canal',
+    weights: getWaterFishWeights('canal', { rotan: 0.28, crucian: 1.5, bleak: 1.2, roach: 1.35, loach: 0.35 }),
   },
   {
     id: 'reed_pocket',
@@ -39,7 +52,8 @@ export const castSpots = [
     radius: { x: 10, y: 8 },
     scale: 0.86,
     allowedMethods: ['stickRod'],
-    weights: { rudd: 3.5, roach: 1.9, crucian: 1.6, pike: 0.16 },
+    waterId: 'canal',
+    weights: getWaterFishWeights('canal', { rotan: 0.35, crucian: 1.12, bleak: 0.65, roach: 1.15, loach: 0.4 }),
   },
   {
     id: 'muddy_bottom',
@@ -49,7 +63,8 @@ export const castSpots = [
     radius: { x: 12, y: 7 },
     scale: 0.94,
     allowedMethods: ['stickRod'],
-    weights: { loach: 0.28, crucian: 2.4, rotan: 0.8, roach: 0.7 },
+    waterId: 'canal',
+    weights: getWaterFishWeights('canal', { rotan: 0.7, crucian: 1.28, bleak: 0.4, roach: 0.75, loach: 1.55 }),
   },
   {
     id: 'far_shadow',
@@ -59,18 +74,184 @@ export const castSpots = [
     radius: { x: 10, y: 6 },
     scale: 0.72,
     allowedMethods: ['betterLine'],
-    weights: { pike: 0.42, crucian: 2.4, roach: 1.8, rudd: 1.8 },
+    waterId: 'canal',
+    weights: getWaterFishWeights('canal', { rotan: 0.3, crucian: 1.18, bleak: 0.6, roach: 1.2, loach: 0.35 }),
+  },
+  {
+    id: 'sluice_near_bank',
+    labelKey: 'castSpotSluiceNearBank',
+    zone: 'near_bank',
+    target: { x: 34, y: 64 },
+    radius: { x: 10, y: 6 },
+    scale: 1.12,
+    allowedMethods: ['handline', 'stickRod'],
+    waterId: 'sluice',
+    weights: getWaterFishWeights('sluice', { okun: 0.8, pike: 0.16, crucian: 1.4, gudgeon: 1.65, plotytsia: 1.1, roach: 0.9, rudd: 0.55, white_bream: 0.65 }),
+  },
+  {
+    id: 'sluice_lilies',
+    labelKey: 'castSpotSluiceLilies',
+    zone: 'near_bank',
+    target: { x: 36, y: 56 },
+    radius: { x: 10, y: 7 },
+    scale: 1.02,
+    allowedMethods: ['handline', 'stickRod'],
+    waterId: 'sluice',
+    weights: getWaterFishWeights('sluice', { okun: 1.15, pike: 1.05, crucian: 1.35, gudgeon: 1.05, plotytsia: 1.2, roach: 1.18, rudd: 1.16, white_bream: 0.8 }),
+  },
+  {
+    id: 'sluice_middle_left',
+    labelKey: 'castSpotSluiceMiddleLeft',
+    zone: 'mid_water',
+    target: { x: 43, y: 48 },
+    radius: { x: 11, y: 7 },
+    scale: 0.94,
+    allowedMethods: ['stickRod'],
+    waterId: 'sluice',
+    weights: getWaterFishWeights('sluice', { okun: 1.25, pike: 1.15, crucian: 0.82, gudgeon: 1.2, plotytsia: 1.45, roach: 1.28, rudd: 0.72, white_bream: 1.05 }),
+  },
+  {
+    id: 'sluice_middle',
+    labelKey: 'castSpotSluiceMiddle',
+    zone: 'mid_water',
+    target: { x: 54, y: 44 },
+    radius: { x: 12, y: 7 },
+    scale: 0.88,
+    allowedMethods: ['stickRod'],
+    waterId: 'sluice',
+    weights: getWaterFishWeights('sluice', { okun: 1.35, pike: 1.45, crucian: 0.72, gudgeon: 1.05, plotytsia: 1.55, roach: 1.22, rudd: 0.68, white_bream: 1.2 }),
+  },
+  {
+    id: 'sluice_middle_right',
+    labelKey: 'castSpotSluiceMiddleRight',
+    zone: 'mid_water',
+    target: { x: 66, y: 47 },
+    radius: { x: 11, y: 7 },
+    scale: 0.84,
+    allowedMethods: ['stickRod', 'betterLine'],
+    waterId: 'sluice',
+    weights: getWaterFishWeights('sluice', { okun: 1.45, pike: 1.7, crucian: 0.58, gudgeon: 0.9, plotytsia: 1.35, roach: 1.12, rudd: 0.82, white_bream: 1.2 }),
+  },
+  {
+    id: 'sluice_pit',
+    labelKey: 'castSpotSluicePit',
+    zone: 'reed_edge',
+    target: { x: 78, y: 54 },
+    radius: { x: 10, y: 7 },
+    scale: 0.78,
+    allowedMethods: ['stickRod', 'betterLine'],
+    waterId: 'sluice',
+    weights: getWaterFishWeights('sluice', { okun: 1.55, pike: 2.15, crucian: 0.42, gudgeon: 0.72, plotytsia: 1.0, roach: 0.82, rudd: 0.72, white_bream: 1.35 }),
+  },
+  {
+    id: 'fire_pond_reeds',
+    labelKey: 'castSpotFirePondReeds',
+    zone: 'reed_edge',
+    target: { x: 70, y: 42 },
+    radius: { x: 11, y: 8 },
+    scale: 0.86,
+    allowedMethods: ['stickRod', 'betterLine'],
+    waterId: 'fire_ponds',
+    weights: getWaterFishWeights('fire_ponds', { crucian: 1.2, roach: 1.05, rudd: 1.45, carp: 0.95, grass_carp: 1.1, silver_carp: 0.8 }),
+  },
+  {
+    id: 'fire_pond_middle',
+    labelKey: 'castSpotFirePondMiddle',
+    zone: 'mid_water',
+    target: { x: 52, y: 52 },
+    radius: { x: 13, y: 8 },
+    scale: 0.92,
+    allowedMethods: ['stickRod'],
+    waterId: 'fire_ponds',
+    weights: getWaterFishWeights('fire_ponds', { crucian: 1.35, roach: 1.18, rudd: 1.15, carp: 1.18, grass_carp: 0.9, silver_carp: 1.05 }),
   },
   {
     id: 'greada_mud',
     labelKey: 'castSpotGreadaMud',
     zone: 'mid_water',
-    target: { x: 46, y: 64 },
+    target: { x: 28, y: 62 },
     radius: { x: 14, y: 8 },
     scale: 0.88,
     allowedMethods: ['handline', 'stickRod', 'betterLine'],
     waterId: 'greada',
-    weights: { canadian_catfish: 3.2, crucian: 2.2, loach: 0.5, rotan: 0.8 },
+    weights: getWaterFishWeights('greada', { canadian_catfish: 1.35, crucian: 0.9, lynok: 1.05, loach: 1.2, rotan: 0.75 }),
+  },
+  {
+    id: 'greada_weeds',
+    labelKey: 'castSpotGreadaWeeds',
+    zone: 'near_bank',
+    target: { x: 24, y: 56 },
+    radius: { x: 12, y: 8 },
+    scale: 1.02,
+    allowedMethods: ['handline', 'stickRod'],
+    waterId: 'greada',
+    weights: getWaterFishWeights('greada', { crucian: 1.1, rotan: 1.25, lynok: 0.85, loach: 1.2, canadian_catfish: 0.8 }),
+  },
+  {
+    id: 'greada_middle_left',
+    labelKey: 'castSpotGreadaMiddleLeft',
+    zone: 'mid_water',
+    target: { x: 43, y: 52 },
+    radius: { x: 13, y: 8 },
+    scale: 0.88,
+    allowedMethods: ['handline', 'stickRod', 'betterLine'],
+    waterId: 'greada',
+    weights: getWaterFishWeights('greada', { canadian_catfish: 1.18, crucian: 1.05, lynok: 1.0, loach: 0.95, rotan: 0.62 }),
+  },
+  {
+    id: 'greada_middle',
+    labelKey: 'castSpotGreadaMiddle',
+    zone: 'mid_water',
+    target: { x: 58, y: 50 },
+    radius: { x: 13, y: 8 },
+    scale: 0.84,
+    allowedMethods: ['stickRod', 'betterLine'],
+    waterId: 'greada',
+    weights: getWaterFishWeights('greada', { canadian_catfish: 1.28, crucian: 1.0, lynok: 1.1, loach: 0.85, rotan: 0.55 }),
+  },
+  {
+    id: 'lake_tur_lilies',
+    labelKey: 'castSpotLakeTurLilies',
+    zone: 'reed_edge',
+    target: { x: 66, y: 43 },
+    radius: { x: 12, y: 8 },
+    scale: 0.84,
+    allowedMethods: ['stickRod', 'betterLine'],
+    waterId: 'lake_tur',
+    weights: getWaterFishWeights('lake_tur', { rudd: 1.35, okun: 1.15, lynok: 1.15, pike: 1.05, canadian_catfish: 1.05, som: 0.7, bream: 0.85 }),
+  },
+  {
+    id: 'lake_tur_dropoff',
+    labelKey: 'castSpotLakeTurDropoff',
+    zone: 'mid_water',
+    target: { x: 50, y: 48 },
+    radius: { x: 13, y: 8 },
+    scale: 0.84,
+    allowedMethods: ['stickRod', 'betterLine'],
+    waterId: 'lake_tur',
+    weights: getWaterFishWeights('lake_tur', { okun: 1.2, sudak: 1.35, pike: 1.15, canadian_catfish: 1.25, som: 1.08, bream: 1.15, white_bream: 1.1, plotytsia: 0.8 }),
+  },
+  {
+    id: 'mining_lake_shelf',
+    labelKey: 'castSpotMiningLakeShelf',
+    zone: 'mid_water',
+    target: { x: 54, y: 52 },
+    radius: { x: 12, y: 7 },
+    scale: 0.82,
+    allowedMethods: ['stickRod', 'betterLine'],
+    waterId: 'mining_lake',
+    weights: getWaterFishWeights('mining_lake', { okun: 1.35, crucian: 0.88, lynok: 1.05, canadian_catfish: 1.05, white_bream: 1.1, bream: 1.05, plotytsia: 1.2, eel: 0.55 }),
+  },
+  {
+    id: 'mining_lake_shadow',
+    labelKey: 'castSpotMiningLakeShadow',
+    zone: 'reed_edge',
+    target: { x: 78, y: 36 },
+    radius: { x: 10, y: 6 },
+    scale: 0.74,
+    allowedMethods: ['betterLine'],
+    waterId: 'mining_lake',
+    weights: getWaterFishWeights('mining_lake', { okun: 1.25, crucian: 0.75, lynok: 1.15, canadian_catfish: 1.2, white_bream: 0.95, bream: 1.15, plotytsia: 0.9, eel: 1.5 }),
   },
 ];
 
@@ -86,7 +267,7 @@ export const biteProfiles = {
     preferred: {
       methods: ['handline'],
       zones: ['near_bank'],
-      baits: ['worms', 'larvae'],
+      baits: ['worms', 'larvae', 'nightcrawler'],
     },
     patterns: [
       ['tiny_nibble', 'hard_dip', 'strike_window'],
@@ -101,7 +282,7 @@ export const biteProfiles = {
     preferred: {
       methods: ['stickRod'],
       zones: ['mid_water', 'reed_edge'],
-      baits: ['worms', 'larvae'],
+      baits: ['bread', 'dough', 'mastyrka', 'corn', 'worms'],
     },
     patterns: [
       ['tiny_nibble', 'tiny_nibble', 'lift', 'strike_window'],
@@ -116,7 +297,7 @@ export const biteProfiles = {
     preferred: {
       methods: ['stickRod'],
       zones: ['mid_water'],
-      baits: ['larvae', 'worms'],
+      baits: ['larvae', 'worms', 'bread'],
     },
     patterns: [
       ['tiny_nibble', 'tiny_nibble', 'tiny_nibble', 'strike_window'],
@@ -130,7 +311,7 @@ export const biteProfiles = {
     preferred: {
       methods: ['stickRod'],
       zones: ['mid_water', 'reed_edge'],
-      baits: ['worms', 'larvae'],
+      baits: ['bread', 'dough', 'mastyrka', 'worms', 'larvae'],
     },
     patterns: [
       ['tiny_nibble', 'idle', 'slow_dip', 'strike_window'],
@@ -143,8 +324,8 @@ export const biteProfiles = {
     biteCycles: [2, 3],
     preferred: {
       methods: ['stickRod'],
-      zones: ['reed_edge'],
-      baits: ['larvae', 'worms'],
+      zones: ['reed_edge', 'mid_water'],
+      baits: ['larvae', 'worms', 'bread', 'dough'],
     },
     patterns: [
       ['tiny_nibble', 'sideways_pull', 'strike_window'],
@@ -158,7 +339,7 @@ export const biteProfiles = {
     preferred: {
       methods: ['handline', 'stickRod'],
       zones: ['near_bank'],
-      baits: ['worms'],
+      baits: ['worms', 'nightcrawler'],
     },
     patterns: [
       ['idle', 'tiny_nibble', 'slow_dip', 'idle', 'submerged', 'strike_window'],
@@ -178,6 +359,62 @@ export const biteProfiles = {
       ['idle', 'sideways_pull', 'hard_dip', 'strike_window'],
     ],
   },
+  okun: {
+    difficulty: 0.5,
+    hookWindowMs: [1500, 2500],
+    biteCycles: [2, 3],
+    preferred: {
+      methods: ['stickRod'],
+      zones: ['mid_water', 'reed_edge'],
+      baits: ['worms', 'nightcrawler', 'larvae'],
+    },
+    patterns: [
+      ['tiny_nibble', 'sideways_pull', 'strike_window'],
+      ['idle', 'hard_dip', 'strike_window'],
+    ],
+  },
+  lynok: {
+    difficulty: 0.58,
+    hookWindowMs: [2200, 3600],
+    biteCycles: [2, 3],
+    preferred: {
+      methods: ['stickRod'],
+      zones: ['reed_edge', 'near_bank'],
+      baits: ['worms', 'dough', 'bread', 'nightcrawler'],
+    },
+    patterns: [
+      ['idle', 'slow_dip', 'lift', 'strike_window'],
+      ['tiny_nibble', 'slow_dip', 'strike_window'],
+    ],
+  },
+  sudak: {
+    difficulty: 0.72,
+    hookWindowMs: [1400, 2300],
+    biteCycles: [1, 2],
+    preferred: {
+      methods: ['liveBait'],
+      zones: ['mid_water', 'reed_edge'],
+      baits: ['live_bait'],
+    },
+    patterns: [
+      ['sideways_pull', 'hard_dip', 'strike_window'],
+      ['idle', 'sideways_pull', 'strike_window'],
+    ],
+  },
+  som: {
+    difficulty: 0.78,
+    hookWindowMs: [2300, 3800],
+    biteCycles: [1, 2],
+    preferred: {
+      methods: ['stickRod', 'liveBait'],
+      zones: ['mid_water'],
+      baits: ['worms', 'nightcrawler', 'live_bait'],
+    },
+    patterns: [
+      ['idle', 'slow_dip', 'submerged', 'strike_window'],
+      ['slow_dip', 'hard_dip', 'submerged', 'strike_window'],
+    ],
+  },
   canadian_catfish: {
     difficulty: 0.62,
     hookWindowMs: [2200, 3600],
@@ -185,11 +422,123 @@ export const biteProfiles = {
     preferred: {
       methods: ['stickRod'],
       zones: ['mid_water'],
-      baits: ['worms', 'larvae'],
+      baits: ['worms', 'nightcrawler', 'larvae'],
     },
     patterns: [
       ['idle', 'slow_dip', 'submerged', 'strike_window'],
       ['tiny_nibble', 'slow_dip', 'strike_window'],
+    ],
+  },
+  carp: {
+    difficulty: 0.66,
+    hookWindowMs: [1800, 3000],
+    biteCycles: [2, 3],
+    preferred: {
+      methods: ['stickRod'],
+      zones: ['mid_water', 'reed_edge'],
+      baits: ['corn', 'mastyrka', 'dough', 'nightcrawler'],
+    },
+    patterns: [
+      ['tiny_nibble', 'slow_dip', 'hard_dip', 'strike_window'],
+      ['idle', 'lift', 'slow_dip', 'strike_window'],
+    ],
+  },
+  grass_carp: {
+    difficulty: 0.76,
+    hookWindowMs: [1700, 2800],
+    biteCycles: [1, 2],
+    preferred: {
+      methods: ['stickRod'],
+      zones: ['mid_water', 'reed_edge'],
+      baits: ['corn'],
+    },
+    patterns: [
+      ['idle', 'sideways_pull', 'hard_dip', 'strike_window'],
+      ['tiny_nibble', 'sideways_pull', 'strike_window'],
+    ],
+  },
+  silver_carp: {
+    difficulty: 0.78,
+    hookWindowMs: [1600, 2700],
+    biteCycles: [1, 2],
+    preferred: {
+      methods: ['stickRod'],
+      zones: ['mid_water'],
+      baits: ['corn', 'mastyrka', 'dough'],
+    },
+    patterns: [
+      ['idle', 'slow_dip', 'submerged', 'strike_window'],
+      ['sideways_pull', 'hard_dip', 'strike_window'],
+    ],
+  },
+  white_bream: {
+    difficulty: 0.44,
+    hookWindowMs: [1900, 3100],
+    biteCycles: [2, 3],
+    preferred: {
+      methods: ['stickRod'],
+      zones: ['mid_water'],
+      baits: ['bread', 'dough', 'mastyrka', 'worms'],
+    },
+    patterns: [
+      ['tiny_nibble', 'idle', 'slow_dip', 'strike_window'],
+      ['lift', 'slow_dip', 'strike_window'],
+    ],
+  },
+  bream: {
+    difficulty: 0.58,
+    hookWindowMs: [2100, 3400],
+    biteCycles: [2, 3],
+    preferred: {
+      methods: ['stickRod'],
+      zones: ['mid_water'],
+      baits: ['bread', 'dough', 'mastyrka', 'worms'],
+    },
+    patterns: [
+      ['tiny_nibble', 'slow_dip', 'idle', 'slow_dip', 'strike_window'],
+      ['lift', 'slow_dip', 'submerged', 'strike_window'],
+    ],
+  },
+  plotytsia: {
+    difficulty: 0.38,
+    hookWindowMs: [1800, 3000],
+    biteCycles: [2, 3],
+    preferred: {
+      methods: ['handline', 'stickRod'],
+      zones: ['near_bank', 'mid_water'],
+      baits: ['bread', 'dough', 'mastyrka', 'worms'],
+    },
+    patterns: [
+      ['tiny_nibble', 'slow_dip', 'strike_window'],
+      ['tiny_nibble', 'sideways_pull', 'strike_window'],
+    ],
+  },
+  gudgeon: {
+    difficulty: 0.32,
+    hookWindowMs: [1700, 2800],
+    biteCycles: [2, 3],
+    preferred: {
+      methods: ['handline', 'stickRod'],
+      zones: ['near_bank', 'mid_water'],
+      baits: ['worms', 'nightcrawler'],
+    },
+    patterns: [
+      ['tiny_nibble', 'tiny_nibble', 'hard_dip', 'strike_window'],
+      ['idle', 'tiny_nibble', 'strike_window'],
+    ],
+  },
+  eel: {
+    difficulty: 0.84,
+    hookWindowMs: [1600, 2600],
+    biteCycles: [1, 2],
+    preferred: {
+      methods: ['stickRod', 'liveBait'],
+      zones: ['mid_water', 'reed_edge'],
+      baits: ['nightcrawler', 'live_bait'],
+    },
+    patterns: [
+      ['idle', 'slow_dip', 'submerged', 'strike_window'],
+      ['sideways_pull', 'submerged', 'strike_window'],
     ],
   },
 };

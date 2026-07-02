@@ -2,6 +2,7 @@ import { addItem, countItem, hasItem, removeItem } from './inventory.js';
 import { advanceFishStatus, countFishByStatus, ensureFishState, takeFreshFish } from './fishInventory.js';
 import { advanceMarketDay, freshFishAtRisk } from './market.js';
 import { ownTackleComponent } from './tackle.js';
+import { syncQuestProgress } from './quests.js';
 import { advanceTime, getTimePhase, resetToMorning } from './time.js';
 import { nowSeconds, pushFeedback, pushLog, queueSound } from './state.js';
 
@@ -12,7 +13,7 @@ export function canCraftPrimitiveTackle(state) {
 }
 
 export function craftPrimitiveTackle(state) {
-  pushLog(state, 'logStarterTackleReady');
+  pushLog(state, state.progress?.firstTackleReady ? 'logStarterTackleReady' : 'logNeedTutorialTackle');
 }
 
 export function canCraftStickRod(state) {
@@ -85,7 +86,8 @@ export function gatherGooseFeather(state) {
     pushLog(state, 'logAlreadyFoundFeather');
     return;
   }
-  if (Math.random() < 0.4) {
+  const tutorialActive = state.tutorialState?.started && !state.tutorialState?.completed;
+  if (tutorialActive || Math.random() < 0.4) {
     ownTackleComponent(state, 'goose_feather_float');
     pushFeedback(state, 'componentGooseFeatherFloat', {}, 'item');
     pushLog(state, 'logFoundGooseFeather');
@@ -107,6 +109,22 @@ export function gatherRodStick(state) {
   ownTackleComponent(state, 'simple_stick_rod');
   pushFeedback(state, 'componentSimpleStickRod', {}, 'item');
   pushLog(state, 'logFoundRodStick');
+}
+
+export function gatherGrandmaThread(state) {
+  advanceTime(state, 5);
+  ownTackleComponent(state, 'grandma_thread');
+  pushFeedback(state, 'componentGrandmaThread', {}, 'item');
+  pushLog(state, 'logFoundGrandmaThread');
+  queueSound(state, 'gather_bait');
+}
+
+export function gatherOldHook(state) {
+  advanceTime(state, 5);
+  ownTackleComponent(state, 'old_dull_hook');
+  pushFeedback(state, 'componentOldDullHook', {}, 'item');
+  pushLog(state, 'logFoundOldHook');
+  queueSound(state, 'gather_bait');
 }
 
 export function gatherSmallStones(state) {
@@ -208,6 +226,12 @@ export function waitUntilTomorrow(state) {
   pushLog(state, 'logMorningAgain');
 }
 
+export function restSeveralHours(state) {
+  advanceTime(state, 4 * 60);
+  pushLog(state, 'logRestedFewHours');
+  queueSound(state, 'ui_click');
+}
+
 export function collectTaranka(state) {
   const ready = countFishByStatus(state, 'ready_taranka');
   if (ready === 0) {
@@ -216,28 +240,9 @@ export function collectTaranka(state) {
   }
 
   advanceFishStatus(state, 'ready_taranka', 'taranka', ready);
+  syncQuestProgress(state);
   pushFeedback(state, 'feedbackTaranka', { count: ready }, 'fish');
   pushLog(state, 'logCollectedTaranka', { count: ready });
-  queueSound(state, 'dry_fish');
-}
-
-export function smokeFish(state) {
-  ensureFishState(state);
-  if (!state.hasSmoker) {
-    pushLog(state, 'logNeedSmoker');
-    return;
-  }
-
-  const candidate = (state.fishBasket ?? []).find((entry) => ['cleaned', 'fresh'].includes(entry.status));
-  if (!candidate) {
-    pushLog(state, 'logNeedFishToSmoke');
-    return;
-  }
-
-  candidate.status = 'smoked';
-  advanceTime(state, 90);
-  pushFeedback(state, 'feedbackSmokedFish', {}, 'fish');
-  pushLog(state, 'logSmokedFish', { fishKey: candidate.fishId });
   queueSound(state, 'dry_fish');
 }
 
@@ -262,5 +267,5 @@ function getTarankaEligibleCount(state, status) {
 }
 
 function isTarankaEligible(entry) {
-  return !['pike', 'canadian_catfish'].includes(entry.fishId) && entry.weightGrams <= 260;
+  return !['pike', 'sudak', 'som', 'canadian_catfish'].includes(entry.fishId) && entry.weightGrams <= 260;
 }

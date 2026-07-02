@@ -1,37 +1,18 @@
 import { fishData } from './fishData.js';
+import { getFishingLocationList } from './locations.js';
 
-export const waterGuide = [
-  {
-    id: 'home_canal',
-    nameKey: 'waterHomeCanal',
-    descriptionKey: 'waterHomeCanalDesc',
-    fishIds: ['rotan', 'crucian', 'bleak', 'roach', 'loach'],
-    bestTimeKey: 'timeMorningEvening',
-    tackleKey: 'guideCanalTackle',
-    baitKey: 'guideWormLarvae',
-    unlocked: true,
-  },
-  {
-    id: 'old_pond',
-    nameKey: 'oldPond',
-    descriptionKey: 'waterOldPondDesc',
-    fishIds: ['crucian', 'rudd', 'roach', 'pike'],
-    bestTimeKey: 'timeMorningEvening',
-    tackleKey: 'guideRodFloat',
-    baitKey: 'guideWormLarvaeLive',
-    unlockKey: 'buyBicycleToReachWaters',
-  },
-  {
-    id: 'greada',
-    nameKey: 'waterGreada',
-    descriptionKey: 'waterGreadaDesc',
-    fishIds: ['crucian', 'rotan', 'canadian_catfish', 'loach'],
-    bestTimeKey: 'timeEveningNight',
-    tackleKey: 'guideGreadaTackle',
-    baitKey: 'guideWormBunch',
-    unlockKey: 'buyBicycleToReachWaters',
-  },
-];
+export const waterGuide = getFishingLocationList().map((location) => ({
+  id: location.id,
+  nameKey: location.guideNameKey,
+  descriptionKey: location.guideDescriptionKey,
+  fishIds: location.fishIds,
+  bestTimeKey: location.bestTimeKey,
+  tackleKey: location.tackleKey,
+  baitKey: location.baitKey,
+  unlockKey: location.unlockKey,
+  access: location.access,
+  unlocked: location.unlocked,
+}));
 
 export function getFishGuideEntries() {
   return fishData.map((fish) => ({
@@ -41,7 +22,6 @@ export function getFishGuideEntries() {
     livesKey: `guideLives_${fish.id}`,
     timeKey: `guideTime_${fish.id}`,
     baitKey: `guideBait_${fish.id}`,
-    tipsKey: `guideTips_${fish.id}`,
     economyKey: `guideEconomy_${fish.id}`,
   }));
 }

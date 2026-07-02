@@ -19,16 +19,32 @@ export function resetToMorning(state) {
 
 export function getTimePhase(state) {
   ensureTimeState(state);
-  const hour = Math.floor(state.time.minutes / 60);
-  if (hour >= 5 && hour < 11) return 'morning';
-  if (hour >= 11 && hour < 18) return 'day';
-  if (hour >= 18 && hour < 22) return 'evening';
+  const minutes = normalizedDayMinutes(state.time.minutes);
+  if (minutes >= 4 * 60 && minutes < 10 * 60) return 'morning';
+  if (minutes >= 10 * 60 && minutes < 17 * 60) return 'day';
+  if (minutes >= 17 * 60 && minutes < 22 * 60 + 30) return 'evening';
   return 'night';
+}
+
+export function getTimeOfDayBucket(state) {
+  const forcedBucket = state?.settings?.debug?.timeOfDayBucket;
+  if (['dawn_dusk', 'day', 'night'].includes(forcedBucket)) {
+    return forcedBucket;
+  }
+
+  const phase = getTimePhase(state);
+  return phase === 'morning' || phase === 'evening' ? 'dawn_dusk' : phase;
 }
 
 export function formatGameTime(state) {
   ensureTimeState(state);
-  const hour = Math.floor(state.time.minutes / 60).toString().padStart(2, '0');
-  const minute = Math.floor(state.time.minutes % 60).toString().padStart(2, '0');
+  const minutes = normalizedDayMinutes(state.time.minutes);
+  const hour = Math.floor(minutes / 60).toString().padStart(2, '0');
+  const minute = Math.floor(minutes % 60).toString().padStart(2, '0');
   return `${hour}:${minute}`;
+}
+
+function normalizedDayMinutes(minutes) {
+  const dayMinutes = 24 * 60;
+  return ((Math.floor(minutes) % dayMinutes) + dayMinutes) % dayMinutes;
 }

@@ -1,16 +1,23 @@
 import './locationScene.css';
-import { logMarkup, marketMarkup } from './panels.js';
+import { cafeMarkup, logMarkup, marketMarkup } from './panels.js';
 import { fishingMinigameMarkup } from './fishingMinigame.js';
+import { starterDrawerMarkup } from './starterDrawer.js';
+import { wormDiggingGameMarkup } from './wormDiggingGame.js';
 import { getFishData } from '../game/fishData.js';
+import { getFishingLocation, isFishingLocation } from '../game/locations.js';
+import { tutorialSteps } from '../game/profile.js';
 import { t, translateEntry } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
-import { getLocationImage } from '../utils/locationAsset.js';
+import { getLocationImage, getLocationImageFallback } from '../utils/locationAsset.js';
+import { getTimeOfDayBackgroundUrls } from '../utils/timeOfDayBackgrounds.js';
 
 const sceneConfigs = {
   house: {
     titleKey: 'sceneHouseTitle',
     descriptionKey: 'sceneHouseDescription',
-    image: assetPath('/assets/locations/house_location_concept.png'),
+    image: getLocationImage('house'),
+    fallbackImage: getLocationImageFallback('house'),
+    backgroundKey: 'grandma_house',
     bgClass: 'scene-bg--slow-zoom',
     effects: ['scene-light-sweep', 'scene-floating-dust', 'scene-cloud-shadow', 'scene-warm-haze'],
   },
@@ -21,20 +28,6 @@ const sceneConfigs = {
     bgClass: 'scene-bg--slow-pan',
     effects: ['scene-insects', 'scene-cloud-shadow', 'scene-floating-dust'],
   },
-  pond: {
-    titleKey: 'scenePondTitle',
-    descriptionKey: 'scenePondDescription',
-    image: getLocationImage('pond'),
-    bgClass: 'scene-bg--slow-zoom',
-    effects: ['scene-water-ripples', 'scene-bobber', 'scene-cloud-shadow'],
-  },
-  greada: {
-    titleKey: 'sceneGreadaTitle',
-    descriptionKey: 'sceneGreadaDescription',
-    image: getLocationImage('greada'),
-    bgClass: 'scene-bg--slow-zoom',
-    effects: ['scene-water-ripples', 'scene-bobber', 'scene-cloud-shadow', 'scene-road-dust'],
-  },
   market: {
     titleKey: 'sceneMarketTitle',
     descriptionKey: 'sceneMarketDescription',
@@ -42,20 +35,61 @@ const sceneConfigs = {
     bgClass: 'scene-bg--slow-pan',
     effects: ['scene-road-dust', 'scene-light-sweep'],
   },
+  cafe: {
+    titleKey: 'sceneCafeTitle',
+    descriptionKey: 'sceneCafeDescription',
+    image: assetPath('/assets/locations/market_location_concept.png'),
+    bgClass: 'scene-bg--slow-pan',
+    effects: ['scene-road-dust', 'scene-light-sweep'],
+  },
+  bus_station: {
+    titleKey: 'sceneBusStationTitle',
+    descriptionKey: 'sceneBusStationDescription',
+    image: assetPath('/assets/locations/market_location_concept.png'),
+    bgClass: 'scene-bg--slow-pan',
+    effects: ['scene-road-dust', 'scene-light-sweep'],
+  },
+  fishing_select: {
+    titleKey: 'sceneFishingSelectTitle',
+    descriptionKey: 'sceneFishingSelectDescription',
+    image: getLocationImage('canal'),
+    fallbackImage: getLocationImageFallback('canal'),
+    bgClass: 'scene-bg--slow-zoom',
+    effects: ['scene-water-ripples', 'scene-cloud-shadow'],
+  },
+  sluice_map: {
+    titleKey: 'sceneSluiceTitle',
+    descriptionKey: 'sceneSluiceDescription',
+    image: getLocationImage('sluice'),
+    fallbackImage: getLocationImageFallback('sluice'),
+    backgroundKey: 'shluz_aerial',
+    bgClass: 'scene-bg--slow-zoom',
+    effects: ['scene-water-ripples', 'scene-cloud-shadow'],
+  },
+  fire_ponds_map: {
+    titleKey: 'sceneFirePondsTitle',
+    descriptionKey: 'sceneFirePondsDescription',
+    image: getLocationImage('firePonds'),
+    fallbackImage: getLocationImageFallback('firePonds'),
+    backgroundKey: 'pond_fields_map',
+    bgClass: 'scene-bg--slow-zoom',
+    effects: ['scene-water-ripples', 'scene-cloud-shadow'],
+  },
 };
 
 export function locationSceneMarkup(state, context) {
   const sceneId = state.ui?.activeScene;
-  const config = sceneConfigs[sceneId];
+  const config = sceneConfigs[sceneId] ?? fishingSceneConfig(sceneId);
   if (!config) {
     return '';
   }
+  const fishingOpen = Boolean(state.ui?.fishingMinigame?.open);
 
   return `
-    <section class="location-scene" aria-label="${t(config.titleKey)} ${t('location')}">
+    <section class="location-scene location-scene--${sceneId}" aria-label="${t(config.titleKey)} ${t('location')}">
       <div
         class="scene-bg ${config.bgClass}"
-        style="background-image: url('${config.image}')"
+        style="${sceneBackgroundStyle(config, state)}"
         aria-hidden="true"
       ></div>
       <div class="scene-vignette" aria-hidden="true"></div>
@@ -64,28 +98,36 @@ export function locationSceneMarkup(state, context) {
       <div class="scene-shell">
         <header class="scene-header">
           <div>
-            <p class="section-label">${t('location')}</p>
-            <h2>${t(config.titleKey)}</h2>
-            <p>${t(config.descriptionKey)}</p>
+            <div class="scene-title-row">
+              <h2>${t(config.titleKey)}</h2>
+              ${sceneId === 'house' ? `<span class="scene-clock">${context.clock ?? ''}</span>` : ''}
+            </div>
+            <details class="scene-description">
+              <summary>${t('locationDescription')}</summary>
+              <p>${t(config.descriptionKey)}</p>
+            </details>
           </div>
           <div class="scene-header__actions">
-            <button class="scene-map" data-action="scene:map" type="button">${t('backToMap')}</button>
-            <button class="scene-close" data-scene-close="true" type="button" aria-label="${t('close')}">&times;</button>
+            ${fishingOpen ? '' : `<button class="scene-map" data-action="scene:map" type="button">${t('backToMap')}</button>`}
           </div>
         </header>
 
         <div class="scene-body">
-          <section class="scene-actions">
-            <p class="section-label">${t('actions')}</p>
+          ${sceneId === 'market' || sceneId === 'cafe' || fishingOpen ? '' : `<section class="scene-actions">
             <div class="scene-action-grid">
-              ${context.sceneActions.map(actionButtonMarkup).join('')}
+              ${context.sceneActions.map((action) => actionButtonMarkup(action, state)).join('')}
             </div>
-          </section>
+          </section>`}
 
           ${sceneId === 'market' ? `
             <section class="scene-actions scene-market">
-              <p class="section-label">${t('market')}</p>
               ${marketMarkup(state)}
+            </section>
+          ` : ''}
+
+          ${sceneId === 'cafe' ? `
+            <section class="scene-actions scene-market scene-cafe">
+              ${cafeMarkup(state)}
             </section>
           ` : ''}
 
@@ -96,7 +138,6 @@ export function locationSceneMarkup(state, context) {
             <ul class="log-list">${logMarkup(state)}</ul>
           </section>
 
-          ${sceneId === 'pond' ? travelPreviewMarkup(state) : ''}
         </div>
       </div>
 
@@ -105,50 +146,8 @@ export function locationSceneMarkup(state, context) {
       </div>
 
       ${fishingMinigameMarkup(state)}
-      ${fishingModeChoiceMarkup(state)}
-    </section>
-  `;
-}
-
-function travelPreviewMarkup(state) {
-  const unlocked = Boolean(state.purchased?.bicycle || state.travel?.farWatersUnlocked);
-  return `
-    <details class="travel-preview"${unlocked ? ' open' : ''}>
-      <summary>${t('travelFarther')}</summary>
-      <p>${unlocked ? t('farWatersUnlocked') : t('buyBicycleToReachWaters')}</p>
-      <div class="travel-preview__routes">
-        <button class="${unlocked ? '' : 'is-locked'}" data-action="travel:greada" type="button"${unlocked ? '' : ' disabled'}>${t('zoneGreada')}</button>
-        <span class="${unlocked ? '' : 'is-locked'}">${unlocked ? t('farWatersUnlocked') : t('requiresBicycle')}</span>
-      </div>
-    </details>
-  `;
-}
-
-function fishingModeChoiceMarkup(state) {
-  const method = state.ui?.pendingFishingMethod;
-  if (!method) {
-    return '';
-  }
-
-  const lastMode = state.settings?.fishing?.lastMode ?? 'classic';
-  return `
-    <section class="fishing-mode-choice" role="dialog" aria-label="${t('chooseFishingMode')}">
-      <button class="fishing-mode-choice__backdrop" data-action="fishingMode:cancel" type="button" aria-label="${t('close')}"></button>
-      <div class="fishing-mode-choice__card">
-        <p class="section-label">${t('chooseFishingMode')}</p>
-        <h3>${t('chooseFishingModeTitle')}</h3>
-        <div class="fishing-mode-choice__actions">
-          <button class="${lastMode === 'classic' ? 'is-selected' : ''}" data-action="fishingMode:classic" type="button">
-            <strong>${t('classic2DFishing')}</strong>
-            <small>${t('classic2DFishingNote')}</small>
-          </button>
-          <button class="${lastMode === 'experimental' ? 'is-selected' : ''}" data-action="fishingMode:experimental" type="button">
-            <strong>${t('experimental3DFishingChoice')}</strong>
-            <small>${t('experimental3DFishingNote')}</small>
-          </button>
-        </div>
-        <button class="fishing-mode-choice__cancel" data-action="fishingMode:cancel" type="button">${t('close')}</button>
-      </div>
+      ${starterDrawerMarkup(state)}
+      ${wormDiggingGameMarkup(state)}
     </section>
   `;
 }
@@ -173,14 +172,24 @@ function effectMarkup(effectClass) {
   return `<div class="${effectClass}" aria-hidden="true"></div>`;
 }
 
-function actionButtonMarkup(action) {
+function actionButtonMarkup(action, state) {
   const variant = action.variant ? ` ${action.variant}` : '';
+  const tutorialTarget = isTutorialTarget(state, action.id) ? ' is-tutorial-target' : '';
   const disabled = action.disabled ? ' disabled' : '';
   return `
-    <button class="${variant.trim()}" data-action="${action.id}" type="button"${disabled}>
+    <button class="${`${variant}${tutorialTarget}`.trim()}" data-action="${action.id}" type="button"${disabled}>
       ${action.label}
+      ${action.reason ? `<small>${action.reason}</small>` : ''}
     </button>
   `;
+}
+
+function isTutorialTarget(state, actionId) {
+  const tutorial = state.tutorialState;
+  if (!tutorial?.started || tutorial.completed || tutorial.skipped || tutorial.collapsed) {
+    return false;
+  }
+  return actionId === tutorialSteps[tutorial.step ?? 0]?.actionId;
 }
 
 function feedbackMarkup(feedback) {
@@ -188,7 +197,7 @@ function feedbackMarkup(feedback) {
 }
 
 function fishResultMarkup(state) {
-  if (!['pond', 'greada'].includes(state.ui?.activeScene) || state.ui?.fishingMinigame?.open) {
+  if (!isFishingLocation(state.ui?.activeScene) || state.ui?.fishingMinigame?.open) {
     return '';
   }
 
@@ -219,4 +228,36 @@ function fishResultMarkup(state) {
       <p>${t(fish.descriptionKey)}</p>
     </section>
   `;
+}
+
+function fishingSceneConfig(sceneId) {
+  const location = getFishingLocation(sceneId);
+  if (!location) {
+    return null;
+  }
+
+  return {
+    titleKey: location.titleKey,
+    descriptionKey: location.descriptionKey,
+    image: getLocationImage(location.fishingImageId ?? location.imageId),
+    fallbackImage: getLocationImageFallback(location.fishingImageId ?? location.imageId),
+    backgroundKey: fishingBackgroundKey(location.id),
+    bgClass: 'scene-bg--slow-zoom',
+    effects: ['scene-water-ripples', 'scene-bobber', 'scene-cloud-shadow'],
+  };
+}
+
+function sceneBackgroundStyle(config, state) {
+  const images = config.backgroundKey
+    ? getTimeOfDayBackgroundUrls(config.backgroundKey, state, [config.image, config.fallbackImage])
+    : [config.image, config.fallbackImage].filter(Boolean);
+
+  return `background-image: ${images.map((image) => `url('${image}')`).join(', ')}`;
+}
+
+function fishingBackgroundKey(locationId) {
+  return {
+    canal: 'canal_view',
+    sluice: 'shluz_view',
+  }[locationId] ?? null;
 }
