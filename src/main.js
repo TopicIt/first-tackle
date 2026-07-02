@@ -709,14 +709,16 @@ const hud = createHud(hudRoot, {
     }
 
     if (actionId === 'minigame:context') {
-      runLockedFishingAction(() => runFishingContextAction(gameState, performance.now()));
-      renderHud();
+      runLockedFishingAction(() => {
+        renderAfterAuthorityAction(runFishingContextAction(gameState, performance.now()));
+      });
       return;
     }
 
     if (actionId === 'minigame:strike') {
-      runLockedFishingAction(() => strikeLine(gameState, performance.now()));
-      renderHud();
+      runLockedFishingAction(() => {
+        renderAfterAuthorityAction(strikeLine(gameState, performance.now()));
+      });
       return;
     }
 
@@ -1672,6 +1674,14 @@ function runLockedFishingAction(action) {
   return true;
 }
 
+function renderAfterAuthorityAction(actionResult) {
+  Promise.resolve(actionResult)
+    .catch((error) => {
+      console.warn('Game authority action fell back or failed.', error);
+    })
+    .finally(renderHud);
+}
+
 window.addEventListener('resize', resize);
 document.addEventListener('scroll', (event) => {
   const marketBody = event.target instanceof Element ? event.target.closest('[data-scroll-preserve="market-body"]') : null;
@@ -1697,8 +1707,9 @@ window.addEventListener('keydown', (event) => {
   event.preventDefault();
   spaceIsDown = true;
   audio.activate();
-  runLockedFishingAction(() => runFishingContextAction(gameState, performance.now()));
-  renderHud();
+  runLockedFishingAction(() => {
+    renderAfterAuthorityAction(runFishingContextAction(gameState, performance.now()));
+  });
 });
 window.addEventListener('keyup', (event) => {
   if (event.code === 'Space') {

@@ -1,13 +1,11 @@
 import { biteProfiles, biteTuning, castSpots, getBiteProfile, getCastSpot, stateDurationsMs } from './bitePatterns.js';
 import { getFishData, getFreshFishValue, rollFishById } from './fishData.js';
 import {
-  addCaughtFish,
   getFishEntries,
   markFishAsLiveBait,
-  releaseFish,
-  releaseSmallFishOfSpecies,
   syncInventoryFromFishBasket,
 } from './fishInventory.js';
+import { addFishToStorage, removeFishFromStorage, resolveCatch } from './gameAuthority.js';
 import { countItem, hasItem, removeItem } from './inventory.js';
 import { normalizeWaterId } from './locations.js';
 import { markFirstCrucianCatchRewardSeen, queueFirstCrucianCatchReward } from './locationTransitions.js';
@@ -238,7 +236,7 @@ export function castLine(state, nowMs) {
   queueSound(state, 'cast_whoosh');
 }
 
-export function strikeLine(state, nowMs) {
+export async function strikeLine(state, nowMs) {
   const minigame = state.ui.fishingMinigame;
   if (!minigame?.open) {
     return;
@@ -329,29 +327,48 @@ export function strikeLine(state, nowMs) {
       resolveMinigameResult(state, { outcome: 'rod_broke', statusKey: 'fishingRodBroke', sound: 'line_break' });
       return;
     }
-    const shouldShowFirstCrucianReward = catchResult.id === 'crucian'
-      && !state.progress?.firstCrucianCatchRewardShown
-      && !state.catchJournal?.crucian?.discovered;
-    const entry = addCaughtFish(state, catchResult, {
+    const catchContext = {
       catchSpotId: minigame.selectedSpot,
       method: minigame.method,
       bait: minigame.consumedBait ?? minigame.selectedBait,
       depth: minigame.selectedDepth ?? 'middle',
       waterId: normalizeWaterId(state.travel?.selectedWater),
       caughtAtTime: formatGameTime(state),
+    };
+    const shouldShowFirstCrucianReward = catchResult.id === 'crucian'
+      && !state.progress?.firstCrucianCatchRewardShown
+      && !state.catchJournal?.crucian?.discovered;
+    const authorityResult = await resolveCatch({
+      state,
+      serverPayload: buildCatchResolvePayload(state, minigame, {
+        reactionQuality,
+        successChance,
+        localSaveRevision: state.version ?? 0,
+      }),
+      localResolve: () => addFishToStorage({
+        state,
+        catchResult,
+        context: catchContext,
+      }).result,
     });
+    if (!authorityResult.result?.caught) {
+      resolveMinigameResult(state, { outcome: 'escaped', statusKey: 'fishingGotAway', sound: 'fish_escape' });
+      return;
+    }
+    const entry = authorityResult.result?.entry ?? null;
+    const resolvedCatchResult = authorityResult.result?.catchResult ?? catchResult;
     if (entry?.trophyTier) {
       queueSound(state, 'trophy_fanfare');
     }
-    state.ui.catchResult = catchResult;
+    state.ui.catchResult = resolvedCatchResult;
     minigame.currentCatchEntryId = entry?.id ?? null;
     resolveMinigameResult(state, {
       outcome: 'caught',
       statusKey: 'fishingCaught',
       sound: 'catch_success',
-      catchResult,
+      catchResult: resolvedCatchResult,
     });
-    const shouldShowTrophyCrucianReward = catchResult.id === 'crucian' && Boolean(entry?.trophyTier);
+    const shouldShowTrophyCrucianReward = resolvedCatchResult.id === 'crucian' && Boolean(entry?.trophyTier);
     if (shouldShowTrophyCrucianReward) {
       if (shouldShowFirstCrucianReward) {
         markFirstCrucianCatchRewardSeen(state);
@@ -389,19 +406,19 @@ export function releaseCurrentCatch(state) {
     return;
   }
 
-  releaseFish(state, minigame.currentCatchEntryId);
+  removeFishFromStorage({ state, fishEntryId: minigame.currentCatchEntryId, reason: 'release-current-catch' });
   minigame.statusKey = 'fishingReleased';
   resetAfterResult(state, minigame);
   queueSound(state, 'water_ripple');
 }
 
 export function releaseSmallFish(state, fishId) {
-  releaseSmallFishOfSpecies(state, fishId);
+  removeFishFromStorage({ state, fishId, reason: 'release-small-fish' });
   queueSound(state, 'water_ripple');
 }
 
 export function releaseKeepnetFish(state, fishEntryId) {
-  releaseFish(state, fishEntryId);
+  removeFishFromStorage({ state, fishEntryId, reason: 'release-keepnet-fish' });
   queueSound(state, 'water_ripple');
 }
 
@@ -607,7 +624,7 @@ export function setBiteHintMode(state, mode) {
   queueSound(state, 'ui_click');
 }
 
-export function runFishingContextAction(state, nowMs) {
+export async function runFishingContextAction(state, nowMs) {
   const minigame = state.ui.fishingMinigame;
   if (!minigame?.open) {
     return;
@@ -619,7 +636,7 @@ export function runFishingContextAction(state, nowMs) {
   }
 
   if (minigame.phase === 'strike_window' || minigame.phase === 'animating' || minigame.phase === 'waiting' || minigame.phase === 'cast') {
-    strikeLine(state, nowMs);
+    await strikeLine(state, nowMs);
   }
 }
 
@@ -1317,6 +1334,27 @@ function applyDepthCatchAdjustments(catchResult, depth) {
   if (depth === 'surface') {
     catchResult.weightGrams = Math.max(1, Math.round(catchResult.weightGrams * 0.88));
   }
+}
+
+function buildCatchResolvePayload(state, minigame, context = {}) {
+  return {
+    locationId: normalizeWaterId(state.travel?.selectedWater),
+    baitId: minigame.consumedBait ?? minigame.selectedBait,
+    rodId: state.tackle?.equipped?.rod ?? 'none',
+    tackle: {
+      line: state.tackle?.equipped?.line ?? 'none',
+      hook: state.tackle?.equipped?.hook ?? 'none',
+      sinker: state.tackle?.equipped?.sinker ?? 'none',
+      float: state.tackle?.equipped?.float ?? 'none',
+      rod: state.tackle?.equipped?.rod ?? 'none',
+    },
+    spotId: minigame.selectedSpot,
+    depth: minigame.selectedDepth ?? 'middle',
+    method: minigame.method,
+    clientActionScore: Number((context.reactionQuality ?? 0).toFixed(3)),
+    clientSuccessChance: Number((context.successChance ?? 0).toFixed(3)),
+    localSaveRevision: context.localSaveRevision ?? 0,
+  };
 }
 
 function getWaterFishMultiplier(state, fishId) {

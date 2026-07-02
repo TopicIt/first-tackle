@@ -2,7 +2,7 @@ export const FIRST_TACKLE_API_BASE_URL = 'https://first-tackle-api-production.up
 const CLOUD_SESSION_KEY = 'first-tackle-cloud-session-v1';
 
 export const apiConfig = {
-  baseUrl: (import.meta.env.VITE_FIRST_TACKLE_API_URL ?? FIRST_TACKLE_API_BASE_URL).replace(/\/$/, ''),
+  baseUrl: (import.meta.env?.VITE_FIRST_TACKLE_API_URL ?? FIRST_TACKLE_API_BASE_URL).replace(/\/$/, ''),
   accessToken: loadCloudSession()?.accessToken ?? null,
 };
 
