@@ -304,6 +304,8 @@ export function strikeLine(state, nowMs) {
   }
 
   if (roll <= successChance) {
+    // TODO server-authoritative migration: catch resolution is currently client-owned;
+    // later route this through gameApi.resolveCatchOnServer behind SERVER_AUTHORITATIVE_CATCH.
     const baitFits = getBaitSuitability(minigame.fishCandidateId, minigame.consumedBait ?? minigame.selectedBait) >= 1;
     const catchResult = rollFishById(minigame.fishCandidateId, {
       rollWeight: rollFishWeight,

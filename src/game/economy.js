@@ -34,6 +34,8 @@ export function sellSmokedFish(state) {
 }
 
 export function buyShopItem(state, itemId) {
+  // TODO server-authoritative migration: purchases currently mutate coins/inventory
+  // locally; later call gameApi.buyItemOnServer and apply the returned state patch.
   const item = shopItems.find((entry) => entry.id === itemId);
   if (!item) {
     return;
@@ -143,6 +145,8 @@ function getShopItemKey(itemId) {
 }
 
 function completeSale(state, soldEntries, emptyLogKey, successLogKey) {
+  // TODO server-authoritative migration: fish sale value and coin rewards are
+  // currently client-owned; later call gameApi.sellFishOnServer.
   const sold = soldEntries.length;
   if (sold === 0) {
     pushLog(state, emptyLogKey);

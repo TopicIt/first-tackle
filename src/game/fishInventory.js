@@ -56,6 +56,8 @@ export function ensureFishState(state) {
 }
 
 export function addCaughtFish(state, catchResult, context = {}) {
+  // TODO server-authoritative migration: fish storage, journal, trophies, and catch XP
+  // are currently client-owned; later apply a server playerStatePatch here.
   ensureFishState(state);
   const entry = createFishEntry(catchResult, state.day, context);
   const fish = getFishData(entry.fishId);
