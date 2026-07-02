@@ -23,6 +23,7 @@ export function getAuthorityMode() {
 }
 
 export async function resolveCatch({ state, serverPayload = {}, localResolve }) {
+  let fallbackReason = null;
   if (SERVER_AUTHORITATIVE_CATCH) {
     const serverResult = await resolveCatchOnServer(serverPayload);
     if (serverResult.ok) {
@@ -30,10 +31,14 @@ export async function resolveCatch({ state, serverPayload = {}, localResolve }) 
       return {
         ok: true,
         mode: 'server',
+        verified: true,
         result,
+        playerStatePatch: result.playerStatePatch ?? {},
+        serverRevision: result.serverRevision ?? null,
         metadata: authorityMetadata('server', true, result.serverRevision),
       };
     }
+    fallbackReason = serverResult.error?.message ?? 'server-catch-unavailable';
   }
 
   const result = typeof localResolve === 'function' ? localResolve() : { caught: false };
@@ -41,10 +46,14 @@ export async function resolveCatch({ state, serverPayload = {}, localResolve }) 
   return {
     ok: true,
     mode,
+    verified: false,
+    fallbackReason,
     result: {
       ...result,
       localRevision,
     },
+    playerStatePatch: result.playerStatePatch ?? {},
+    revision: localRevision,
     metadata: authorityMetadata(mode, false, localRevision),
   };
 }
@@ -59,6 +68,7 @@ export function addFishToStorage({ state, catchResult, context = {} }) {
   return {
     ok: true,
     mode: 'local',
+    verified: false,
     result: {
       caught: true,
       fish: fishResult(catchResult, entry),
@@ -68,6 +78,8 @@ export function addFishToStorage({ state, catchResult, context = {} }) {
       playerStatePatch: patch,
       localRevision,
     },
+    playerStatePatch: patch,
+    revision: localRevision,
     metadata: authorityMetadata('local', false, localRevision),
   };
 }
@@ -84,6 +96,17 @@ export function removeFishFromStorage({ state, fishEntryId, fishId, reason = 're
   return {
     ok: Boolean(removed && (!Array.isArray(removed) || removed.length > 0)),
     mode: 'local',
+    verified: false,
+    result: {
+      removal: {
+        reason,
+        fishEntryId,
+        fishId,
+        removed,
+      },
+      playerStatePatch: patch,
+      localRevision,
+    },
     removal: {
       reason,
       fishEntryId,
@@ -91,6 +114,7 @@ export function removeFishFromStorage({ state, fishEntryId, fishId, reason = 're
       removed,
     },
     playerStatePatch: patch,
+    revision: localRevision,
     localRevision,
     metadata: authorityMetadata('local', false, localRevision),
   };
@@ -109,11 +133,21 @@ export function buyItem({ state, itemId }) {
   return {
     ok: changed,
     mode: 'local',
+    verified: false,
+    result: {
+      purchase: {
+        itemId,
+        applied: changed,
+      },
+      playerStatePatch: patch,
+      localRevision,
+    },
     purchase: {
       itemId,
       applied: changed,
     },
     playerStatePatch: patch,
+    revision: localRevision,
     localRevision,
     error: changed ? null : 'Purchase was not applied',
     metadata: authorityMetadata('local', false, localRevision),
@@ -143,6 +177,18 @@ export function sellFish({ state, saleType = 'all', fishEntryId = null, fishId =
   return {
     ok: changed,
     mode: 'local',
+    verified: false,
+    result: {
+      sale: {
+        saleType,
+        fishEntryId,
+        fishId,
+        coinsEarned: Math.max(0, after.coins - before.coins),
+        fishRemoved: Math.max(0, before.fishStorageSummary.totalFish - after.fishStorageSummary.totalFish),
+      },
+      playerStatePatch: patch,
+      localRevision,
+    },
     sale: {
       saleType,
       fishEntryId,
@@ -151,6 +197,7 @@ export function sellFish({ state, saleType = 'all', fishEntryId = null, fishId =
       fishRemoved: Math.max(0, before.fishStorageSummary.totalFish - after.fishStorageSummary.totalFish),
     },
     playerStatePatch: patch,
+    revision: localRevision,
     localRevision,
     error: changed ? null : 'Sale was not applied',
     metadata: authorityMetadata('local', false, localRevision),

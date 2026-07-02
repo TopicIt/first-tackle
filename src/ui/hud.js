@@ -20,6 +20,7 @@ import { syncFishingPrototype3d } from './fishingPrototype3d.js';
 import { getLanguage, t } from '../i18n/i18n.js';
 import { buildInfo } from '../buildInfo.js';
 import { DEFAULT_AVATAR, GAME_TITLE } from '../game/state.js';
+import { getAuthorityMode } from '../game/gameAuthority.js';
 import { profileAvatars, tutorialSteps } from '../game/profile.js';
 import { getQuestRows } from '../game/quests.js';
 import { getSelectedProfileStar } from '../game/achievementStars.js';
@@ -303,6 +304,12 @@ export function createHud(root, handlers) {
                 <span></span><span></span><span></span>
               </summary>
               <div class="mobile-menu__sheet">
+                <div class="mobile-menu__quick-actions" aria-label="Швидкі дії">
+                  <button data-action="profile:open" type="button">Профіль</button>
+                  <button data-action="save:now" type="button">Зберегти</button>
+                  <button data-action="cloud:open" type="button">Хмарне збереження</button>
+                  <button data-action="panel:toggle:settings" type="button">Налаштування</button>
+                </div>
                 <nav class="mobile-menu__list">
                   ${menuButton('profile', 'profile', collapsedPanels)}
                   ${menuButton('inventory', 'inventory', collapsedPanels)}
@@ -616,6 +623,7 @@ export function createHud(root, handlers) {
         ${locationTransitionMarkup(state.ui?.locationTransition)}
         ${tutorialPromptMarkup(state)}
         ${startupOverlayMarkup(state)}
+        ${debugLayoutBadgeMarkup(state, context)}
       `;
 
       restoreMobileMenu(root, mobileMenuOpen);
@@ -968,6 +976,36 @@ function actionButtonMarkup(action) {
 function menuButton(panelId, labelKey, collapsedPanels) {
   const open = !collapsedPanels[panelId];
   return `<button class="glass-menu-button${open ? ' is-active' : ''}" data-action="panel:toggle:${panelId}" type="button">${t(labelKey)}</button>`;
+}
+
+function debugLayoutBadgeMarkup(state, context) {
+  if (!isDebugLayoutBadgeEnabled()) {
+    return '';
+  }
+
+  const viewport = `${window.innerWidth}x${window.innerHeight}`;
+  const safeAreaProbe = 'top:env(safe-area-inset-top), bottom:env(safe-area-inset-bottom)';
+  const cloud = state.ui?.cloudSave?.busy ? 'cloud:sync' : 'cloud:idle';
+  return `
+    <aside class="debug-layout-badge" aria-label="Layout debug">
+      <strong>${viewport}</strong>
+      <span>${state.ui?.resolvedViewMode ?? 'auto'} / ${context?.timeOfDayBucket ?? 'time-auto'}</span>
+      <span>authority: ${getAuthorityMode()}</span>
+      <span>${cloud}</span>
+      <small>${safeAreaProbe}</small>
+    </aside>
+  `;
+}
+
+function isDebugLayoutBadgeEnabled() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.has('debugLayout')
+      || localStorage.getItem('first-tackle-debug-layout') === 'true'
+      || localStorage.getItem('first-tackle-mobile-debug') === 'true';
+  } catch {
+    return false;
+  }
 }
 
 function readProfilePhoto(file, handlers) {

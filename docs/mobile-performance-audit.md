@@ -2,11 +2,11 @@
 
 Date: 2026-07-02
 
-Branch: `codex/cloud-save-menu-performance-audit`
+Branch: `codex/mobile-beta-server-ready-pass`
 
 ## Summary
 
-Cloud Save is now visible from the main menu/profile area, but the bigger mobile heating risk is still frontend rendering work. Backend migration will help account, validation, sync, and leaderboard systems, but it will not fix GPU/CPU pressure from WebGL, large images, videos, CSS animations, full DOM rebuilds, or repeated save serialization.
+Cloud Save is now visible from the mobile menu/profile/settings areas, but the bigger mobile heating risk is still frontend rendering work. Backend migration will help account, validation, sync, and leaderboard systems, but it will not fix GPU/CPU pressure from WebGL, large images, videos, CSS animations, full DOM rebuilds, or repeated save serialization.
 
 The most important optimization direction is to reduce work while the player is in menus, profile/settings panels, startup screens, or inactive tabs; then reduce mobile asset weight and animation/video cost.
 
@@ -109,13 +109,33 @@ Priority 3:
 
 ## Small Safe Fix Made
 
-Added a low-risk frontend guard in `src/main.js`:
+Safe fixes now in place:
 
 - When startup/profile/settings/menu-style overlays are open, decorative `world.animate(delta)` no longer runs.
+- The main animation loop returns early when `document.hidden`, so non-essential frame work is paused in hidden tabs.
+- The optional prototype 3D fisherman renderer also skips rendering when `document.hidden` and remains disabled by default.
+- Map CSS shimmer/breath animations pause when the mobile menu or side detail overlays are open.
+- The HUD already avoids repeated full DOM updates by comparing a render snapshot before assigning `root.innerHTML`.
+- Transition/intro videos use `preload="metadata"` and are initialized only when the transition/startup step is active.
 - Player/camera update, HUD refresh, minigame tick, autosave, and rendering behavior remain intact.
 - Existing low-power mode behavior remains unchanged.
 
 This is not a complete heating fix. It is a small reduction in unnecessary background animation while UI panels are open.
+
+## Backend Track Versus Heating Track
+
+Moving calculations to the backend helps architecture, trust, anti-cheat, account saves, conflict handling, records, leaderboards, and future economy validation.
+
+It does not remove phone heat from:
+
+- rendering frames;
+- decoding large images;
+- playing videos;
+- animating CSS/canvas/WebGL;
+- rebuilding big DOM panels;
+- running mobile GPU-heavy effects.
+
+Both tracks should continue separately: backend authority for trusted state, frontend performance work for battery and temperature.
 
 ## Next Measurements To Run
 

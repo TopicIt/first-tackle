@@ -17,6 +17,7 @@ html,
 body {
   width: 100%;
   height: 100%;
+  min-height: 100dvh;
   margin: 0;
   overflow: hidden;
 }
@@ -44,7 +45,7 @@ button:disabled {
   filter: saturate(0.7) blur(1px);
   display: block;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
 }
 
 .hud {
@@ -57,6 +58,7 @@ button:disabled {
   grid-template-rows: auto 1fr auto;
   gap: 16px;
   padding: 18px;
+  overflow: hidden;
 }
 
 .hud.is-transition-playing > :not(.location-transition):not(.startup-flow) {
@@ -1391,6 +1393,8 @@ button:disabled {
   display: grid;
   gap: 8px;
   width: min(360px, calc(100vw - 28px));
+  max-height: calc(100dvh - max(24px, env(safe-area-inset-top)) - max(24px, env(safe-area-inset-bottom)));
+  overflow: auto;
   border: 1px solid rgb(255 255 255 / 16%);
   border-radius: 8px;
   background: rgb(8 17 18 / 44%);
@@ -1399,6 +1403,25 @@ button:disabled {
   text-align: center;
   transform: translateX(-50%);
   backdrop-filter: blur(8px);
+}
+
+.debug-layout-badge {
+  pointer-events: none;
+  position: fixed;
+  left: max(8px, env(safe-area-inset-left));
+  bottom: max(8px, env(safe-area-inset-bottom));
+  z-index: 1000;
+  display: grid;
+  gap: 2px;
+  max-width: min(260px, calc(100vw - 16px));
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 8px;
+  background: rgb(5 10 9 / 78%);
+  color: #f8f4e7;
+  font-size: 0.68rem;
+  line-height: 1.25;
+  padding: 6px 8px;
+  box-shadow: 0 10px 24px rgb(0 0 0 / 28%);
 }
 
 .tutorial-float--helper {
@@ -1614,6 +1637,7 @@ button:disabled {
 }
 
 :root[data-view-mode="desktop"] .mobile-menu__list,
+:root[data-view-mode="desktop"] .mobile-menu__quick-actions,
 :root[data-view-mode="desktop"] .mobile-menu__service {
   display: grid;
   gap: 6px;
@@ -1623,6 +1647,7 @@ button:disabled {
 }
 
 :root[data-view-mode="desktop"] .mobile-menu__list button,
+:root[data-view-mode="desktop"] .mobile-menu__quick-actions button,
 :root[data-view-mode="desktop"] .mobile-menu__service button {
   min-height: 42px;
   border: 1px solid rgb(255 255 255 / 16%);
@@ -1632,6 +1657,16 @@ button:disabled {
   padding: 7px 9px;
   text-shadow: 0 1px 8px rgb(0 0 0 / 62%);
   backdrop-filter: blur(5px);
+}
+
+:root[data-view-mode="desktop"] .mobile-menu__quick-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+:root[data-view-mode="desktop"] .mobile-menu__quick-actions button {
+  border-color: rgb(243 196 95 / 30%);
+  background: rgb(243 196 95 / 18%);
+  color: #fff8df;
 }
 
 :root[data-view-mode="desktop"] .mobile-menu__list button.is-active {
@@ -3054,6 +3089,7 @@ button:disabled {
   }
 
   .mobile-menu__list,
+  .mobile-menu__quick-actions,
   .mobile-menu__service {
     display: grid;
     gap: 6px;
@@ -3063,6 +3099,7 @@ button:disabled {
   }
 
   .mobile-menu__list button,
+  .mobile-menu__quick-actions button,
   .mobile-menu__service button {
     min-height: 44px;
     border: 1px solid rgb(255 255 255 / 16%);
@@ -3072,6 +3109,16 @@ button:disabled {
     padding: 7px 9px;
     text-shadow: 0 1px 8px rgb(0 0 0 / 62%);
     backdrop-filter: blur(5px);
+  }
+
+  .mobile-menu__quick-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mobile-menu__quick-actions button {
+    border-color: rgb(243 196 95 / 30%);
+    background: rgb(243 196 95 / 18%);
+    color: #fff8df;
   }
 
   .mobile-menu__list button.is-active {
@@ -3486,6 +3533,7 @@ button:disabled {
 }
 
 :root[data-view-mode="mobile"] .mobile-menu__list,
+:root[data-view-mode="mobile"] .mobile-menu__quick-actions,
 :root[data-view-mode="mobile"] .mobile-menu__service {
   display: grid;
   gap: 6px;
@@ -3495,6 +3543,7 @@ button:disabled {
 }
 
 :root[data-view-mode="mobile"] .mobile-menu__list button,
+:root[data-view-mode="mobile"] .mobile-menu__quick-actions button,
 :root[data-view-mode="mobile"] .mobile-menu__service button {
   min-height: 44px;
   border: 1px solid rgb(255 255 255 / 16%);
@@ -3504,6 +3553,16 @@ button:disabled {
   padding: 7px 9px;
   text-shadow: 0 1px 8px rgb(0 0 0 / 62%);
   backdrop-filter: blur(5px);
+}
+
+:root[data-view-mode="mobile"] .mobile-menu__quick-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+:root[data-view-mode="mobile"] .mobile-menu__quick-actions button {
+  border-color: rgb(243 196 95 / 30%);
+  background: rgb(243 196 95 / 18%);
+  color: #fff8df;
 }
 
 :root[data-view-mode="mobile"] .mobile-menu__list button.is-active {

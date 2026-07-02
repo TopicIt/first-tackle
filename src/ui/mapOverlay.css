@@ -354,12 +354,20 @@
 
 :root.low-power-mode .illustrated-map__breath,
 :root.low-power-mode .illustrated-map__water,
-:root.low-power-mode .map-hotspot__area {
+:root.low-power-mode .map-hotspot__area,
+body:has(.mobile-menu[open]) .illustrated-map__breath,
+body:has(.mobile-menu[open]) .illustrated-map__water,
+body:has(.side-detail-panel:not(.is-collapsed)) .illustrated-map__breath,
+body:has(.side-detail-panel:not(.is-collapsed)) .illustrated-map__water {
   animation: none !important;
 }
 
 :root.low-power-mode .illustrated-map__breath,
-:root.low-power-mode .illustrated-map__water {
+:root.low-power-mode .illustrated-map__water,
+body:has(.mobile-menu[open]) .illustrated-map__breath,
+body:has(.mobile-menu[open]) .illustrated-map__water,
+body:has(.side-detail-panel:not(.is-collapsed)) .illustrated-map__breath,
+body:has(.side-detail-panel:not(.is-collapsed)) .illustrated-map__water {
   opacity: 0.18;
 }
 

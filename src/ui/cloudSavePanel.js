@@ -11,7 +11,7 @@ export function cloudSavePanelMarkup(state) {
   return `
     <section class="settings-block cloud-save-panel">
       <p class="section-label">Хмарне збереження</p>
-      <p class="cloud-save-panel__note">Після входу локальний прогрес періодично автозберігається в хмару. Гра без акаунта працює як раніше.</p>
+      <p class="cloud-save-panel__note">Гість має локальне збереження. Після входу хмарне автозбереження увімкнене, але воно спрацьовує із затримкою; ручні дії нижче доступні завжди.</p>
       ${loggedIn ? loggedInMarkup(profile, metadata, message, isBusy) : loggedOutMarkup(message, isBusy)}
       <small class="cloud-save-panel__endpoint">${FIRST_TACKLE_API_BASE_URL}</small>
     </section>
@@ -68,7 +68,7 @@ export function cloudSaveMenuMarkup(state) {
         <small>${escapeHtml(secondaryStatus)}</small>
       </div>
       <div class="cloud-save-shortcut__actions">
-        <button data-action="save" type="button">Зберегти локально</button>
+        <button data-action="save:now" type="button">Зберегти локально</button>
         ${loggedIn ? `
           <button data-action="cloud:upload" type="button"${busy ? ' disabled' : ''}>Зберегти в хмару</button>
           <button data-action="cloud:download" type="button"${busy ? ' disabled' : ''}>Завантажити</button>
@@ -120,7 +120,7 @@ function loggedOutMarkup(message, isBusy) {
         <button name="mode" value="login" type="submit"${isBusy ? ' disabled' : ''}>Увійти</button>
       </div>
     </form>
-    <p class="cloud-save-panel__note">Гра все ще працює без акаунта. Акаунт потрібен лише для хмарного збереження.</p>
+    <p class="cloud-save-panel__note">Гість: локальне збереження. Увійдіть для хмарного автозбереження.</p>
     ${messageMarkup(message)}
   `;
 }
@@ -137,6 +137,7 @@ function loggedInMarkup(profile, metadata, message, isBusy) {
       <div><dt>Автозбереження</dt><dd>увімкнено</dd></div>
     </dl>
     <div class="settings-action-row settings-action-row--stack">
+      <button data-action="save:now" type="button"${isBusy ? ' disabled' : ''}>Зберегти локально зараз</button>
       <button data-action="cloud:upload" type="button"${isBusy ? ' disabled' : ''}>Завантажити локальний сейв на сервер</button>
       <button data-action="cloud:download" type="button"${isBusy ? ' disabled' : ''}>Завантажити сейв із сервера</button>
       <button data-action="cloud:logout" type="button"${isBusy ? ' disabled' : ''}>Вийти</button>

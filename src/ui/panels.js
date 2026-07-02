@@ -302,10 +302,12 @@ function profileCloudSaveMarkup(state) {
       </dl>
       <div class="profile-cloud-save__actions">
         ${loggedIn ? `
+          <button data-action="save:now" type="button"${busy ? ' disabled' : ''}>${t('saveNow')}</button>
           <button data-action="cloud:upload" type="button"${busy ? ' disabled' : ''}>${t('cloudSaveUploadShort')}</button>
           <button data-action="cloud:download" type="button"${busy ? ' disabled' : ''}>${t('cloudSaveDownloadShort')}</button>
           <button data-action="cloud:logout" type="button"${busy ? ' disabled' : ''}>${t('cloudSaveLogoutShort')}</button>
         ` : `
+          <button data-action="save:now" type="button"${busy ? ' disabled' : ''}>${t('saveNow')}</button>
           <button data-action="cloud:open" type="button"${busy ? ' disabled' : ''}>${t('cloudSaveLoginShort')}</button>
         `}
       </div>
