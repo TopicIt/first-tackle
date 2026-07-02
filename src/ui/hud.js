@@ -325,8 +325,8 @@ export function createHud(root, handlers) {
                   ${menuButton('mapViewer', 'map', collapsedPanels)}
                   ${menuButton('settings', 'settings', collapsedPanels)}
                 </nav>
-                ${cloudSaveMenuMarkup(state)}
                 <div class="mobile-menu__service">
+                  <button class="mobile-menu__cloud-save" data-action="cloud:open" type="button">${t('cloudSave')}</button>
                   <button data-action="save" type="button">${t('save')}</button>
                   <button data-action="load" type="button">${t('load')}</button>
                   <button data-action="reset" type="button">${t('reset')}</button>

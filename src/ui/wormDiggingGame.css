@@ -75,7 +75,7 @@
     radial-gradient(circle at 86% 18%, rgb(32 70 32 / 72%), transparent 17%),
     repeating-linear-gradient(12deg, rgb(66 45 28 / 32%) 0 8px, rgb(92 61 36 / 28%) 8px 15px),
     linear-gradient(160deg, #55743b, #725036 48%, #3d522d);
-  cursor: url('/assets/items/item_shovel.png') 8 28, pointer;
+  cursor: url('/assets/items/item_shovel.webp') 8 28, pointer;
   overflow: hidden;
 }
 

@@ -699,7 +699,7 @@ function keepnetEntryMarkup(state, entry) {
   const freshness = getFreshnessInfo(state, entry);
   return `
     <div class="keepnet-entry">
-      <img class="keepnet-entry__image" src="${entry.selectedCardImage ?? resolveFishCatchCardImage(entry.fishId, entry)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
+      <img class="keepnet-entry__image" src="${assetPath(entry.selectedCardImage ?? resolveFishCatchCardImage(entry.fishId, entry))}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
       <span>${entry.weightGrams}g · ${t(statusKey(entry.status))}</span>
       ${catchCategoryBadgeMarkup(entry.catchCategory, entry.weightGrams)}
       <small>${entry.catchSpotId ? t(getCastSpot(entry.catchSpotId).labelKey) : t('unknownSpot')}</small>
@@ -954,7 +954,8 @@ function marketBuyCardMarkup(state, item) {
       </div>
       <div class="market-card__actions">
         <button class="market-card__details-toggle" data-action="market:details:${item.id}" type="button" aria-expanded="${isExpanded}">
-          ${isExpanded ? 'Сховати' : 'Деталі'}
+          <span aria-hidden="true">${isExpanded ? '-' : '+'}</span>
+          <span class="sr-only">${isExpanded ? 'Collapse details' : 'Show details'}</span>
         </button>
         <button class="market-card__buy-button" data-action="buy:${item.id}" type="button"${owned || state.money < item.price ? ' disabled' : ''}>${owned ? t('owned') : t('buy')}</button>
       </div>

@@ -241,7 +241,7 @@ function catchResultModalMarkup(state, fish, result, minigame) {
         </div>
         <div class="fishing-result__body">
           <div class="fishing-result__frame">
-            <img src="${image}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
+            <img src="${assetPath(image)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
           </div>
           <div class="fishing-result__copy">
             <h3>${t(fish.nameKey)}</h3>

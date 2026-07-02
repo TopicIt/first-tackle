@@ -567,8 +567,21 @@
 }
 
 .market-card__details-toggle {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  min-width: 36px;
   background: rgb(255 255 255 / 10%) !important;
   color: #fff8df !important;
+  font-size: 1.05rem !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+}
+
+.market-card__details-toggle[aria-expanded="true"] {
+  border-color: rgb(243 196 95 / 38%) !important;
+  background: rgb(243 196 95 / 18%) !important;
+  color: #ffe28a !important;
 }
 
 .market-card--buy {
@@ -864,6 +877,13 @@
     min-width: 76px;
     min-height: 32px;
     padding: 6px 8px;
+  }
+
+  .scene-market .market-card--buy .market-card__actions .market-card__details-toggle {
+    width: 38px;
+    min-width: 38px;
+    justify-self: end;
+    padding: 0;
   }
 
   .scene-market .market-card--buy .item-details,
