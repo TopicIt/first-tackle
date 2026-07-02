@@ -8,7 +8,7 @@ import { castSpots, getCastSpot } from '../game/bitePatterns.js';
 import { shopItems } from '../game/state.js';
 import { getQuestRows } from '../game/quests.js';
 import { getCafeOrderRows } from '../game/cafeOrders.js';
-import { profileAvatars } from '../game/profile.js';
+import { getLevelProgress, profileAvatars } from '../game/profile.js';
 import { componentDescriptions, componentLabels, requiredTackleSlots, tackleComponents } from '../game/tackle.js';
 import { resolveFishCatchCardImage } from '../game/fishCardImages.js';
 import { countItem, itemLabels } from '../game/inventory.js';
@@ -21,6 +21,7 @@ import {
 import { getLanguage, t, translateEntry } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
 import { getWorldMapAsset } from '../utils/worldMapAsset.js';
+import { loadCloudSession } from '../api/client.js';
 
 const inventoryOrder = [
   'thread',
@@ -200,6 +201,7 @@ export function profileMarkup(state) {
   const biggestFishId = state.stats?.biggestFishSpecies;
   const biggestWeight = state.stats?.biggestFishWeight ?? 0;
   const biggestFish = fishData.find((fish) => fish.id === biggestFishId);
+  const levelProgress = getLevelProgress(profile);
   const unlockedWaters = Object.entries(state.travel?.visitedWaters ?? {})
     .filter(([, visited]) => visited)
     .map(([waterId]) => waterGuide.find((water) => water.id === waterId)?.nameKey)
@@ -213,10 +215,21 @@ export function profileMarkup(state) {
       </div>
       <div>
         <h3>${escapeHtml(profile.name ?? '')}</h3>
-        <p>${t('coins')}: <strong>${state.money}</strong></p>
-        <small>${t('earnedStars')}: <strong>${unlockedStars.length}</strong></small>
+        <p>${t('levelLabel')}: <strong>${levelProgress.level}</strong></p>
+        <small>${t('coins')}: <strong>${state.money}</strong> &middot; ${t('totalFishCaught')}: <strong>${profile.fishCaughtTotal ?? state.stats?.totalFishCaught ?? 0}</strong></small>
       </div>
     </div>
+    <div class="profile-xp">
+      <div class="profile-xp__row">
+        <span>${t('xpLabel')}</span>
+        <strong>${levelProgress.earnedThisLevel}/${levelProgress.neededThisLevel}</strong>
+      </div>
+      <div class="profile-xp__bar" role="progressbar" aria-valuemin="0" aria-valuemax="${levelProgress.neededThisLevel}" aria-valuenow="${levelProgress.earnedThisLevel}" aria-label="${t('xpLabel')}">
+        <span style="width:${levelProgress.percent}%"></span>
+      </div>
+      <small>${t('totalXpLabel')}: ${levelProgress.xp}</small>
+    </div>
+    ${profileCloudStatusMarkup(state)}
     ${state.ui?.editingProfile ? `
       <form class="profile-form profile-form--inline" data-profile-form>
         <input data-profile-name-input name="name" type="text" autocomplete="name" value="${escapeHtml(profile.name ?? '')}" placeholder="${t('defaultPlayerName')}" />
@@ -238,7 +251,8 @@ export function profileMarkup(state) {
     ` : `<button class="profile-edit-button" data-action="profile:edit" type="button">${t('editProfile')}</button>`}
     <dl class="profile-stats">
       <div><dt>${t('daysFishing')}</dt><dd>${state.day ?? 1}</dd></div>
-      <div><dt>${t('totalFishCaught')}</dt><dd>${state.stats?.totalFishCaught ?? 0}</dd></div>
+      <div><dt>${t('fishCaughtTotal')}</dt><dd>${profile.fishCaughtTotal ?? state.stats?.totalFishCaught ?? 0}</dd></div>
+      <div><dt>${t('totalCoinsEarned')}</dt><dd>${profile.totalCoinsEarned ?? 0}</dd></div>
       <div><dt>${t('fishInKeepnet')}</dt><dd>${keepnetSummary.totalFish}</dd></div>
       <div><dt>${t('totalTrophies')}</dt><dd>${totalTrophies}</dd></div>
       <div><dt>${t('earnedStars')}</dt><dd>${unlockedStars.length}</dd></div>
@@ -254,10 +268,32 @@ export function profileMarkup(state) {
         </div>
       ` : `<p class="empty-panel">${t('noStarsYet')}</p>`}
     </section>
-    <section class="profile-achievements">
-      <p class="section-label">${t('achievements')}</p>
+    <details class="profile-achievements">
+      <summary class="section-label">${t('achievements')}</summary>
       ${achievementsMarkup(state)}
-    </section>
+    </details>
+  `;
+}
+
+function profileCloudStatusMarkup(state) {
+  const session = loadCloudSession();
+  const busy = Boolean(state.ui?.cloudSave?.busy);
+  const loggedIn = Boolean(session?.accessToken);
+  const label = busy
+    ? t('cloudSaveSyncing')
+    : loggedIn
+      ? t('cloudSaveConnected')
+      : t('cloudSaveOffline');
+  const detail = loggedIn
+    ? (session?.profile?.displayName || session?.profile?.email || t('cloudSaveConnected'))
+    : t('cloudSaveOfflineHint');
+
+  return `
+    <div class="profile-cloud-status${loggedIn ? ' is-connected' : ''}${busy ? ' is-syncing' : ''}">
+      <span>${t('cloudSave')}</span>
+      <strong>${escapeHtml(label)}</strong>
+      <small>${escapeHtml(detail)}</small>
+    </div>
   `;
 }
 

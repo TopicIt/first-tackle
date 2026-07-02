@@ -1,5 +1,6 @@
 import { getCastSpot } from './bitePatterns.js';
 import { pushFeedback, pushLog, queueSound } from './state.js';
+import { addProfileCoinsEarned } from './profile.js';
 
 export const questDefinitions = [
   {
@@ -121,6 +122,7 @@ export function claimQuestReward(state, questId) {
   quest.applyReward?.(state);
   if (quest.rewardCoins) {
     state.money += quest.rewardCoins;
+    addProfileCoinsEarned(state, quest.rewardCoins);
     pushFeedback(state, 'feedbackCoins', { coins: quest.rewardCoins }, 'coins');
   }
   pushLog(state, 'logQuestRewardClaimed', { questKey: quest.titleKey, rewardKey: quest.rewardKey });

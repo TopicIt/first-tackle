@@ -56,6 +56,7 @@ import {
   skipTutorial,
   startTutorial,
   syncGrandmaTrust,
+  syncProfileDerivedStats,
   updateProfileDraftName,
   setCustomAvatar,
   updateProfile,
@@ -1135,6 +1136,7 @@ function lockedLogKey(waterId) {
 function renderHud() {
   syncQuestProgress(gameState);
   ensureCafeOrders(gameState);
+  syncProfileDerivedStats(gameState);
   const timeOfDayBucket = getTimeOfDayBucket(gameState);
   const context = gameState.ui.activeScene
     ? getLocationSceneContext(gameState, gameState.ui.activeScene)
@@ -1203,6 +1205,7 @@ function ensureRuntimeState(state) {
   normalizeViewModeSettings(state);
   applyViewModeToDocument(state);
   normalizePanelStateForViewport(state);
+  syncProfileDerivedStats(state);
 }
 
 function resetToFreshState() {

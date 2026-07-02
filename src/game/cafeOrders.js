@@ -2,6 +2,7 @@ import { getFishData } from './fishData.js';
 import { syncInventoryFromFishBasket } from './fishInventory.js';
 import { pushFeedback, pushLog, queueSound } from './state.js';
 import { ensureTimeState } from './time.js';
+import { addProfileCoinsEarned } from './profile.js';
 
 const ORDER_LIMIT = 2;
 const ORDER_DURATION_MINUTES = 30;
@@ -98,6 +99,7 @@ export function completeCafeOrder(state, orderId) {
   state.fishBasket = (state.fishBasket ?? []).filter((entry) => !takeIds.has(entry.id));
   syncInventoryFromFishBasket(state);
   state.money = (state.money ?? 0) + order.rewardCoins;
+  addProfileCoinsEarned(state, order.rewardCoins);
   state.quests.cafeOrders = state.quests.cafeOrders.filter((entry) => entry.id !== order.id);
   state.quests.cafeCompleted = (state.quests.cafeCompleted ?? 0) + 1;
   pushFeedback(state, 'feedbackCoins', { coins: order.rewardCoins }, 'coins');

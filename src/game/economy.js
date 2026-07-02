@@ -4,6 +4,7 @@ import { ensureMarketState, getFishSaleValue } from './market.js';
 import { ownTackleComponent } from './tackle.js';
 import { pushFeedback, pushLog, queueSound, shopItems } from './state.js';
 import { addItem } from './inventory.js';
+import { addProfileCoinsEarned } from './profile.js';
 
 export function sellAllFish(state) {
   ensureMarketState(state);
@@ -150,6 +151,7 @@ function completeSale(state, soldEntries, emptyLogKey, successLogKey) {
 
   const earned = soldEntries.reduce((total, entry) => total + getFishSaleValue(state, entry), 0);
   state.money += earned;
+  addProfileCoinsEarned(state, earned);
   pushFeedback(state, 'feedbackCoins', { coins: earned }, 'coins');
   pushLog(state, successLogKey, { count: sold, coins: earned });
   state.ui.catchResult = null;

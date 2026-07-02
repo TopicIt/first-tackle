@@ -4,7 +4,7 @@ import { getFishData } from './fishData.js';
 import { pushFeedback, pushLog } from './state.js';
 import { classifyCatchSize, trophyTierForCategory } from './fishSizeProfiles.js';
 import { persistCatchCardImage } from './fishCardImages.js';
-import { syncGrandmaTrust } from './profile.js';
+import { addProfileCoinsEarned, awardCatchXp, syncGrandmaTrust, syncProfileDerivedStats } from './profile.js';
 import { syncCompletedSpeciesStars } from './achievementStars.js';
 import { syncQuestProgress } from './quests.js';
 
@@ -70,6 +70,8 @@ export function addCaughtFish(state, catchResult, context = {}) {
     pushFeedback(state, 'feedbackFirstCatch', {}, 'trophy');
   }
   updateCatchJournal(state, entry);
+  syncProfileDerivedStats(state);
+  awardCatchXp(state, catchResult, entry);
   syncGrandmaTrust(state);
   syncQuestProgress(state);
   syncInventoryFromFishBasket(state);
@@ -539,6 +541,7 @@ function awardTrophyReward(state, entry, wasCaught) {
 
   state.achievements.claimedTrophyRewards[key] = true;
   state.money = (state.money ?? 0) + reward;
+  addProfileCoinsEarned(state, reward);
   pushFeedback(state, 'feedbackCoins', { coins: reward }, 'coins');
   pushLog(state, 'logTrophyReward', { coins: reward });
 }

@@ -10,6 +10,7 @@ import { ensureMarketState } from './market.js';
 import { ensureTackleState } from './tackle.js';
 import { ensureStarterTackleDrawerState } from './starterTackleDrawer.js';
 import { normalizeWaterId } from './locations.js';
+import { ensureProfileState } from './profile.js';
 
 export function saveGame(state) {
   const serializableState = cleanForSave(state);
@@ -99,6 +100,7 @@ function normalizeLoadedState(saved) {
   ensureMarketState(merged);
   ensureTackleState(merged);
   ensureStarterTackleDrawerState(merged);
+  ensureProfileState(merged);
   return merged;
 }
 
@@ -168,6 +170,10 @@ function mergeState(base, saved) {
     playerProfile: {
       ...base.playerProfile,
       ...(saved.playerProfile ?? {}),
+      name: saved.playerProfile?.name ?? saved.playerProfile?.playerName ?? base.playerProfile.name,
+      playerName: saved.playerProfile?.playerName ?? saved.playerProfile?.name ?? base.playerProfile.playerName,
+      avatar: saved.playerProfile?.avatar ?? saved.playerProfile?.avatarId ?? base.playerProfile.avatar,
+      avatarId: saved.playerProfile?.avatarId ?? saved.playerProfile?.avatar ?? base.playerProfile.avatarId,
       avatarType: saved.playerProfile?.avatarType ?? (saved.playerProfile?.customAvatarDataUrl ? 'custom' : 'preset'),
       customAvatarDataUrl: saved.playerProfile?.customAvatarDataUrl ?? null,
       selectedStarId: saved.playerProfile?.selectedStarId ?? null,

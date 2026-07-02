@@ -991,6 +991,15 @@
   background: #cde6a2;
 }
 
+.feedback-pop.xp {
+  background: #d7f0ff;
+}
+
+.feedback-pop.level {
+  background: #ffe28a;
+  color: #1d2117;
+}
+
 @keyframes sceneSlowPan {
   from {
     transform: translate3d(-1.5%, 0, 0) scale(1.02);

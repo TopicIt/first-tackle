@@ -939,9 +939,91 @@ button:disabled {
   margin: 0;
 }
 
+.profile-card small {
+  display: block;
+  margin-top: 3px;
+  color: #dbe8e1;
+  line-height: 1.35;
+}
+
+.profile-xp,
+.profile-cloud-status {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 8px;
+  background: rgb(7 14 14 / 24%);
+  padding: 8px;
+}
+
+.profile-xp__row,
+.profile-cloud-status {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.profile-xp__row {
+  display: grid;
+  gap: 8px;
+  color: #eaf4ea;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.profile-xp__bar {
+  width: 100%;
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 32%);
+}
+
+.profile-xp__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #84d4a1, #f3c45f);
+}
+
+.profile-xp small,
+.profile-cloud-status small {
+  grid-column: 1 / -1;
+  color: #bdd6ce;
+  font-size: 0.74rem;
+}
+
+.profile-cloud-status {
+  display: grid;
+}
+
+.profile-cloud-status span {
+  color: #bdd6ce;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.profile-cloud-status strong {
+  color: #ffe28a;
+  font-size: 0.78rem;
+  text-align: right;
+}
+
+.profile-cloud-status.is-connected strong {
+  color: #9de3ad;
+}
+
 .profile-form {
   display: grid;
   gap: 10px;
+}
+
+.profile-achievements summary {
+  cursor: pointer;
+}
+
+.profile-achievements summary::-webkit-details-marker {
+  display: none;
 }
 
 .profile-edit-button,
