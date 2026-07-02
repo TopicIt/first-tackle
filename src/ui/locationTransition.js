@@ -16,6 +16,8 @@ export function locationTransitionMarkup(transition) {
       <img
         class="location-transition__fallback"
         src="${transition.fallbackImage}"
+        loading="lazy"
+        decoding="async"
         onerror="this.onerror=null;this.src='${transition.fallbackImageAlt}'"
         alt=""
         aria-hidden="true"
@@ -25,7 +27,7 @@ export function locationTransitionMarkup(transition) {
         data-transition-video="true"
         muted
         playsinline
-        preload="metadata"
+        preload="none"
       >
         ${sources}
       </video>

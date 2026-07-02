@@ -87,6 +87,7 @@ import { ApiError, loadCloudSession, saveCloudSession } from './api/client.js';
 import { getProfile, login, logout, register } from './api/authApi.js';
 import { getSaveStatus, loadSave as loadCloudSave, syncSave as syncCloudSave } from './api/saveApi.js';
 import { fetchLeaderboard } from './api/gameApi.js';
+import { primeCatalogCache } from './api/catalogApi.js';
 import { syncPlayerStateFromGameState } from './game/playerState.js';
 
 const canvas = document.querySelector('#game');
@@ -118,7 +119,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-const world = createWorld();
+const world = createWorld({ enablePrototypeFisherman: Boolean(gameState.settings?.graphics?.fisherman3d) });
 const player = createPlayerController(world.scene, gameState.player);
 const clock = new THREE.Clock();
 let lastHudSnapshot = '';
@@ -139,6 +140,8 @@ let lastCloudAutosaveStartedAt = 0;
 const CLOUD_SAVE_HINT_DISMISSED_KEY = 'first-tackle-cloud-save-hint-dismissed-v1';
 const CLOUD_AUTOSAVE_DELAY_MS = 18000;
 const CLOUD_AUTOSAVE_MIN_INTERVAL_MS = 30000;
+
+queueCatalogWarmup();
 
 const hud = createHud(hudRoot, {
   onAction(actionId) {
@@ -499,6 +502,17 @@ const hud = createHud(hudRoot, {
       return;
     }
 
+    if (actionId.startsWith('market:details:')) {
+      const itemId = actionId.replace('market:details:', '');
+      gameState.ui.expandedMarketItems = {
+        ...(gameState.ui.expandedMarketItems ?? {}),
+        [itemId]: !gameState.ui.expandedMarketItems?.[itemId],
+      };
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
     if (actionId.startsWith('leaderboard:type:')) {
       const type = actionId.replace('leaderboard:type:', '');
       gameState.ui.leaderboards = {
@@ -634,6 +648,17 @@ const hud = createHud(hudRoot, {
         lowPower: !gameState.settings.performance?.lowPower,
       };
       applyPerformanceSettings(gameState);
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'fisherman3d:toggle') {
+      gameState.settings.graphics = {
+        ...(gameState.settings.graphics ?? {}),
+        fisherman3d: !gameState.settings.graphics?.fisherman3d,
+      };
+      syncWorldPrototypeFisherman();
       gameState.audioQueue.push('ui_click');
       renderHud();
       return;
@@ -1037,6 +1062,21 @@ function normalizePanelStateForViewport(state) {
   for (const panelId of ['profile', 'inventory', 'keepnet', 'tackle', 'guide', 'journal', 'quests', 'achievements', 'leaderboard', 'mapViewer', 'settings']) {
     state.ui.collapsedPanels[panelId] = true;
   }
+}
+
+function syncWorldPrototypeFisherman() {
+  world.setPrototypeFishermanEnabled(Boolean(gameState.settings?.graphics?.fisherman3d));
+}
+
+function queueCatalogWarmup() {
+  const run = () => {
+    primeCatalogCache();
+  };
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(run, { timeout: 5000 });
+    return;
+  }
+  window.setTimeout(run, 1200);
 }
 
 function normalizeViewModeSettings(state) {

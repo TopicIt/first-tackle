@@ -424,6 +424,7 @@ function panelToggleLabel(isCollapsed) {
 
 function fishingStageMarkup(state, minigame, options) {
   const { activeFishing, contextAction, floatStyle, hintMode } = options;
+  const showPrototype3d = Boolean(state.settings?.graphics?.fisherman3d);
   const stageBody = `
     <div class="fishing-ambience" aria-hidden="true">
       <span class="bird bird--one"></span>
@@ -437,9 +438,9 @@ function fishingStageMarkup(state, minigame, options) {
       <span class="reed reed--two"></span>
       <span class="reed reed--three"></span>
     </div>
-    <div class="fishing-stage__prototype-3d" aria-hidden="true">
+    ${showPrototype3d ? `<div class="fishing-stage__prototype-3d" aria-hidden="true">
       <canvas class="fishing-stage__prototype-3d-canvas" data-fishing-prototype-canvas></canvas>
-    </div>
+    </div>` : ''}
     <!-- Temporary 2D fallback fisherman. Disable this block later once the 3D prototype fully replaces it. -->
     <div class="fishing-figure fishing-figure--${minigame.method} fishing-figure--${minigame.phase}" aria-hidden="true">
       <span class="fishing-figure__shadow"></span>

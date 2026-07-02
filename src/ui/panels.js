@@ -5,7 +5,6 @@ import { biteProfiles } from '../game/bitePatterns.js';
 import { fishSizeProfiles } from '../game/fishSizeProfiles.js';
 import { getFishSaleValue, getFreshnessInfo, getMarketPriceInfo } from '../game/market.js';
 import { castSpots, getCastSpot } from '../game/bitePatterns.js';
-import { shopItems } from '../game/state.js';
 import { getQuestRows } from '../game/quests.js';
 import { getCafeOrderRows } from '../game/cafeOrders.js';
 import { getLevelProgress, profileAvatars } from '../game/profile.js';
@@ -22,10 +21,25 @@ import { getLanguage, t, translateEntry } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
 import { getWorldMapAsset } from '../utils/worldMapAsset.js';
 import { loadCloudSession } from '../api/client.js';
-import { getActiveItemModifiers, getVisibleItemEffects } from '../game/itemEffects.js';
+import { getActiveItemModifiers } from '../game/itemEffects.js';
 import { getMockLeaderboard, normalizeLeaderboardType } from '../game/leaderboards.js';
 import { getPlayerState } from '../game/playerState.js';
 import { isLayoutDebugEnabled } from '../utils/debugFlags.js';
+import {
+  getCatalogMarketItems,
+  getItemById,
+  getItemDisplayName,
+  getItemFullDescription,
+  getItemShortDescription,
+} from '../data/itemCatalog.js';
+import {
+  formatItemPrice,
+  getCatalogCategoryLabel,
+  itemIconMarkup,
+  renderItemBonusChips,
+  renderItemCompactSummary,
+  renderItemDetails,
+} from './itemRenderers.js';
 
 const inventoryOrder = [
   'thread',
@@ -538,16 +552,18 @@ export function tackleMarkup(state) {
           <p class="section-label">${t(`tackleSlot${toPascalCase(slot)}`)}</p>
           <strong class="tackle-slot__equipped">
             ${tackleComponentVisualMarkup(equipped[slot])}
-            <span>${t(componentLabels[equipped[slot]] ?? equipped[slot] ?? 'componentNone')}</span>
+            <span>${componentDisplayName(equipped[slot])}</span>
           </strong>
-          <small>${t(componentDescriptions[equipped[slot]] ?? componentDescriptions.none)}</small>
+          <small>${componentShortDescription(equipped[slot])}</small>
+          ${renderItemBonusChips(equipped[slot], { limit: 2 })}
           <div class="tackle-options">
             ${options.filter((id) => owned[id] && !(requiredTackleSlots.includes(slot) && id === 'none')).map((id) => `
               <button class="${equipped[slot] === id ? 'is-selected' : ''}" data-action="tackle:equip:${slot}:${id}" type="button">
                 ${tackleComponentVisualMarkup(id)}
                 <span>
-                  <strong>${t(componentLabels[id] ?? id)}</strong>
-                  <small>${t(componentDescriptions[id] ?? componentDescriptions.none)}</small>
+                  <strong>${componentDisplayName(id)}</strong>
+                  <small>${componentShortDescription(id)}</small>
+                  ${renderItemBonusChips(id, { limit: 2 })}
                 </span>
               </button>
             `).join('')}
@@ -583,6 +599,11 @@ export function logMarkup(state) {
 }
 
 export function getItemLabel(itemId) {
+  const catalogItem = getItemById(itemId);
+  if (catalogItem) {
+    return getItemDisplayName(catalogItem, getLanguage());
+  }
+
   if (itemLabels[itemId]) {
     return t(itemLabels[itemId]);
   }
@@ -592,6 +613,11 @@ export function getItemLabel(itemId) {
 }
 
 export function getShopItemLabel(itemId) {
+  const catalogItem = getItemById(itemId);
+  if (catalogItem) {
+    return getItemDisplayName(catalogItem, getLanguage());
+  }
+
   const labels = {
     shovel: 'itemShovel',
     betterLine: 'itemBetterLine',
@@ -619,6 +645,28 @@ export function getShopItemLabel(itemId) {
     baitLarvae: 'itemLarvae',
   };
   return t(labels[itemId] ?? itemId);
+}
+
+function componentDisplayName(componentId) {
+  if (!componentId || componentId === 'none') {
+    return t('componentNone');
+  }
+
+  const catalogItem = getItemById(componentId);
+  return catalogItem
+    ? getItemDisplayName(catalogItem, getLanguage())
+    : t(componentLabels[componentId] ?? componentId);
+}
+
+function componentShortDescription(componentId) {
+  if (!componentId || componentId === 'none') {
+    return t(componentDescriptions.none);
+  }
+
+  const catalogItem = getItemById(componentId);
+  return catalogItem
+    ? getItemShortDescription(catalogItem, getLanguage())
+    : t(componentDescriptions[componentId] ?? componentDescriptions.none);
 }
 
 function keepnetSpeciesMarkup(state, group, isExpanded) {
@@ -759,6 +807,11 @@ function getWaterNameKey(waterId) {
 }
 
 function itemImage(itemId) {
+  const catalogItem = getItemById(itemId);
+  if (catalogItem?.icon) {
+    return assetPath(catalogItem.icon);
+  }
+
   return itemImages[itemId] ? assetPath(itemImages[itemId]) : assetPath('/assets/items/tackle_components.png');
 }
 
@@ -768,7 +821,7 @@ function itemVisualMarkup(itemId) {
   const fallback = isFish
     ? assetPath('/assets/fish/catch_result_frame.png')
     : assetPath('/assets/items/tackle_components.png');
-  return `<img class="item-chip__icon" src="${image}" onerror="this.src='${fallback}'" alt="" />`;
+  return `<img class="item-chip__icon" src="${image}" loading="lazy" decoding="async" onerror="this.src='${fallback}'" alt="" />`;
 }
 
 function tackleComponentVisualMarkup(componentId) {
@@ -792,7 +845,7 @@ function tackleComponentVisualMarkup(componentId) {
     proper_rod: 'proper_rod',
   };
 
-  return `<img class="item-chip__icon" src="${itemImage(componentImageIds[componentId] ?? componentId)}" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />`;
+  return `<img class="item-chip__icon" src="${itemImage(componentImageIds[componentId] ?? componentId)}" loading="lazy" decoding="async" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />`;
 }
 
 function marketSellMarkup(state) {
@@ -859,6 +912,7 @@ function marketBuyMarkup(state) {
     ['other', 'Різне'],
   ];
   const selectedCategory = state.ui?.marketBuyCategory ?? 'tackle';
+  const items = getCatalogMarketItems().filter((item) => marketCategoryForItem(item) === selectedCategory);
   return `
     <div class="market-buy-category-tabs" role="tablist" aria-label="Категорії крамниці">
       ${categories.map(([category, label]) => `
@@ -868,7 +922,7 @@ function marketBuyMarkup(state) {
     <div class="market-buy-categories">
       <section class="market-buy-category">
         <div class="market-card-grid market-card-grid--compact">
-          ${shopItems.filter((item) => (item.category ?? 'other') === selectedCategory).map((item) => marketBuyCardMarkup(state, item)).join('')}
+          ${items.map((item) => marketBuyCardMarkup(state, item)).join('')}
         </div>
       </section>
     </div>
@@ -876,7 +930,7 @@ function marketBuyMarkup(state) {
 }
 
 function marketBuyCardMarkup(state, item) {
-  const owned = item.type !== 'consumable' && state.purchased[item.id];
+  const owned = item.type !== 'consumable' && state.purchased?.[item.id];
   const disabledReason = owned
     ? t('reasonAlreadyOwned')
     : state.money < item.price
@@ -884,25 +938,40 @@ function marketBuyCardMarkup(state, item) {
       : '';
   const activeModifiers = getActiveItemModifiers(state);
   const isActive = activeModifiers.activeItemIds.includes(item.id);
+  const isExpanded = Boolean(state.ui?.expandedMarketItems?.[item.id]);
   return `
-    <article class="market-card">
+    <article class="market-card market-card--buy${isExpanded ? ' is-expanded' : ''}">
       <span class="market-card__image-wrap">
-        <img src="${itemImage(item.id)}" loading="lazy" decoding="async" onerror="this.src='${assetPath('/assets/items/tackle_components.png')}'" alt="" />
+        ${itemIconMarkup(item, { className: 'market-card__image' })}
         ${item.amount && item.amount > 1 ? `<span class="market-card__qty-badge">×${item.amount}</span>` : ''}
       </span>
       <div class="market-card__content">
-        <h3>${getShopItemLabel(item.id)}</h3>
-        <p>${t(shopDescriptionKey(item.id))}</p>
-        ${getVisibleItemEffects(item).map((effect) => `<p class="item-effect-bonus${isActive ? ' is-active' : ''}">${escapeHtml(effect.label)}</p>`).join('')}
+        ${renderItemCompactSummary(item, { bonusLimit: 2 })}
         <div class="market-card__meta">
-          <strong>${owned ? t('owned') : `${item.price} ${t('coins').toLowerCase()}`}</strong>
+          <strong>${owned ? t('owned') : formatItemPrice(item)}</strong>
           ${isActive ? '<span class="market-card__status">Активно</span>' : ''}
         </div>
       </div>
-      <button data-action="buy:${item.id}" type="button"${owned || state.money < item.price ? ' disabled' : ''}>${owned ? t('owned') : t('buy')}</button>
+      <div class="market-card__actions">
+        <button class="market-card__details-toggle" data-action="market:details:${item.id}" type="button" aria-expanded="${isExpanded}">
+          ${isExpanded ? 'Сховати' : 'Деталі'}
+        </button>
+        <button class="market-card__buy-button" data-action="buy:${item.id}" type="button"${owned || state.money < item.price ? ' disabled' : ''}>${owned ? t('owned') : t('buy')}</button>
+      </div>
+      ${isExpanded ? renderItemDetails(item) : ''}
       ${marketReasonMarkup(disabledReason)}
     </article>
   `;
+}
+
+function marketCategoryForItem(item) {
+  if (['bait', 'groundbait'].includes(item.category)) {
+    return 'bait';
+  }
+  if (['rod', 'line', 'hook', 'float', 'tackle'].includes(item.category)) {
+    return 'tackle';
+  }
+  return 'other';
 }
 
 function marketPricesMarkup(state) {
@@ -913,7 +982,7 @@ function marketPricesMarkup(state) {
         const price = getMarketPriceInfo(state, fish.id);
         return `
           <article class="market-price-card trend-${price.trend}">
-            <img src="${speciesImage(fish.id)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
+            <img src="${speciesImage(fish.id)}" loading="lazy" decoding="async" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
             <span>${t(fish.nameKey)}</span>
             <strong>${trendArrow(price.trend)} ${price.currentPrice} ${t('uahPerKg')}</strong>
             <small>${price.multiplier.toFixed(2)}x · ${t(trendKey(price.trend))}</small>
@@ -1089,7 +1158,7 @@ function fishGuideAccordionMarkup(state) {
     return `
       <article class="guide-card guide-card--accordion guide-card--fish${isOpen ? ' is-open' : ''}">
         <button class="guide-card__summary" data-action="guide:toggle:fish:${entry.fishId}" type="button">
-          <img src="${guideSpeciesImage(entry.fishId)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
+          <img src="${guideSpeciesImage(entry.fishId)}" loading="lazy" decoding="async" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
           <span>
             <h3>${t(entry.nameKey)}${discovered ? '' : ` - ${t('undiscoveredFish')}`}</h3>
             <small>${t(entry.livesKey)}</small>
@@ -1108,7 +1177,7 @@ function fishGuideDetailMarkup(entry, discovered) {
   return `
     <div class="guide-card__body guide-fish-detail">
       <div class="guide-fish-detail__hero">
-        <img src="${guideSpeciesImage(entry.fishId)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
+        <img src="${guideSpeciesImage(entry.fishId)}" loading="lazy" decoding="async" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
         <div>
           <h4>${t(entry.nameKey)}</h4>
           <span>${status}</span>
@@ -1139,7 +1208,7 @@ function watersGuideAccordionMarkup(state) {
     return `
       <article class="guide-card guide-card--accordion guide-card--wide${expanded[`water:${water.id}`] ? ' is-open' : ''}">
         <button class="guide-card__summary" data-action="guide:toggle:water:${water.id}" type="button">
-          <img src="${assetPath(waterImages[water.id] ?? '/assets/locations/pond_location_concept.png')}" onerror="this.src='${assetPath('/assets/locations/pond_location_concept.png')}'" alt="" />
+          <img src="${assetPath(waterImages[water.id] ?? '/assets/locations/pond_location_concept.png')}" loading="lazy" decoding="async" onerror="this.src='${assetPath('/assets/locations/pond_location_concept.png')}'" alt="" />
           <span>
             <h3>${t(water.nameKey)} ${unlocked ? '' : `- ${t('locked')}`}</h3>
             <small>${t(water.bestTimeKey)}</small>
@@ -1165,6 +1234,11 @@ function watersGuideAccordionMarkup(state) {
 
 function guideAccordionMarkup(tab, state = {}) {
   const expanded = state.ui?.expandedGuideCards ?? {};
+  const catalogCards = guideCatalogCardsMarkup(tab, expanded);
+  if (catalogCards) {
+    return catalogCards;
+  }
+
   const cards = {
     baits: [
       ['itemSmallWorms', 'shopDescBaitSmallWorms'],
@@ -1214,6 +1288,49 @@ function guideAccordionMarkup(tab, state = {}) {
       </div>` : ''}
     </article>
   `;
+  }).join('');
+}
+
+function guideCatalogCardsMarkup(tab, expanded) {
+  const items = getCatalogMarketItems()
+    .filter((item) => {
+      if (tab === 'baits') {
+        return ['bait', 'groundbait'].includes(item.category);
+      }
+      if (tab === 'tackle') {
+        return ['rod', 'line', 'hook', 'float', 'tackle'].includes(item.category);
+      }
+      if (tab === 'processing') {
+        return item.tags?.some((tag) => ['processing', 'taranka', 'market'].includes(tag)) || ['salt'].includes(item.id);
+      }
+      return false;
+    })
+    .sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999));
+
+  if (!items.length) {
+    return '';
+  }
+
+  const locale = getLanguage();
+  return items.map((item) => {
+    const key = `${tab}:catalog:${item.id}`;
+    const isOpen = Boolean(expanded[key]);
+    return `
+      <article class="guide-card guide-card--accordion guide-card--catalog${isOpen ? ' is-open' : ''}">
+        <button class="guide-card__summary" data-action="guide:toggle:${key}" type="button">
+          ${itemIconMarkup(item)}
+          <span>
+            <h3>${escapeHtml(getItemDisplayName(item, locale))}</h3>
+            <small>${escapeHtml(getCatalogCategoryLabel(item.category, locale))} · ${escapeHtml(getItemShortDescription(item, locale))}</small>
+          </span>
+          <strong class="guide-card__expand">${isOpen ? '-' : '+'}</strong>
+        </button>
+        ${isOpen ? `<div class="guide-card__body guide-card__body--catalog">
+          <p>${escapeHtml(getItemFullDescription(item, locale))}</p>
+          ${renderItemDetails(item)}
+        </div>` : ''}
+      </article>
+    `;
   }).join('');
 }
 
