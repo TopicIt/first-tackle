@@ -22,7 +22,10 @@ import { getLanguage, t, translateEntry } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
 import { getWorldMapAsset } from '../utils/worldMapAsset.js';
 import { loadCloudSession } from '../api/client.js';
+import { getActiveItemModifiers, getVisibleItemEffects } from '../game/itemEffects.js';
+import { getMockLeaderboard, normalizeLeaderboardType } from '../game/leaderboards.js';
 import { getPlayerState } from '../game/playerState.js';
+import { isLayoutDebugEnabled } from '../utils/debugFlags.js';
 
 const inventoryOrder = [
   'thread',
@@ -233,6 +236,9 @@ export function profileMarkup(state) {
     </div>
     ${profileProgressStateMarkup(state)}
     ${profileCloudSaveMarkup(state)}
+    <div class="profile-inline-actions">
+      <button class="profile-edit-button" data-action="panel:toggle:leaderboard" type="button">Лідери</button>
+    </div>
     ${state.ui?.editingProfile ? `
       <form class="profile-form profile-form--inline" data-profile-form>
         <input data-profile-name-input name="name" type="text" autocomplete="name" value="${escapeHtml(profile.name ?? '')}" placeholder="${t('defaultPlayerName')}" />
@@ -283,7 +289,7 @@ function profileProgressStateMarkup(state) {
   const playerState = getPlayerState(state);
   const loggedIn = Boolean(session?.accessToken);
   const metadata = session?.saveMetadata;
-  const debug = isProgressDebugEnabled();
+  const debug = isLayoutDebugEnabled();
   const lastCloudSave = formatCloudSaveTime(metadata?.serverUpdatedAt);
 
   return `
@@ -326,13 +332,11 @@ function profileCloudSaveMarkup(state) {
       </dl>
       <div class="profile-cloud-save__actions">
         ${loggedIn ? `
-          <button data-action="save:now" type="button"${busy ? ' disabled' : ''}>${t('saveNow')}</button>
-          <button data-action="cloud:upload" type="button"${busy ? ' disabled' : ''}>${t('cloudSaveUploadShort')}</button>
-          <button data-action="cloud:download" type="button"${busy ? ' disabled' : ''}>${t('cloudSaveDownloadShort')}</button>
+          <button data-action="cloud:upload" type="button"${busy ? ' disabled' : ''}>Синхронізувати зараз</button>
+          <button data-action="cloud:download" type="button"${busy ? ' disabled' : ''}>Завантажити з хмари</button>
           <button data-action="cloud:logout" type="button"${busy ? ' disabled' : ''}>${t('cloudSaveLogoutShort')}</button>
         ` : `
-          <button data-action="save:now" type="button"${busy ? ' disabled' : ''}>${t('saveNow')}</button>
-          <button data-action="cloud:open" type="button"${busy ? ' disabled' : ''}>${t('cloudSaveLoginShort')}</button>
+          <button data-action="cloud:open" type="button"${busy ? ' disabled' : ''}>Увійти для хмари</button>
         `}
       </div>
       ${message ? `<small>${escapeHtml(message)}</small>` : ''}
@@ -359,23 +363,9 @@ function formatCloudSaveTime(value) {
   });
 }
 
-function isProgressDebugEnabled() {
-  try {
-    return new URLSearchParams(window.location.search).has('debugLayout')
-      || localStorage.getItem('first-tackle-debug-layout') === 'true'
-      || localStorage.getItem('first-tackle-mobile-debug') === 'true';
-  } catch {
-    return false;
-  }
-}
-
 export function marketMarkup(state) {
   const tab = state.ui?.marketTab ?? 'sell';
   return `
-    <details class="market-description">
-      <summary>${t('marketInfo')}</summary>
-      <p>${t('sceneMarketDescription')}</p>
-    </details>
     <div class="market-tabs">
       ${['sell', 'buy', 'prices'].map((id) => `
         <button class="${tab === id ? 'is-selected' : ''}" data-action="market:tab:${id}" type="button">${t(`marketTab${toPascalCase(id)}`)}</button>
@@ -864,20 +854,23 @@ function marketSellMarkup(state) {
 
 function marketBuyMarkup(state) {
   const categories = [
-    ['bait', 'marketCategoryBait'],
-    ['tackle', 'marketCategoryTackle'],
-    ['other', 'marketCategoryOther'],
+    ['tackle', 'Снасті'],
+    ['bait', 'Наживки / прикормки'],
+    ['other', 'Різне'],
   ];
+  const selectedCategory = state.ui?.marketBuyCategory ?? 'tackle';
   return `
-    <div class="market-buy-categories">
-      ${categories.map(([category, labelKey]) => `
-        <section class="market-buy-category">
-          <h3>${t(labelKey)}</h3>
-          <div class="market-card-grid market-card-grid--compact">
-            ${shopItems.filter((item) => (item.category ?? 'other') === category).map((item) => marketBuyCardMarkup(state, item)).join('')}
-          </div>
-        </section>
+    <div class="market-buy-category-tabs" role="tablist" aria-label="Категорії крамниці">
+      ${categories.map(([category, label]) => `
+        <button class="market-buy-category-tab${selectedCategory === category ? ' is-selected' : ''}" data-action="market:buyCategory:${category}" type="button">${label}</button>
       `).join('')}
+    </div>
+    <div class="market-buy-categories">
+      <section class="market-buy-category">
+        <div class="market-card-grid market-card-grid--compact">
+          ${shopItems.filter((item) => (item.category ?? 'other') === selectedCategory).map((item) => marketBuyCardMarkup(state, item)).join('')}
+        </div>
+      </section>
     </div>
   `;
 }
@@ -889,6 +882,8 @@ function marketBuyCardMarkup(state, item) {
     : state.money < item.price
       ? t('reasonNeedMoreCoins', { coins: item.price - state.money })
       : '';
+  const activeModifiers = getActiveItemModifiers(state);
+  const isActive = activeModifiers.activeItemIds.includes(item.id);
   return `
     <article class="market-card">
       <span class="market-card__image-wrap">
@@ -898,8 +893,10 @@ function marketBuyCardMarkup(state, item) {
       <div class="market-card__content">
         <h3>${getShopItemLabel(item.id)}</h3>
         <p>${t(shopDescriptionKey(item.id))}</p>
+        ${getVisibleItemEffects(item).map((effect) => `<p class="item-effect-bonus${isActive ? ' is-active' : ''}">${escapeHtml(effect.label)}</p>`).join('')}
         <div class="market-card__meta">
           <strong>${owned ? t('owned') : `${item.price} ${t('coins').toLowerCase()}`}</strong>
+          ${isActive ? '<span class="market-card__status">Активно</span>' : ''}
         </div>
       </div>
       <button data-action="buy:${item.id}" type="button"${owned || state.money < item.price ? ' disabled' : ''}>${owned ? t('owned') : t('buy')}</button>
@@ -924,6 +921,56 @@ function marketPricesMarkup(state) {
         `;
       }).join('')}
     </div>
+  `;
+}
+
+export function leaderboardMarkup(state) {
+  const leaderboardState = state.ui?.leaderboards ?? {};
+  const type = normalizeLeaderboardType(leaderboardState.type ?? 'biggest-fish');
+  const records = leaderboardState.records?.length ? leaderboardState.records : getMockLeaderboard(type, state);
+  const busy = Boolean(leaderboardState.busy);
+  const source = leaderboardState.source ?? 'mock-fallback';
+  const tabs = [
+    ['biggest-fish', 'Найбільша риба'],
+    ['trophies', 'Трофеї'],
+    ['coins', 'Монети'],
+    ['by-location', 'За водоймою'],
+  ];
+
+  return `
+    <section class="leaderboard-panel">
+      <div class="leaderboard-tabs" role="tablist" aria-label="Лідери">
+        ${tabs.map(([tabId, label]) => `
+          <button class="${type === tabId ? 'is-selected' : ''}" data-action="leaderboard:type:${tabId}" type="button">${label}</button>
+        `).join('')}
+      </div>
+      <div class="leaderboard-status">
+        <strong>${source === 'server' ? 'Серверні записи' : 'Тестові записи'}</strong>
+        <small>${busy ? 'Оновлюємо список...' : source === 'server' ? 'Поточний список з сервера' : 'Поки що це mock/local fallback до майбутнього бекенда'}</small>
+      </div>
+      <div class="leaderboard-list">
+        ${records.map((record, index) => leaderboardRecordMarkup(record, index, type)).join('')}
+      </div>
+    </section>
+  `;
+}
+
+function leaderboardRecordMarkup(record, index, type) {
+  const title = type === 'coins'
+    ? escapeHtml(record.playerName)
+    : `${escapeHtml(record.playerName)} - ${t(record.fishName ?? record.fishId ?? 'fishCrucian')}`;
+  const detail = type === 'coins'
+    ? `${record.coins ?? 0} монет · ${escapeHtml(record.locationName ?? 'Всі водойми')}`
+    : `${Number(record.weightKg ?? 0).toFixed(2)} кг · ${escapeHtml(record.locationName ?? 'Невідомо')} · ${escapeHtml(record.baitName ?? 'Без наживки')}`;
+  return `
+    <article class="leaderboard-record${record.localPlayer ? ' is-local' : ''}">
+      <span class="leaderboard-record__rank">#${index + 1}</span>
+      <div class="leaderboard-record__body">
+        <strong>${title}</strong>
+        <span>${detail}</span>
+        <small>${escapeHtml(record.tackleSummary ?? '')}${record.caughtAt ? ` · ${escapeHtml(record.caughtAt)}` : ''}${record.verified ? ' · verified' : ' · local/mock'}</small>
+      </div>
+    </article>
   `;
 }
 

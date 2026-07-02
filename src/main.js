@@ -86,6 +86,7 @@ import { getWorldMapAsset } from './utils/worldMapAsset.js';
 import { ApiError, loadCloudSession, saveCloudSession } from './api/client.js';
 import { getProfile, login, logout, register } from './api/authApi.js';
 import { getSaveStatus, loadSave as loadCloudSave, syncSave as syncCloudSave } from './api/saveApi.js';
+import { fetchLeaderboard } from './api/gameApi.js';
 import { syncPlayerStateFromGameState } from './game/playerState.js';
 
 const canvas = document.querySelector('#game');
@@ -176,6 +177,17 @@ const hud = createHud(hudRoot, {
         profile: false,
       };
       closeSiblingPanels(gameState, 'profile');
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'leaderboard:open') {
+      gameState.ui.collapsedPanels = {
+        ...(gameState.ui.collapsedPanels ?? {}),
+        leaderboard: false,
+      };
+      closeSiblingPanels(gameState, 'leaderboard');
+      loadLeaderboardRecords(gameState.ui?.leaderboards?.type ?? 'biggest-fish');
       renderHud();
       return;
     }
@@ -456,6 +468,9 @@ const hud = createHud(hudRoot, {
       }
       if (!gameState.ui.collapsedPanels[panelId]) {
         closeSiblingPanels(gameState, panelId);
+        if (panelId === 'leaderboard') {
+          loadLeaderboardRecords(gameState.ui?.leaderboards?.type ?? 'biggest-fish');
+        }
       }
       gameState.audioQueue.push('ui_click');
       renderHud();
@@ -473,6 +488,25 @@ const hud = createHud(hudRoot, {
     if (actionId.startsWith('market:tab:')) {
       gameState.ui.marketTab = actionId.replace('market:tab:', '');
       gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('market:buyCategory:')) {
+      gameState.ui.marketBuyCategory = actionId.replace('market:buyCategory:', '');
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('leaderboard:type:')) {
+      const type = actionId.replace('leaderboard:type:', '');
+      gameState.ui.leaderboards = {
+        ...(gameState.ui.leaderboards ?? {}),
+        type,
+      };
+      gameState.audioQueue.push('ui_click');
+      loadLeaderboardRecords(type);
       renderHud();
       return;
     }
@@ -966,7 +1000,7 @@ function syncPlayerToState() {
 }
 
 function closeSiblingPanels(state, openedPanelId) {
-  const exclusivePanels = ['profile', 'inventory', 'keepnet', 'tackle', 'guide', 'journal', 'quests', 'achievements', 'mapViewer', 'settings'];
+  const exclusivePanels = ['profile', 'inventory', 'keepnet', 'tackle', 'guide', 'journal', 'quests', 'achievements', 'leaderboard', 'mapViewer', 'settings'];
   if (!exclusivePanels.includes(openedPanelId)) {
     return;
   }
@@ -1000,7 +1034,7 @@ function normalizePanelStateForViewport(state) {
 
   state.ui.collapsedPanels.status = false;
 
-  for (const panelId of ['profile', 'inventory', 'keepnet', 'tackle', 'guide', 'journal', 'quests', 'achievements', 'mapViewer', 'settings']) {
+  for (const panelId of ['profile', 'inventory', 'keepnet', 'tackle', 'guide', 'journal', 'quests', 'achievements', 'leaderboard', 'mapViewer', 'settings']) {
     state.ui.collapsedPanels[panelId] = true;
   }
 }
@@ -1016,6 +1050,13 @@ function resetLaunchUiState(state) {
   state.ui.startupStep = 'loading';
   state.ui.editingProfile = false;
   state.ui.cloudSaveHintDismissed = isCloudSaveHintDismissed();
+  state.ui.marketBuyCategory ??= 'tackle';
+  state.ui.leaderboards = {
+    type: state.ui.leaderboards?.type ?? 'biggest-fish',
+    records: state.ui.leaderboards?.records ?? [],
+    source: state.ui.leaderboards?.source ?? 'mock-fallback',
+    busy: false,
+  };
 }
 
 function hasOpenMenuOverlay(state) {
@@ -1024,8 +1065,29 @@ function hasOpenMenuOverlay(state) {
   }
 
   const panels = state.ui?.collapsedPanels ?? {};
-  return ['profile', 'inventory', 'keepnet', 'tackle', 'guide', 'journal', 'quests', 'achievements', 'mapViewer', 'settings']
+  return ['profile', 'inventory', 'keepnet', 'tackle', 'guide', 'journal', 'quests', 'achievements', 'leaderboard', 'mapViewer', 'settings']
     .some((panelId) => panels[panelId] === false);
+}
+
+async function loadLeaderboardRecords(type = 'biggest-fish') {
+  gameState.ui ??= {};
+  gameState.ui.leaderboards = {
+    ...(gameState.ui.leaderboards ?? {}),
+    type,
+    busy: true,
+  };
+  renderHud();
+
+  const response = await fetchLeaderboard(type);
+  const records = response?.result?.records ?? response?.result?.items ?? [];
+  gameState.ui.leaderboards = {
+    ...(gameState.ui.leaderboards ?? {}),
+    type,
+    busy: false,
+    records,
+    source: response?.fallback ? 'mock-fallback' : response?.result?.source ?? 'server',
+  };
+  renderHud();
 }
 
 function dismissStartupTitle() {

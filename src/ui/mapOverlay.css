@@ -218,13 +218,6 @@
   transform: translateX(-50%);
 }
 
-.map-hotspot[data-action="mapWater:sluice"] .map-hotspot__label,
-.map-hotspot[data-action="mapWater:fire_ponds"] .map-hotspot__label {
-  border-color: rgb(243 196 95 / 38%);
-  background: linear-gradient(180deg, rgb(36 50 34 / 76%), rgb(10 18 16 / 64%));
-  opacity: 0.92;
-}
-
 .map-hotspot:hover .map-hotspot__area,
 .map-hotspot:focus-visible .map-hotspot__area,
 .map-hotspot.is-selected .map-hotspot__area {

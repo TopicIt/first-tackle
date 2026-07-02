@@ -21,6 +21,10 @@ export const shopItems = [
     description: 'Reaches farther shadows and protects against line breaks',
     type: 'tool',
     category: 'tackle',
+    effects: [
+      { type: 'fishSizeMultiplier', value: 0.01, label: '★ +1% до розміру риби' },
+      { type: 'escapeChanceMultiplier', value: -0.08, label: '★ -8% до ймовірності зриву' },
+    ],
   },
   {
     id: 'simpleFloat',
@@ -29,6 +33,9 @@ export const shopItems = [
     description: 'Basic shop float',
     type: 'tool',
     category: 'tackle',
+    effects: [
+      { type: 'biteChanceBonus', value: 0.01, label: '★ +1% до шансу клювання' },
+    ],
   },
   {
     id: 'properFloat',
@@ -37,6 +44,9 @@ export const shopItems = [
     description: 'Clearer bite reading',
     type: 'tool',
     category: 'tackle',
+    effects: [
+      { type: 'biteChanceBonus', value: 0.02, label: '★ +2% до шансу клювання' },
+    ],
   },
   {
     id: 'properSinker',
@@ -45,6 +55,9 @@ export const shopItems = [
     description: 'More stable presentation',
     type: 'tool',
     category: 'tackle',
+    effects: [
+      { type: 'escapeChanceMultiplier', value: -0.1, label: '★ -10% до ймовірності зриву' },
+    ],
   },
   {
     id: 'smallHook',
@@ -53,6 +66,9 @@ export const shopItems = [
     description: 'Small sharp hook for careful small fish',
     type: 'tool',
     category: 'tackle',
+    effects: [
+      { type: 'biteChanceBonus', value: 0.01, label: '★ +1% до шансу клювання' },
+    ],
   },
   {
     id: 'mediumHook',
@@ -61,6 +77,9 @@ export const shopItems = [
     description: 'Balanced hook for everyday fishing',
     type: 'tool',
     category: 'tackle',
+    effects: [
+      { type: 'biteChanceBonus', value: 0.015, label: '★ +1.5% до шансу клювання' },
+    ],
   },
   {
     id: 'largeHook',
@@ -69,6 +88,10 @@ export const shopItems = [
     description: 'Stronger hook for bigger fish and live bait',
     type: 'tool',
     category: 'tackle',
+    effects: [
+      { type: 'fishSizeMultiplier', value: 0.01, label: '★ +1% до розміру риби' },
+      { type: 'trophyChanceBonus', value: 0.01, label: '★ +1% до шансу трофея' },
+    ],
   },
   {
     id: 'sharperHook',
@@ -77,6 +100,10 @@ export const shopItems = [
     description: 'Better hook-up rate',
     type: 'tool',
     category: 'tackle',
+    effects: [
+      { type: 'trophyChanceBonus', value: 0.01, label: '★ +1% до шансу трофея' },
+      { type: 'escapeChanceMultiplier', value: -0.1, label: '★ -10% до ймовірності зриву' },
+    ],
   },
   {
     id: 'properRod',
@@ -85,6 +112,10 @@ export const shopItems = [
     description: 'Durable shop rod for larger fish',
     type: 'tool',
     category: 'tackle',
+    effects: [
+      { type: 'fishSizeMultiplier', value: 0.015, label: '★ +1.5% до розміру риби' },
+      { type: 'trophyChanceBonus', value: 0.01, label: '★ +1% до шансу трофея' },
+    ],
   },
   {
     id: 'salt',

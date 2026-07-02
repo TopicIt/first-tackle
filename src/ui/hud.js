@@ -4,6 +4,7 @@ import {
   guideMarkup,
   inventoryMarkup,
   keepnetMarkup,
+  leaderboardMarkup,
   logMarkup,
   mapViewerMarkup,
   profileMarkup,
@@ -25,6 +26,7 @@ import { profileAvatars, tutorialSteps } from '../game/profile.js';
 import { getQuestRows } from '../game/quests.js';
 import { getSelectedProfileStar } from '../game/achievementStars.js';
 import { assetPath } from '../utils/assetPath.js';
+import { isLayoutDebugEnabled, isSaveDebugEnabled } from '../utils/debugFlags.js';
 
 export function createHud(root, handlers) {
   const shownFeedbackIds = new Set();
@@ -243,6 +245,7 @@ export function createHud(root, handlers) {
       const guideCollapsed = collapsedPanels.guide ? ' is-collapsed' : '';
       const settingsCollapsed = collapsedPanels.settings ? ' is-collapsed' : '';
       const achievementsCollapsed = collapsedPanels.achievements ? ' is-collapsed' : '';
+      const leaderboardCollapsed = collapsedPanels.leaderboard ? ' is-collapsed' : '';
       const effectiveQuestsCollapsed = collapsedPanels.quests !== false;
       const questsCollapsed = effectiveQuestsCollapsed ? ' is-collapsed' : '';
       const mapViewerCollapsed = collapsedPanels.mapViewer ? ' is-collapsed' : '';
@@ -319,6 +322,7 @@ export function createHud(root, handlers) {
                   ${menuButton('journal', 'catchJournal', collapsedPanels)}
                   ${menuButton('quests', 'activeQuests', collapsedPanels)}
                   ${menuButton('achievements', 'achievements', collapsedPanels)}
+                  ${menuButton('leaderboard', 'leaderboard', collapsedPanels)}
                   ${menuButton('mapViewer', 'map', collapsedPanels)}
                   ${menuButton('settings', 'settings', collapsedPanels)}
                 </nav>
@@ -340,6 +344,7 @@ export function createHud(root, handlers) {
               ${menuButton('journal', 'catchJournal', collapsedPanels)}
               ${menuButton('quests', 'activeQuests', collapsedPanels)}
               ${menuButton('achievements', 'achievements', collapsedPanels)}
+              ${menuButton('leaderboard', 'leaderboard', collapsedPanels)}
               ${menuButton('mapViewer', 'map', collapsedPanels)}
               ${menuButton('settings', 'settings', collapsedPanels)}
             </nav>
@@ -422,6 +427,18 @@ export function createHud(root, handlers) {
           </div>
           <div class="panel-collapsible">
             ${achievementsMarkup(state)}
+          </div>
+        </section>
+
+        <section class="panel glass-menu side-detail-panel journal-panel leaderboard-panel-shell${leaderboardCollapsed}">
+          <div class="panel-toggle-row">
+            <p class="section-label">Лідери</p>
+            <button class="panel-toggle" data-action="panel:toggle:leaderboard" type="button" aria-label="${panelToggleLabel(collapsedPanels.leaderboard)}">
+              ${panelToggleIcon(collapsedPanels.leaderboard)}
+            </button>
+          </div>
+          <div class="panel-collapsible">
+            ${leaderboardMarkup(state)}
           </div>
         </section>
 
@@ -538,7 +555,17 @@ export function createHud(root, handlers) {
               </div>
             </section>
             <section class="settings-block">
-              <p class="section-label">${t('saveManagement')}</p>
+              <p class="section-label">Прогрес</p>
+              <div class="settings-action-row settings-action-row--stack">
+                <button data-action="cloud:upload" type="button">Синхронізувати зараз</button>
+                <button data-action="cloud:download" type="button">Завантажити з хмари</button>
+                <button class="danger" data-action="save:reset" type="button">${t('resetProgress')}</button>
+              </div>
+            </section>
+            ${cloudSavePanelMarkup(state)}
+            ${isSaveDebugEnabled() ? `
+            <section class="settings-block">
+              <p class="section-label">Локальний резерв</p>
               <div class="settings-action-row settings-action-row--stack">
                 <button data-action="save:now" type="button">${t('saveNow')}</button>
                 <button data-action="save:export" type="button">${t('exportSave')}</button>
@@ -546,10 +573,10 @@ export function createHud(root, handlers) {
                   <input data-save-import type="file" accept="application/json,.json" />
                   <span>${t('importSave')}</span>
                 </label>
-                <button class="danger" data-action="save:reset" type="button">${t('resetProgress')}</button>
+                <button data-action="load" type="button">${t('load')}</button>
               </div>
             </section>
-            ${cloudSavePanelMarkup(state)}
+            ` : ''}
             <section class="settings-block">
               <p class="section-label">${t('cheats')}</p>
               <div class="settings-action-row settings-action-row--stack">
@@ -975,11 +1002,12 @@ function actionButtonMarkup(action) {
 
 function menuButton(panelId, labelKey, collapsedPanels) {
   const open = !collapsedPanels[panelId];
-  return `<button class="glass-menu-button${open ? ' is-active' : ''}" data-action="panel:toggle:${panelId}" type="button">${t(labelKey)}</button>`;
+  const label = labelKey === 'leaderboard' ? 'Лідери' : t(labelKey);
+  return `<button class="glass-menu-button${open ? ' is-active' : ''}" data-action="panel:toggle:${panelId}" type="button">${label}</button>`;
 }
 
 function debugLayoutBadgeMarkup(state, context) {
-  if (!isDebugLayoutBadgeEnabled()) {
+  if (!isLayoutDebugEnabled()) {
     return '';
   }
 
@@ -995,17 +1023,6 @@ function debugLayoutBadgeMarkup(state, context) {
       <small>${safeAreaProbe}</small>
     </aside>
   `;
-}
-
-function isDebugLayoutBadgeEnabled() {
-  try {
-    const params = new URLSearchParams(window.location.search);
-    return params.has('debugLayout')
-      || localStorage.getItem('first-tackle-debug-layout') === 'true'
-      || localStorage.getItem('first-tackle-mobile-debug') === 'true';
-  } catch {
-    return false;
-  }
 }
 
 function readProfilePhoto(file, handlers) {
