@@ -14,7 +14,7 @@ import {
 import { locationSceneMarkup } from './locationScene.js';
 import { locationTransitionMarkup } from './locationTransition.js';
 import { mapOverlayMarkup } from './mapOverlay.js';
-import { cloudSaveHintMarkup, cloudSavePanelMarkup, cloudSaveShortcutMarkup } from './cloudSavePanel.js';
+import { cloudSaveHintMarkup, cloudSavePanelMarkup } from './cloudSavePanel.js';
 import { syncFishingLineOverlay } from './fishingMinigame.js';
 import { syncFishingPrototype3d } from './fishingPrototype3d.js';
 import { getLanguage, t } from '../i18n/i18n.js';
@@ -355,8 +355,6 @@ export function createHud(root, handlers) {
           </div>
           <div class="panel-collapsible">
             ${profileMarkup(state)}
-            ${cloudSaveHintMarkup(state)}
-            ${cloudSaveShortcutMarkup(state)}
           </div>
         </section>
 

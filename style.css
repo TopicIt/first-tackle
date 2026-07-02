@@ -947,7 +947,7 @@ button:disabled {
 }
 
 .profile-xp,
-.profile-cloud-status {
+.profile-cloud-save {
   display: grid;
   gap: 6px;
   margin-bottom: 10px;
@@ -958,7 +958,7 @@ button:disabled {
 }
 
 .profile-xp__row,
-.profile-cloud-status {
+.profile-cloud-save__head {
   grid-template-columns: 1fr auto;
   align-items: center;
 }
@@ -987,30 +987,88 @@ button:disabled {
 }
 
 .profile-xp small,
-.profile-cloud-status small {
+.profile-cloud-save small {
   grid-column: 1 / -1;
   color: #bdd6ce;
   font-size: 0.74rem;
 }
 
-.profile-cloud-status {
+.profile-cloud-save,
+.profile-cloud-save__head,
+.profile-cloud-save__status,
+.profile-cloud-save__actions {
   display: grid;
 }
 
-.profile-cloud-status span {
+.profile-cloud-save__head {
+  gap: 8px;
+}
+
+.profile-cloud-save__head span {
   color: #bdd6ce;
   font-size: 0.74rem;
   font-weight: 800;
 }
 
-.profile-cloud-status strong {
+.profile-cloud-save__head strong {
   color: #ffe28a;
   font-size: 0.78rem;
   text-align: right;
 }
 
-.profile-cloud-status.is-connected strong {
+.profile-cloud-save.is-connected .profile-cloud-save__head strong {
   color: #9de3ad;
+}
+
+.profile-cloud-save__status {
+  grid-template-columns: 1fr;
+  gap: 5px;
+  margin: 0;
+}
+
+.profile-cloud-save__status div {
+  display: grid;
+  grid-template-columns: minmax(74px, auto) minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+}
+
+.profile-cloud-save__status dt,
+.profile-cloud-save__status dd {
+  margin: 0;
+  font-size: 0.72rem;
+}
+
+.profile-cloud-save__status dt {
+  color: #bdd6ce;
+  font-weight: 800;
+}
+
+.profile-cloud-save__status dd {
+  color: #fff8df;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.profile-cloud-save__actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.profile-cloud-save__actions button {
+  min-height: 34px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 8px;
+  background: rgb(238 241 232 / 88%);
+  color: #17211c;
+  font-size: 0.72rem;
+  font-weight: 850;
+  line-height: 1.15;
+  padding: 6px 7px;
+}
+
+.profile-cloud-save:not(.is-connected) .profile-cloud-save__actions {
+  grid-template-columns: 1fr;
 }
 
 .profile-form {

@@ -229,7 +229,7 @@ export function profileMarkup(state) {
       </div>
       <small>${t('totalXpLabel')}: ${levelProgress.xp}</small>
     </div>
-    ${profileCloudStatusMarkup(state)}
+    ${profileCloudSaveMarkup(state)}
     ${state.ui?.editingProfile ? `
       <form class="profile-form profile-form--inline" data-profile-form>
         <input data-profile-name-input name="name" type="text" autocomplete="name" value="${escapeHtml(profile.name ?? '')}" placeholder="${t('defaultPlayerName')}" />
@@ -275,26 +275,62 @@ export function profileMarkup(state) {
   `;
 }
 
-function profileCloudStatusMarkup(state) {
+function profileCloudSaveMarkup(state) {
   const session = loadCloudSession();
+  const profile = session?.profile;
+  const metadata = session?.saveMetadata;
+  const message = state.ui?.cloudSave?.message ?? session?.lastMessage ?? '';
   const busy = Boolean(state.ui?.cloudSave?.busy);
   const loggedIn = Boolean(session?.accessToken);
-  const label = busy
+  const status = busy
     ? t('cloudSaveSyncing')
     : loggedIn
       ? t('cloudSaveConnected')
       : t('cloudSaveOffline');
-  const detail = loggedIn
-    ? (session?.profile?.displayName || session?.profile?.email || t('cloudSaveConnected'))
-    : t('cloudSaveOfflineHint');
+  const account = profile?.email || profile?.displayName || t('cloudSaveConnected');
+  const lastCloudSave = formatCloudSaveTime(metadata?.serverUpdatedAt);
 
   return `
-    <div class="profile-cloud-status${loggedIn ? ' is-connected' : ''}${busy ? ' is-syncing' : ''}">
-      <span>${t('cloudSave')}</span>
-      <strong>${escapeHtml(label)}</strong>
-      <small>${escapeHtml(detail)}</small>
-    </div>
+    <section class="profile-cloud-save${loggedIn ? ' is-connected' : ''}${busy ? ' is-syncing' : ''}" aria-label="${t('cloudSave')}">
+      <div class="profile-cloud-save__head">
+        <span>${t('cloudSave')}</span>
+        <strong>${escapeHtml(status)}</strong>
+      </div>
+      <dl class="profile-cloud-save__status">
+        <div><dt>${t('cloudSaveAccount')}</dt><dd>${loggedIn ? escapeHtml(account) : t('cloudSaveOfflineHint')}</dd></div>
+        <div><dt>${t('cloudSaveLastSave')}</dt><dd>${escapeHtml(lastCloudSave)}</dd></div>
+      </dl>
+      <div class="profile-cloud-save__actions">
+        ${loggedIn ? `
+          <button data-action="cloud:upload" type="button"${busy ? ' disabled' : ''}>${t('cloudSaveUploadShort')}</button>
+          <button data-action="cloud:download" type="button"${busy ? ' disabled' : ''}>${t('cloudSaveDownloadShort')}</button>
+          <button data-action="cloud:logout" type="button"${busy ? ' disabled' : ''}>${t('cloudSaveLogoutShort')}</button>
+        ` : `
+          <button data-action="cloud:open" type="button"${busy ? ' disabled' : ''}>${t('cloudSaveLoginShort')}</button>
+        `}
+      </div>
+      ${message ? `<small>${escapeHtml(message)}</small>` : ''}
+    </section>
   `;
+}
+
+function formatCloudSaveTime(value) {
+  if (!value) {
+    return t('cloudSaveNoCloudSave');
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString('uk-UA', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 export function marketMarkup(state) {
