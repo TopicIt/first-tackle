@@ -9,6 +9,7 @@ import { addFishToStorage, removeFishFromStorage, resolveCatch } from './gameAut
 import { countItem, hasItem, removeItem } from './inventory.js';
 import { normalizeWaterId } from './locations.js';
 import { markFirstCrucianCatchRewardSeen, queueFirstCrucianCatchReward } from './locationTransitions.js';
+import { getActiveItemModifiers } from './itemEffects.js';
 import { pushFeedback, pushLog, queueSound } from './state.js';
 import { getTackleEffects } from './tackle.js';
 import { advanceTime, formatGameTime, getTimePhase } from './time.js';
@@ -264,9 +265,10 @@ export async function strikeLine(state, nowMs) {
   const tackleBonus = getTackleBonus(state, minigame.method);
   const baitBonus = getBaitSuitability(minigame.fishCandidateId, minigame.selectedBait);
   const fishDifficulty = fishProfile.difficulty ?? 0.5;
+  const itemModifiers = getActiveItemModifiers(state);
   const successChance = tutorialCatchActive
     ? 1
-    : clamp(0.52 + reactionQuality * 0.26 + tackleBonus * 0.65 + baitBonus * 0.12 - fishDifficulty * 0.12, 0.34, 0.9);
+    : clamp(0.52 + reactionQuality * 0.26 + tackleBonus * 0.65 + baitBonus * 0.12 + itemModifiers.biteChanceBonus - fishDifficulty * 0.12, 0.34, 0.92);
   const roll = Math.random();
   const effects = getTackleEffects(state);
 
@@ -274,7 +276,7 @@ export async function strikeLine(state, nowMs) {
 
   if (!tutorialCatchActive && ['pike', 'sudak', 'som', 'canadian_catfish', 'eel'].includes(minigame.fishCandidateId)) {
     const breakChance = clamp(
-      0.07 + Math.max(0, effects.breakPenalty) * 0.4 - effects.hookBonus * 0.28 - effects.stabilityBonus * 0.2,
+      (0.07 + Math.max(0, effects.breakPenalty) * 0.4 - effects.hookBonus * 0.28 - effects.stabilityBonus * 0.2) * itemModifiers.escapeChanceMultiplier,
       0.015,
       0.16,
     );
@@ -286,7 +288,7 @@ export async function strikeLine(state, nowMs) {
 
   if (!tutorialCatchActive && minigame.method === 'handline') {
     const handlineBreakChance = clamp(
-      0.02 + Math.max(0, effects.breakPenalty) * 0.18 - effects.hookBonus * 0.1,
+      (0.02 + Math.max(0, effects.breakPenalty) * 0.18 - effects.hookBonus * 0.1) * itemModifiers.escapeChanceMultiplier,
       0.005,
       0.08,
     );
@@ -310,15 +312,16 @@ export async function strikeLine(state, nowMs) {
       baitId: minigame.consumedBait ?? minigame.selectedBait,
       baitFits,
       waterId: normalizeWaterId(state.travel?.selectedWater),
-      tackleTrophyBonus: effects.trophyBonus ?? 0,
+      tackleTrophyBonus: (effects.trophyBonus ?? 0) + itemModifiers.trophyChanceBonus,
       depth: minigame.selectedDepth ?? 'middle',
       minWeight: minigame.consumedBait === 'live_bait' ? 350 : 0,
     });
     applyDepthCatchAdjustments(catchResult, minigame.selectedDepth ?? 'middle');
     adjustCatchForWater(state, catchResult);
+    applyItemCatchAdjustments(catchResult, itemModifiers);
     catchResult.value = getFreshFishValue(catchResult);
     catchResult.catchCategory = classifyCatchSize(catchResult.id, catchResult.weightGrams);
-    if (!tutorialCatchActive && shouldBreakHomemadeRod(state, catchResult)) {
+    if (!tutorialCatchActive && shouldBreakHomemadeRod(state, catchResult, itemModifiers)) {
       removeItem(state, 'stickRod');
       state.tackle.owned.simple_stick_rod = false;
       if (state.tackle.equipped.rod === 'simple_stick_rod') {
@@ -340,10 +343,12 @@ export async function strikeLine(state, nowMs) {
       && !state.catchJournal?.crucian?.discovered;
     const authorityResult = await resolveCatch({
       state,
+      itemModifiers,
       serverPayload: buildCatchResolvePayload(state, minigame, {
         reactionQuality,
         successChance,
         localSaveRevision: state.version ?? 0,
+        itemModifiers,
       }),
       localResolve: () => addFishToStorage({
         state,
@@ -738,6 +743,7 @@ function startBiteCycle(state, minigame, nowMs) {
 function buildBiteChecks(state, minigame, startMs) {
   const tutorialBonus = state.progress?.firstCatchDone ? 0 : 0.2;
   const profile = minigame.fishCandidateId ? getBiteProfile(minigame.fishCandidateId) : null;
+  const itemModifiers = getActiveItemModifiers(state);
   const fishActivity = profile ? clamp(0.04 + (profile.activity ?? 0.5) * 0.08, 0, 0.12) : 0;
   const spot = minigame.selectedSpot ? getCastSpot(minigame.selectedSpot) : null;
   const spotActivity = spot?.zone === 'mid_water' ? 0.04 : spot?.zone === 'reed_edge' ? 0.025 : 0.015;
@@ -751,7 +757,7 @@ function buildBiteChecks(state, minigame, startMs) {
 
   return baseChances.map((chance, index) => ({
     at: startMs + stillnessDelay + intervals[index] + randomBetween(-220, 260),
-    chance: clamp(chance + tutorialBonus + fishActivity + spotActivity + baitActivity + waterActivity, 0.04, 0.88),
+    chance: clamp(chance + tutorialBonus + fishActivity + spotActivity + baitActivity + waterActivity + itemModifiers.biteChanceBonus, 0.04, 0.9),
   }));
 }
 
@@ -1256,13 +1262,13 @@ function rollCastTarget(state, minigame, spot) {
   };
 }
 
-function shouldBreakHomemadeRod(state, catchResult) {
+function shouldBreakHomemadeRod(state, catchResult, itemModifiers = getActiveItemModifiers(state)) {
   const effects = getTackleEffects(state);
   if (effects.hasProperRod || effects.activeRigId !== 'first_rod' || catchResult.weightGrams <= 500) {
     return false;
   }
 
-  const breakChance = catchResult.weightGrams > 650 ? 0.28 : 0.14;
+  const breakChance = (catchResult.weightGrams > 650 ? 0.28 : 0.14) * itemModifiers.escapeChanceMultiplier;
   return Math.random() < breakChance;
 }
 
@@ -1284,6 +1290,13 @@ function adjustCatchForWater(state, catchResult) {
     catchResult.weightGrams = Math.max(350, catchResult.weightGrams);
   }
   catchResult.weightGrams = Math.max(1, catchResult.weightGrams);
+}
+
+function applyItemCatchAdjustments(catchResult, itemModifiers) {
+  if (!itemModifiers) {
+    return;
+  }
+  catchResult.weightGrams = Math.max(1, Math.round(catchResult.weightGrams * itemModifiers.fishSizeMultiplier));
 }
 
 function canCatchOnLiveBait(fishId) {
@@ -1354,6 +1367,17 @@ function buildCatchResolvePayload(state, minigame, context = {}) {
     clientActionScore: Number((context.reactionQuality ?? 0).toFixed(3)),
     clientSuccessChance: Number((context.successChance ?? 0).toFixed(3)),
     localSaveRevision: context.localSaveRevision ?? 0,
+    itemModifiers: serializeItemModifiers(context.itemModifiers),
+  };
+}
+
+function serializeItemModifiers(modifiers = {}) {
+  return {
+    fishSizeMultiplier: Number((modifiers.fishSizeMultiplier ?? 1).toFixed(3)),
+    trophyChanceBonus: Number((modifiers.trophyChanceBonus ?? 0).toFixed(3)),
+    biteChanceBonus: Number((modifiers.biteChanceBonus ?? 0).toFixed(3)),
+    escapeChanceMultiplier: Number((modifiers.escapeChanceMultiplier ?? 1).toFixed(3)),
+    activeItemIds: Array.isArray(modifiers.activeItemIds) ? modifiers.activeItemIds : [],
   };
 }
 

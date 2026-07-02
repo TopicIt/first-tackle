@@ -2,7 +2,7 @@
 
 Date: 2026-07-02
 
-Branch: `codex/mobile-beta-server-ready-pass`
+Branch: `codex/cloud-market-buffs-leaderboard-pass`
 
 ## Summary
 
@@ -117,6 +117,8 @@ Safe fixes now in place:
 - Map CSS shimmer/breath animations pause when the mobile menu or side detail overlays are open.
 - The HUD already avoids repeated full DOM updates by comparing a render snapshot before assigning `root.innerHTML`.
 - Transition/intro videos use `preload="metadata"` and are initialized only when the transition/startup step is active.
+- Removing the persistent map save block reduces visible clutter and removes one always-present interactive UI group from the map surface.
+- Item effects stay local and lightweight for now; they add small arithmetic modifiers, not heavy loops or new render work.
 - Player/camera update, HUD refresh, minigame tick, autosave, and rendering behavior remain intact.
 - Existing low-power mode behavior remains unchanged.
 
@@ -136,6 +138,8 @@ It does not remove phone heat from:
 - running mobile GPU-heavy effects.
 
 Both tracks should continue separately: backend authority for trusted state, frontend performance work for battery and temperature.
+
+Real server migration still will not replace frontend rendering optimization. WebGL, map art, videos, panel rebuilds, and CSS motion remain the main heating track.
 
 ## Next Measurements To Run
 

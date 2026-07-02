@@ -11,6 +11,7 @@ export const translations = {
     settings: 'Settings',
     map: 'Map',
     achievements: 'Achievements',
+    leaderboard: 'Leaders',
     achievementsEmpty: 'No trophy achievements yet.',
     buy: 'Buy',
     sell: 'Sell',

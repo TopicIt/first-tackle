@@ -2,7 +2,7 @@
 
 Date: 2026-07-02
 
-Branch: `codex/player-state-authority-phase1`
+Branch: `codex/cloud-market-buffs-leaderboard-pass`
 
 ## Status
 
@@ -24,6 +24,14 @@ Future backend source of truth:
 - records and achievements;
 - config/dictionaries;
 - leaderboards.
+
+Recommended migration order:
+
+1. server owns player profile and `PlayerState`
+2. server owns inventory, keepnet, and coins
+3. server confirms shop buy/sell
+4. server resolves catch
+5. server records and serves leaderboards
 
 Frontend remains responsible for:
 
@@ -133,6 +141,27 @@ Response:
 
 ### POST `/api/game/catch/resolve`
 
+Request should be allowed to include client-side context for debugging and migration only:
+
+```json
+{
+  "locationId": "canal",
+  "baitId": "worms",
+  "spotId": "open_middle",
+  "depth": "middle",
+  "method": "stickRod",
+  "itemModifiers": {
+    "fishSizeMultiplier": 1.01,
+    "trophyChanceBonus": 0.01,
+    "biteChanceBonus": 0.02,
+    "escapeChanceMultiplier": 0.9,
+    "activeItemIds": ["betterLine", "properFloat"]
+  }
+}
+```
+
+Server must eventually ignore trust in client-computed modifiers and derive them from server-owned equipment/inventory.
+
 Response should include:
 
 ```json
@@ -170,6 +199,36 @@ Returns versioned config/dictionaries used by both backend calculations and fron
 ### GET `/api/leaderboard/biggest-fish`
 
 Returns validated leaderboard rows. Submissions should be based on server-verified records, not raw client save data.
+
+### GET `/api/leaderboard/location/:locationId`
+
+Returns validated rows filtered by location.
+
+### GET `/api/leaderboard/fish/:fishId`
+
+Returns validated rows filtered by species.
+
+### GET `/api/leaderboard/coins`
+
+Returns trusted economy-based rankings.
+
+Leaderboard row shape:
+
+```json
+{
+  "playerName": "Дмитро",
+  "fishId": "carp",
+  "fishName": "Короп",
+  "weightKg": 2.4,
+  "locationId": "fire_ponds",
+  "locationName": "Ставки",
+  "baitId": "baitCorn",
+  "baitName": "Кукурудза",
+  "tackleSummary": "Поплавок",
+  "caughtAt": "2026-06-28T08:10:00Z",
+  "verified": true
+}
+```
 
 ## Conflict Direction
 

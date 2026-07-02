@@ -27,7 +27,7 @@ export function getAuthorityMode() {
   return SERVER_AUTHORITATIVE_CATCH ? 'server-catch' : 'local';
 }
 
-export async function resolveCatch({ state, serverPayload = {}, localResolve }) {
+export async function resolveCatch({ state, serverPayload = {}, localResolve, itemModifiers = null }) {
   let fallbackReason = null;
   if (SERVER_AUTHORITATIVE_CATCH) {
     const serverResult = await resolveCatchOnServer(serverPayload);
@@ -41,7 +41,7 @@ export async function resolveCatch({ state, serverPayload = {}, localResolve }) 
         result,
         playerStatePatch,
         serverRevision: result.serverRevision ?? null,
-        metadata: authorityMetadata('server', true, result.serverRevision),
+        metadata: authorityMetadata('server', true, result.serverRevision, itemModifiers),
       };
     }
     fallbackReason = serverResult.error?.message ?? 'server-catch-unavailable';
@@ -58,10 +58,11 @@ export async function resolveCatch({ state, serverPayload = {}, localResolve }) 
     result: {
       ...result,
       localRevision: revision,
+      activeItemModifiers: itemModifiers,
     },
     playerStatePatch: buildAuthorityPatch(state, result.playerStatePatch ?? {}),
     revision,
-    metadata: authorityMetadata(mode, false, revision),
+    metadata: authorityMetadata(mode, false, revision, itemModifiers),
   };
 }
 
@@ -384,11 +385,12 @@ function fishResult(catchResult, entry) {
   };
 }
 
-function authorityMetadata(authorityMode, verified, revision) {
+function authorityMetadata(authorityMode, verified, revision, activeItemModifiers = null) {
   return {
     authorityMode,
     verified,
     revision,
+    activeItemModifiers,
   };
 }
 

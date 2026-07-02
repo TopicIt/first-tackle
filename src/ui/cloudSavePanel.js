@@ -1,5 +1,6 @@
 import { FIRST_TACKLE_API_BASE_URL, loadCloudSession } from '../api/client.js';
 import { getPlayerState } from '../game/playerState.js';
+import { isLayoutDebugEnabled, isSaveDebugEnabled } from '../utils/debugFlags.js';
 
 export function cloudSavePanelMarkup(state) {
   const session = loadCloudSession();
@@ -12,9 +13,9 @@ export function cloudSavePanelMarkup(state) {
   return `
     <section class="settings-block cloud-save-panel">
       <p class="section-label">Хмарне збереження</p>
-      <p class="cloud-save-panel__note">Гість має локальне збереження. Після входу хмарне автозбереження увімкнене, але воно спрацьовує із затримкою; ручні дії нижче доступні завжди.</p>
+      <p class="cloud-save-panel__note">Гість зберігає прогрес на цьому пристрої. Після входу синхронізація з хмарою стає основним способом збереження, а локальний кеш лишається резервом.</p>
       ${loggedIn ? loggedInMarkup(profile, metadata, message, isBusy) : loggedOutMarkup(message, isBusy)}
-      <small class="cloud-save-panel__endpoint">${FIRST_TACKLE_API_BASE_URL}</small>
+      ${isSaveDebugEnabled() ? `<small class="cloud-save-panel__endpoint">${FIRST_TACKLE_API_BASE_URL}</small>` : ''}
     </section>
   `;
 }
@@ -28,7 +29,7 @@ export function cloudSaveShortcutMarkup(state) {
   const account = profile?.email || profile?.displayName || 'акаунт активний';
   const status = loggedIn
     ? `${account}${metadata?.serverUpdatedAt ? ` · ${formatServerTime(metadata.serverUpdatedAt)}` : ''}`
-    : 'Увійди, щоб додати хмарне автозбереження';
+    : 'Увійдіть, щоб увімкнути хмарне автозбереження';
 
   return `
     <section class="cloud-save-shortcut" aria-label="Хмарне збереження">
@@ -54,17 +55,17 @@ export function cloudSaveMenuMarkup(state) {
   const account = profile?.email || profile?.displayName || 'акаунт активний';
   const lastSave = formatServerTime(metadata?.serverUpdatedAt);
   const primaryStatus = busy
-    ? 'Автозбереження...'
+    ? 'Синхронізація...'
     : loggedIn
-      ? (message === 'Збережено в хмару' ? 'Збережено в хмару' : 'Хмарне автозбереження увімкнено')
-      : 'Гість: прогрес зберігається локально';
+      ? 'Хмарне автозбереження увімкнено'
+      : 'Гість';
   const secondaryStatus = loggedIn
-    ? `${account}${lastSave !== 'немає' ? ` · Останнє збереження: ${lastSave}` : ' · Останнє збереження: ще немає'}`
-    : 'Увійдіть, щоб увімкнути хмарне автозбереження';
-  const revisionText = isProgressDebugEnabled() ? ` · Ревізія: ${playerState.revision ?? 0}` : '';
+    ? `${account}${lastSave !== 'немає' ? ` · Останнє хмарне збереження: ${lastSave}` : ' · Хмарного збереження ще немає'}`
+    : 'Прогрес зберігається на цьому пристрої';
+  const revisionText = isLayoutDebugEnabled() ? ` · Ревізія: ${playerState.revision ?? 0}` : '';
   const localStateText = loggedIn
-    ? `Прогрес збережено локально${revisionText}`
-    : `Гість · Прогрес збережено локально${revisionText}`;
+    ? `Акаунт підключено${revisionText}`
+    : `Гість · прогрес збережено на цьому пристрої${revisionText}`;
 
   return `
     <section class="cloud-save-shortcut cloud-save-shortcut--menu${loggedIn ? ' is-connected' : ''}${busy ? ' is-syncing' : ''}" aria-label="Хмарне збереження">
@@ -75,27 +76,17 @@ export function cloudSaveMenuMarkup(state) {
         <small class="cloud-save-shortcut__state">${escapeHtml(localStateText)}</small>
       </div>
       <div class="cloud-save-shortcut__actions">
-        <button data-action="save:now" type="button">Зберегти локально</button>
         ${loggedIn ? `
-          <button data-action="cloud:upload" type="button"${busy ? ' disabled' : ''}>Зберегти в хмару</button>
-          <button data-action="cloud:download" type="button"${busy ? ' disabled' : ''}>Завантажити</button>
+          <button data-action="cloud:upload" type="button"${busy ? ' disabled' : ''}>Синхронізувати зараз</button>
+          <button data-action="cloud:download" type="button"${busy ? ' disabled' : ''}>Завантажити з хмари</button>
           <button data-action="cloud:logout" type="button"${busy ? ' disabled' : ''}>Вийти</button>
         ` : `
-          <button data-action="cloud:open" type="button"${busy ? ' disabled' : ''}>Увійти / Хмара</button>
+          <button data-action="cloud:open" type="button"${busy ? ' disabled' : ''}>Увійти для хмари</button>
         `}
       </div>
+      ${message ? `<small>${escapeHtml(message)}</small>` : ''}
     </section>
   `;
-}
-
-function isProgressDebugEnabled() {
-  try {
-    return new URLSearchParams(window.location.search).has('debugLayout')
-      || localStorage.getItem('first-tackle-debug-layout') === 'true'
-      || localStorage.getItem('first-tackle-mobile-debug') === 'true';
-  } catch {
-    return false;
-  }
 }
 
 export function cloudSaveHintMarkup(state) {
@@ -107,7 +98,7 @@ export function cloudSaveHintMarkup(state) {
     <aside class="cloud-save-hint" aria-label="Хмарне збереження">
       <div>
         <strong>Хмарне збереження доступне</strong>
-        <span>Можна грати без входу. Акаунт лише додає ручну синхронізацію та безпечне автозбереження.</span>
+        <span>Грати можна і без входу. Акаунт додає синхронізацію та безпечне хмарне автозбереження.</span>
       </div>
       <div class="cloud-save-hint__actions">
         <button data-action="cloud:open" type="button">Відкрити</button>
@@ -137,7 +128,7 @@ function loggedOutMarkup(message, isBusy) {
         <button name="mode" value="login" type="submit"${isBusy ? ' disabled' : ''}>Увійти</button>
       </div>
     </form>
-    <p class="cloud-save-panel__note">Гість: локальне збереження. Увійдіть для хмарного автозбереження.</p>
+    <p class="cloud-save-panel__note">Гість: прогрес зберігається на цьому пристрої. Увійдіть для хмарної синхронізації.</p>
     ${messageMarkup(message)}
   `;
 }
@@ -154,9 +145,8 @@ function loggedInMarkup(profile, metadata, message, isBusy) {
       <div><dt>Автозбереження</dt><dd>увімкнено</dd></div>
     </dl>
     <div class="settings-action-row settings-action-row--stack">
-      <button data-action="save:now" type="button"${isBusy ? ' disabled' : ''}>Зберегти локально зараз</button>
-      <button data-action="cloud:upload" type="button"${isBusy ? ' disabled' : ''}>Завантажити локальний сейв на сервер</button>
-      <button data-action="cloud:download" type="button"${isBusy ? ' disabled' : ''}>Завантажити сейв із сервера</button>
+      <button data-action="cloud:upload" type="button"${isBusy ? ' disabled' : ''}>Синхронізувати зараз</button>
+      <button data-action="cloud:download" type="button"${isBusy ? ' disabled' : ''}>Завантажити з хмари</button>
       <button data-action="cloud:logout" type="button"${isBusy ? ' disabled' : ''}>Вийти</button>
     </div>
     ${messageMarkup(message)}

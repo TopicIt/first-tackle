@@ -1,4 +1,5 @@
 import { ApiError, apiRequest } from './client.js';
+import { getMockLeaderboard, normalizeLeaderboardType } from '../game/leaderboards.js';
 
 function failureResult(error, fallbackMessage) {
   return {
@@ -60,11 +61,27 @@ export function syncGameProfile(payload) {
   );
 }
 
-export function fetchLeaderboard(type = 'biggest-fish') {
-  const leaderboardType = encodeURIComponent(type);
-  return safeGameRequest(
+export async function fetchLeaderboard(type = 'biggest-fish') {
+  const normalizedType = normalizeLeaderboardType(type);
+  const leaderboardType = encodeURIComponent(normalizedType);
+  const response = await safeGameRequest(
     `/api/leaderboard/${leaderboardType}`,
     {},
     'Could not load leaderboard from server',
   );
+
+  if (response.ok) {
+    return response;
+  }
+
+  return {
+    ok: true,
+    result: {
+      records: getMockLeaderboard(normalizedType),
+      source: 'mock-fallback',
+      verified: false,
+    },
+    fallback: true,
+    error: response.error ?? null,
+  };
 }
