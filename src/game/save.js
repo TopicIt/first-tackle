@@ -11,6 +11,7 @@ import { ensureTackleState } from './tackle.js';
 import { ensureStarterTackleDrawerState } from './starterTackleDrawer.js';
 import { normalizeWaterId } from './locations.js';
 import { ensureProfileState } from './profile.js';
+import { migratePlayerState, playerStatePatchForSave } from './playerState.js';
 
 export function saveGame(state) {
   const serializableState = cleanForSave(state);
@@ -75,9 +76,11 @@ export function importSave(rawText) {
 }
 
 function cleanForSave(state) {
+  const playerState = playerStatePatchForSave(state);
   return {
     ...state,
     version: SAVE_VERSION,
+    playerState,
     audioQueue: [],
     feedback: [],
     ui: {
@@ -101,6 +104,7 @@ function normalizeLoadedState(saved) {
   ensureTackleState(merged);
   ensureStarterTackleDrawerState(merged);
   ensureProfileState(merged);
+  merged.playerState = migratePlayerState(merged);
   return merged;
 }
 
@@ -333,6 +337,7 @@ function mergeState(base, saved) {
         ? saved.achievements.unlockedStars
         : base.achievements.unlockedStars,
     },
+    playerState: migratePlayerState(saved),
     tackle: {
       activeRig: saved.tackle?.activeRig ?? base.tackle.activeRig,
       migratedLegacyRig: Boolean(saved.tackle?.migratedLegacyRig ?? base.tackle.migratedLegacyRig),
@@ -375,9 +380,7 @@ function resolveLoadedMoney(base, saved) {
     return base.money;
   }
 
-  return saved.progress?.uahEconomyStarted
-    ? savedMoney
-    : Math.max(savedMoney, base.money);
+  return savedMoney;
 }
 
 function isFreshBrokenZeroMoneySave(base, saved) {

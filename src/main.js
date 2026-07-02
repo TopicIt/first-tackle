@@ -86,6 +86,7 @@ import { getWorldMapAsset } from './utils/worldMapAsset.js';
 import { ApiError, loadCloudSession, saveCloudSession } from './api/client.js';
 import { getProfile, login, logout, register } from './api/authApi.js';
 import { getSaveStatus, loadSave as loadCloudSave, syncSave as syncCloudSave } from './api/saveApi.js';
+import { syncPlayerStateFromGameState } from './game/playerState.js';
 
 const canvas = document.querySelector('#game');
 const hudRoot = document.querySelector('#hud');
@@ -99,6 +100,7 @@ ensureTimeState(gameState);
 ensureProfileState(gameState);
 ensureQuestState(gameState);
 ensureCafeOrders(gameState);
+syncPlayerStateFromGameState(gameState);
 syncGrandmaTrust(gameState);
 syncCompletedSpeciesStars(gameState);
 normalizeTransitionSettings(gameState);
@@ -150,12 +152,14 @@ const hud = createHud(hudRoot, {
 
     if (actionId.startsWith('profile:avatar:')) {
       selectAvatar(gameState, actionId.replace('profile:avatar:', ''));
+      syncPlayerStateFromGameState(gameState, { incrementRevision: true, reason: 'profile-avatar-selected' });
       renderHud();
       return;
     }
 
     if (actionId.startsWith('profile:star:')) {
       selectProfileStar(gameState, actionId.replace('profile:star:', ''));
+      syncPlayerStateFromGameState(gameState, { incrementRevision: true, reason: 'profile-star-selected' });
       renderHud();
       return;
     }
@@ -185,12 +189,14 @@ const hud = createHud(hudRoot, {
     if (actionId === 'tutorial:start') {
       startTutorial(gameState);
       gameState.tutorialState.collapsed = true;
+      syncPlayerStateFromGameState(gameState, { incrementRevision: true, reason: 'tutorial-started' });
       renderHud();
       return;
     }
 
     if (actionId === 'tutorial:skip') {
       skipTutorial(gameState);
+      syncPlayerStateFromGameState(gameState, { incrementRevision: true, reason: 'tutorial-skipped' });
       saveGame(gameState);
       renderHud();
       return;
@@ -198,6 +204,7 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'tutorial:close') {
       skipTutorial(gameState);
+      syncPlayerStateFromGameState(gameState, { incrementRevision: true, reason: 'tutorial-closed' });
       saveGame(gameState);
       renderHud();
       return;
@@ -215,6 +222,7 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'tutorial:step') {
       completeTutorialStep(gameState);
+      syncPlayerStateFromGameState(gameState, { incrementRevision: true, reason: 'tutorial-step' });
       renderHud();
       return;
     }
@@ -915,12 +923,14 @@ const hud = createHud(hudRoot, {
       avatar: gameState.playerProfile?.avatar || DEFAULT_AVATAR,
       nameCustom: true,
     });
+    syncPlayerStateFromGameState(gameState, { incrementRevision: true, reason: 'profile-updated' });
     gameState.ui.editingProfile = false;
     advanceStartupAfterProfile();
     renderHud();
   },
   onProfilePhotoUpload(dataUrl) {
     setCustomAvatar(gameState, dataUrl);
+    syncPlayerStateFromGameState(gameState, { incrementRevision: true, reason: 'profile-avatar-uploaded' });
     gameState.ui.editingProfile = true;
     renderHud();
   },
@@ -1210,6 +1220,7 @@ function ensureRuntimeState(state) {
   syncGrandmaTrust(state);
   ensureQuestState(state);
   ensureCafeOrders(state);
+  syncPlayerStateFromGameState(state);
   normalizeTransitionSettings(state);
   applyPerformanceSettings(state);
   normalizeAnimationLimits(state);

@@ -1,4 +1,5 @@
 import { FIRST_TACKLE_API_BASE_URL, loadCloudSession } from '../api/client.js';
+import { getPlayerState } from '../game/playerState.js';
 
 export function cloudSavePanelMarkup(state) {
   const session = loadCloudSession();
@@ -43,6 +44,7 @@ export function cloudSaveShortcutMarkup(state) {
 
 export function cloudSaveMenuMarkup(state) {
   const session = loadCloudSession();
+  const playerState = getPlayerState(state);
   const profile = session?.profile;
   const metadata = session?.saveMetadata;
   const cloudState = state.ui?.cloudSave ?? {};
@@ -59,6 +61,10 @@ export function cloudSaveMenuMarkup(state) {
   const secondaryStatus = loggedIn
     ? `${account}${lastSave !== 'немає' ? ` · Останнє збереження: ${lastSave}` : ' · Останнє збереження: ще немає'}`
     : 'Увійдіть, щоб увімкнути хмарне автозбереження';
+  const revisionText = isProgressDebugEnabled() ? ` · Ревізія: ${playerState.revision ?? 0}` : '';
+  const localStateText = loggedIn
+    ? `Прогрес збережено локально${revisionText}`
+    : `Гість · Прогрес збережено локально${revisionText}`;
 
   return `
     <section class="cloud-save-shortcut cloud-save-shortcut--menu${loggedIn ? ' is-connected' : ''}${busy ? ' is-syncing' : ''}" aria-label="Хмарне збереження">
@@ -66,6 +72,7 @@ export function cloudSaveMenuMarkup(state) {
         <strong>Хмарне збереження</strong>
         <span>${escapeHtml(primaryStatus)}</span>
         <small>${escapeHtml(secondaryStatus)}</small>
+        <small class="cloud-save-shortcut__state">${escapeHtml(localStateText)}</small>
       </div>
       <div class="cloud-save-shortcut__actions">
         <button data-action="save:now" type="button">Зберегти локально</button>
@@ -79,6 +86,16 @@ export function cloudSaveMenuMarkup(state) {
       </div>
     </section>
   `;
+}
+
+function isProgressDebugEnabled() {
+  try {
+    return new URLSearchParams(window.location.search).has('debugLayout')
+      || localStorage.getItem('first-tackle-debug-layout') === 'true'
+      || localStorage.getItem('first-tackle-mobile-debug') === 'true';
+  } catch {
+    return false;
+  }
 }
 
 export function cloudSaveHintMarkup(state) {

@@ -15,6 +15,11 @@ import {
   sellSmokedFish,
   sellTaranka,
 } from './economy.js';
+import {
+  getPlayerRevision,
+  setPlayerState,
+  syncPlayerStateFromGameState,
+} from './playerState.js';
 
 let localRevision = 0;
 
@@ -28,12 +33,13 @@ export async function resolveCatch({ state, serverPayload = {}, localResolve }) 
     const serverResult = await resolveCatchOnServer(serverPayload);
     if (serverResult.ok) {
       const result = normalizeServerCatchResult(state, serverResult.result);
+      const playerStatePatch = buildAuthorityPatch(state, result.playerStatePatch ?? {});
       return {
         ok: true,
         mode: 'server',
         verified: true,
         result,
-        playerStatePatch: result.playerStatePatch ?? {},
+        playerStatePatch,
         serverRevision: result.serverRevision ?? null,
         metadata: authorityMetadata('server', true, result.serverRevision),
       };
@@ -43,6 +49,7 @@ export async function resolveCatch({ state, serverPayload = {}, localResolve }) 
 
   const result = typeof localResolve === 'function' ? localResolve() : { caught: false };
   const mode = SERVER_AUTHORITATIVE_CATCH ? 'fallback-local' : 'local';
+  const revision = getPlayerRevision(state);
   return {
     ok: true,
     mode,
@@ -50,11 +57,11 @@ export async function resolveCatch({ state, serverPayload = {}, localResolve }) 
     fallbackReason,
     result: {
       ...result,
-      localRevision,
+      localRevision: revision,
     },
-    playerStatePatch: result.playerStatePatch ?? {},
-    revision: localRevision,
-    metadata: authorityMetadata(mode, false, localRevision),
+    playerStatePatch: buildAuthorityPatch(state, result.playerStatePatch ?? {}),
+    revision,
+    metadata: authorityMetadata(mode, false, revision),
   };
 }
 
@@ -63,7 +70,9 @@ export function addFishToStorage({ state, catchResult, context = {} }) {
   const entry = addCaughtFish(state, catchResult, context);
   const after = snapshotPlayerState(state);
   const patch = diffPlayerState(before, after);
-  localRevision += 1;
+  const playerState = syncPlayerStateFromGameState(state, { incrementRevision: true, reason: 'fish-caught' });
+  localRevision = playerState.revision;
+  const playerStatePatch = buildAuthorityPatch(state, patch);
 
   return {
     ok: true,
@@ -75,10 +84,10 @@ export function addFishToStorage({ state, catchResult, context = {} }) {
       entry,
       catchResult,
       rewards: rewardDiff(before, after),
-      playerStatePatch: patch,
+      playerStatePatch,
       localRevision,
     },
-    playerStatePatch: patch,
+    playerStatePatch,
     revision: localRevision,
     metadata: authorityMetadata('local', false, localRevision),
   };
@@ -90,8 +99,13 @@ export function removeFishFromStorage({ state, fishEntryId, fishId, reason = 're
   const after = snapshotPlayerState(state);
   const patch = diffPlayerState(before, after);
   if (removed && (!Array.isArray(removed) || removed.length > 0)) {
-    localRevision += 1;
+    const removedCount = Array.isArray(removed) ? removed.length : 1;
+    const previousReleased = state.playerState?.stats?.fishReleasedTotal ?? 0;
+    const playerState = syncPlayerStateFromGameState(state, { incrementRevision: true, reason });
+    playerState.stats.fishReleasedTotal = previousReleased + removedCount;
+    localRevision = playerState.revision;
   }
+  const playerStatePatch = buildAuthorityPatch(state, patch);
 
   return {
     ok: Boolean(removed && (!Array.isArray(removed) || removed.length > 0)),
@@ -104,7 +118,7 @@ export function removeFishFromStorage({ state, fishEntryId, fishId, reason = 're
         fishId,
         removed,
       },
-      playerStatePatch: patch,
+      playerStatePatch,
       localRevision,
     },
     removal: {
@@ -113,7 +127,7 @@ export function removeFishFromStorage({ state, fishEntryId, fishId, reason = 're
       fishId,
       removed,
     },
-    playerStatePatch: patch,
+    playerStatePatch,
     revision: localRevision,
     localRevision,
     metadata: authorityMetadata('local', false, localRevision),
@@ -127,8 +141,12 @@ export function buyItem({ state, itemId }) {
   const patch = diffPlayerState(before, after);
   const changed = hasPatchChanges(patch);
   if (changed) {
-    localRevision += 1;
+    const spent = Math.max(0, before.coins - after.coins);
+    const playerState = syncPlayerStateFromGameState(state, { incrementRevision: true, reason: 'item-bought' });
+    playerState.economy.totalCoinsSpent = (playerState.economy.totalCoinsSpent ?? 0) + spent;
+    localRevision = playerState.revision;
   }
+  const playerStatePatch = buildAuthorityPatch(state, patch);
 
   return {
     ok: changed,
@@ -139,14 +157,14 @@ export function buyItem({ state, itemId }) {
         itemId,
         applied: changed,
       },
-      playerStatePatch: patch,
+      playerStatePatch,
       localRevision,
     },
     purchase: {
       itemId,
       applied: changed,
     },
-    playerStatePatch: patch,
+    playerStatePatch,
     revision: localRevision,
     localRevision,
     error: changed ? null : 'Purchase was not applied',
@@ -171,8 +189,13 @@ export function sellFish({ state, saleType = 'all', fishEntryId = null, fishId =
   const patch = diffPlayerState(before, after);
   const changed = hasPatchChanges(patch);
   if (changed) {
-    localRevision += 1;
+    const soldCount = Math.max(0, before.fishStorageSummary.totalFish - after.fishStorageSummary.totalFish);
+    const previousSold = state.playerState?.stats?.fishSoldTotal ?? 0;
+    const playerState = syncPlayerStateFromGameState(state, { incrementRevision: true, reason: 'fish-sold' });
+    playerState.stats.fishSoldTotal = previousSold + soldCount;
+    localRevision = playerState.revision;
   }
+  const playerStatePatch = buildAuthorityPatch(state, patch);
 
   return {
     ok: changed,
@@ -186,7 +209,7 @@ export function sellFish({ state, saleType = 'all', fishEntryId = null, fishId =
         coinsEarned: Math.max(0, after.coins - before.coins),
         fishRemoved: Math.max(0, before.fishStorageSummary.totalFish - after.fishStorageSummary.totalFish),
       },
-      playerStatePatch: patch,
+      playerStatePatch,
       localRevision,
     },
     sale: {
@@ -196,7 +219,7 @@ export function sellFish({ state, saleType = 'all', fishEntryId = null, fishId =
       coinsEarned: Math.max(0, after.coins - before.coins),
       fishRemoved: Math.max(0, before.fishStorageSummary.totalFish - after.fishStorageSummary.totalFish),
     },
-    playerStatePatch: patch,
+    playerStatePatch,
     revision: localRevision,
     localRevision,
     error: changed ? null : 'Sale was not applied',
@@ -214,6 +237,9 @@ export function applyPlayerStatePatch(state, patch = {}) {
   }
   if (patch.money != null) {
     state.money = patch.money;
+  }
+  if (patch.playerState && typeof patch.playerState === 'object') {
+    setPlayerState(state, patch.playerState);
   }
   if (patch.inventory && typeof patch.inventory === 'object') {
     state.inventory = {
@@ -247,6 +273,20 @@ function normalizeServerCatchResult(state, response) {
   const result = response?.result ?? response ?? {};
   const patch = result.playerStatePatch ?? {};
   applyPlayerStatePatch(state, patch);
+  if (result.playerState) {
+    setPlayerState(state, {
+      ...result.playerState,
+      authority: {
+        ...(result.playerState.authority ?? {}),
+        mode: 'server',
+        verified: true,
+        lastServerRevision: result.serverRevision ?? response?.serverRevision ?? result.playerState.revision ?? null,
+        lastSyncAt: result.serverTimestamp ?? response?.serverTimestamp ?? new Date().toISOString(),
+      },
+    });
+  } else {
+    syncPlayerStateFromGameState(state, { incrementRevision: false });
+  }
   const catchResult = catchResultFromServerFish(result.fish);
   return {
     caught: Boolean(result.caught ?? result.fish),
@@ -354,4 +394,12 @@ function authorityMetadata(authorityMode, verified, revision) {
 
 function hasPatchChanges(patch) {
   return Object.keys(patch ?? {}).length > 0;
+}
+
+function buildAuthorityPatch(state, legacyPatch = {}) {
+  const playerState = syncPlayerStateFromGameState(state, { incrementRevision: false });
+  return {
+    ...(legacyPatch ?? {}),
+    playerState,
+  };
 }

@@ -22,6 +22,7 @@ import { getLanguage, t, translateEntry } from '../i18n/i18n.js';
 import { assetPath } from '../utils/assetPath.js';
 import { getWorldMapAsset } from '../utils/worldMapAsset.js';
 import { loadCloudSession } from '../api/client.js';
+import { getPlayerState } from '../game/playerState.js';
 
 const inventoryOrder = [
   'thread',
@@ -194,6 +195,7 @@ export function inventoryMarkup(state) {
 
 export function profileMarkup(state) {
   const profile = state.playerProfile ?? {};
+  const playerState = getPlayerState(state);
   const keepnetSummary = getKeepnetSummary(state);
   const totalTrophies = (state.trophies ?? []).filter((entry) => entry.tier).length;
   const unlockedStars = getUnlockedStars(state);
@@ -215,8 +217,8 @@ export function profileMarkup(state) {
       </div>
       <div>
         <h3>${escapeHtml(profile.name ?? '')}</h3>
-        <p>${t('levelLabel')}: <strong>${levelProgress.level}</strong></p>
-        <small>${t('coins')}: <strong>${state.money}</strong> &middot; ${t('totalFishCaught')}: <strong>${profile.fishCaughtTotal ?? state.stats?.totalFishCaught ?? 0}</strong></small>
+        <p>${t('levelLabel')}: <strong>${playerState.profile.level ?? levelProgress.level}</strong></p>
+        <small>${t('coins')}: <strong>${playerState.economy.coins ?? state.money}</strong> &middot; ${t('totalFishCaught')}: <strong>${playerState.stats.fishCaughtTotal ?? profile.fishCaughtTotal ?? state.stats?.totalFishCaught ?? 0}</strong></small>
       </div>
     </div>
     <div class="profile-xp">
@@ -229,6 +231,7 @@ export function profileMarkup(state) {
       </div>
       <small>${t('totalXpLabel')}: ${levelProgress.xp}</small>
     </div>
+    ${profileProgressStateMarkup(state)}
     ${profileCloudSaveMarkup(state)}
     ${state.ui?.editingProfile ? `
       <form class="profile-form profile-form--inline" data-profile-form>
@@ -251,8 +254,8 @@ export function profileMarkup(state) {
     ` : `<button class="profile-edit-button" data-action="profile:edit" type="button">${t('editProfile')}</button>`}
     <dl class="profile-stats">
       <div><dt>${t('daysFishing')}</dt><dd>${state.day ?? 1}</dd></div>
-      <div><dt>${t('fishCaughtTotal')}</dt><dd>${profile.fishCaughtTotal ?? state.stats?.totalFishCaught ?? 0}</dd></div>
-      <div><dt>${t('totalCoinsEarned')}</dt><dd>${profile.totalCoinsEarned ?? 0}</dd></div>
+      <div><dt>${t('fishCaughtTotal')}</dt><dd>${playerState.stats.fishCaughtTotal ?? profile.fishCaughtTotal ?? state.stats?.totalFishCaught ?? 0}</dd></div>
+      <div><dt>${t('totalCoinsEarned')}</dt><dd>${playerState.economy.totalCoinsEarned ?? profile.totalCoinsEarned ?? 0}</dd></div>
       <div><dt>${t('fishInKeepnet')}</dt><dd>${keepnetSummary.totalFish}</dd></div>
       <div><dt>${t('totalTrophies')}</dt><dd>${totalTrophies}</dd></div>
       <div><dt>${t('earnedStars')}</dt><dd>${unlockedStars.length}</dd></div>
@@ -272,6 +275,27 @@ export function profileMarkup(state) {
       <summary class="section-label">${t('achievements')}</summary>
       ${achievementsMarkup(state)}
     </details>
+  `;
+}
+
+function profileProgressStateMarkup(state) {
+  const session = loadCloudSession();
+  const playerState = getPlayerState(state);
+  const loggedIn = Boolean(session?.accessToken);
+  const metadata = session?.saveMetadata;
+  const debug = isProgressDebugEnabled();
+  const lastCloudSave = formatCloudSaveTime(metadata?.serverUpdatedAt);
+
+  return `
+    <section class="profile-progress-card${loggedIn ? ' is-connected' : ''}" aria-label="Стан прогресу">
+      <div>
+        <p class="section-label">Стан прогресу</p>
+        <strong>${loggedIn ? 'Акаунт підключено' : 'Гість'}</strong>
+        <span>${loggedIn ? 'Хмарне автозбереження увімкнено' : 'Прогрес зберігається локально'}</span>
+        <small>${loggedIn ? `Останнє хмарне збереження: ${escapeHtml(lastCloudSave)}` : 'Увійдіть, щоб синхронізувати'}</small>
+      </div>
+      ${debug ? `<em>Ревізія: ${playerState.revision ?? 0}</em>` : ''}
+    </section>
   `;
 }
 
@@ -333,6 +357,16 @@ function formatCloudSaveTime(value) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function isProgressDebugEnabled() {
+  try {
+    return new URLSearchParams(window.location.search).has('debugLayout')
+      || localStorage.getItem('first-tackle-debug-layout') === 'true'
+      || localStorage.getItem('first-tackle-mobile-debug') === 'true';
+  } catch {
+    return false;
+  }
 }
 
 export function marketMarkup(state) {
