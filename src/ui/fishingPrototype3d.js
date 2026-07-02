@@ -35,7 +35,7 @@ export function syncFishingPrototype3d(root, state) {
     return;
   }
 
-  const shouldShow = Boolean(DEBUG_FISHERMAN_MODEL && state.ui?.fishingMinigame?.open);
+  const shouldShow = Boolean(state.settings?.graphics?.fisherman3d && state.ui?.fishingMinigame?.open);
   const canvas = shouldShow ? root.querySelector('[data-fishing-prototype-canvas]') : null;
 
   if (!canvas) {

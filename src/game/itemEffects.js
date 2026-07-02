@@ -1,5 +1,5 @@
 import { getPlayerState } from './playerState.js';
-import { shopItems } from './state.js';
+import { getItemById, getMarketItems } from '../data/itemCatalog.js';
 
 const EFFECT_DEFAULTS = {
   fishSizeMultiplier: 1,
@@ -9,7 +9,7 @@ const EFFECT_DEFAULTS = {
 };
 
 export function getItemEffects(itemId) {
-  return shopItems.find((item) => item.id === itemId)?.effects ?? [];
+  return getMarketItems().find((item) => item.id === itemId)?.effects ?? [];
 }
 
 export function getVisibleItemEffects(item) {
@@ -38,14 +38,14 @@ export function getActiveItemModifiers(state) {
   const activeEffects = [];
 
   for (const itemId of activeItemIds) {
-    const item = shopItems.find((entry) => entry.id === itemId);
-    for (const effect of item?.effects ?? []) {
+    const item = getItemById(itemId);
+    for (const effect of item?.bonuses ?? []) {
       applyEffect(modifiers, effect);
       activeEffects.push({
         itemId,
         type: effect.type,
         value: effect.value,
-        label: effect.label,
+        label: effect.label?.uk ?? effect.label?.en ?? effect.label ?? '',
       });
     }
   }

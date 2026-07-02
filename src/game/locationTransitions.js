@@ -12,11 +12,6 @@ export const locationTransitions = {
         { src: assetPath('/assets/transitions/grandma-house/grandma-house-flyin.webm'), type: 'video/webm' },
         { src: assetPath('/assets/transitions/grandma-house/grandma-house-flyin.mp4'), type: 'video/mp4' },
       ],
-      [
-        { src: assetPath('/assets/transitions/grandma-house/grandma-house-flyin-2.mp4'), type: 'video/mp4' },
-        { src: assetPath('/assets/transitions/grandma-house/grandma-house-flyin.webm'), type: 'video/webm' },
-        { src: assetPath('/assets/transitions/grandma-house/grandma-house-flyin.mp4'), type: 'video/mp4' },
-      ],
     ],
   },
   fishing_select: {

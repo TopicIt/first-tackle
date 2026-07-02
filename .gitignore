@@ -1,8 +1,10 @@
 node_modules/
 dist/
+.vite/
 .env
 *.log
 vite-dev.out
 vite-dev.err
 .DS_Store
+_source-assets/
 public/assets/3d/nature/quaternius_stylized_nature/

@@ -2,9 +2,10 @@ import { getFishData } from './fishData.js';
 import { sellFishByStatus, takeFishEntries, takeFishEntry } from './fishInventory.js';
 import { ensureMarketState, getFishSaleValue } from './market.js';
 import { ownTackleComponent } from './tackle.js';
-import { pushFeedback, pushLog, queueSound, shopItems } from './state.js';
+import { pushFeedback, pushLog, queueSound } from './state.js';
 import { addItem } from './inventory.js';
 import { addProfileCoinsEarned } from './profile.js';
+import { getMarketItems } from '../data/itemCatalog.js';
 
 export function sellAllFish(state) {
   ensureMarketState(state);
@@ -36,7 +37,7 @@ export function sellSmokedFish(state) {
 export function buyShopItem(state, itemId) {
   // TODO server-authoritative migration: purchases currently mutate coins/inventory
   // locally; later call gameApi.buyItemOnServer and apply the returned state patch.
-  const item = shopItems.find((entry) => entry.id === itemId);
+  const item = getMarketItems().find((entry) => entry.id === itemId);
   if (!item) {
     return;
   }

@@ -48,7 +48,7 @@ const prototypeFishermanModel = {
   rotation: new THREE.Euler(0, Math.PI * 0.72, 0),
 };
 
-export function createWorld() {
+export function createWorld(options = {}) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x8bb7c7);
   scene.fog = new THREE.Fog(0x8bb7c7, 22, 45);
@@ -79,7 +79,11 @@ export function createWorld() {
   addBusStation(scene);
   addTrees(scene);
   addZoneMarkers(scene);
-  loadPrototypeFisherman(scene);
+  let prototypeFishermanLoaded = false;
+  if (options.enablePrototypeFisherman) {
+    loadPrototypeFisherman(scene);
+    prototypeFishermanLoaded = true;
+  }
 
   const windObjects = addReeds(scene);
   const animatedMapObjects = addMapLife(scene);
@@ -114,6 +118,13 @@ export function createWorld() {
       }
       loadedMapTexturePath = mapAsset.primary;
       loadMapTexture(animatedMapObjects.mapPlaneMaterial, mapAsset.primary, mapAsset.fallback);
+    },
+    setPrototypeFishermanEnabled(enabled) {
+      if (!enabled || prototypeFishermanLoaded) {
+        return;
+      }
+      loadPrototypeFisherman(scene);
+      prototypeFishermanLoaded = true;
     },
   };
 }

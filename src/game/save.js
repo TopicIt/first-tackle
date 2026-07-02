@@ -213,6 +213,10 @@ function mergeState(base, saved) {
         ...base.settings.performance,
         ...(saved.settings?.performance ?? {}),
       },
+      graphics: {
+        ...base.settings.graphics,
+        ...(saved.settings?.graphics ?? {}),
+      },
       animationLimits: {
         ...base.settings.animationLimits,
         ...(saved.settings?.animationLimits ?? {}),
