@@ -321,7 +321,7 @@ const hud = createHud(hudRoot, {
     if (actionId.startsWith('mapWater:')) {
       const waterId = actionId.replace('mapWater:', '');
       if (!canOpenWaterFromMap(gameState, waterId)) {
-        pushLog(gameState, lockedLogKey(waterId));
+        showLockedLocationNotice(waterId);
         renderHud();
         return;
       }
@@ -341,6 +341,12 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'map:toggleHotspots') {
       gameState.ui.mapHotspotsHidden = !gameState.ui.mapHotspotsHidden;
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'mapLockedNotice:close') {
+      gameState.ui.mapLockedNotice = null;
       renderHud();
       return;
     }
@@ -409,13 +415,13 @@ const hud = createHud(hudRoot, {
     if (actionId.startsWith('open:')) {
       const sceneId = actionId.replace('open:', '');
       if (sceneId === 'bus_station' && !canUseBusStation(gameState)) {
-        pushLog(gameState, 'logBusStationLocked');
+        showLockedLocationNotice(sceneId);
         renderHud();
         return;
       }
       if (isFishingLocation(sceneId)) {
         if (!canOpenWaterFromMap(gameState, sceneId)) {
-          pushLog(gameState, lockedLogKey(sceneId));
+          showLockedLocationNotice(sceneId);
           renderHud();
           return;
         }
@@ -745,7 +751,7 @@ const hud = createHud(hudRoot, {
     if (actionId.startsWith('select:water:')) {
       const waterId = actionId.replace('select:water:', '');
       if (!canSelectWaterForFishing(gameState, waterId)) {
-        pushLog(gameState, lockedLogKey(waterId));
+        showLockedLocationNotice(waterId);
         renderHud();
         return;
       }
@@ -1094,7 +1100,7 @@ function resetLaunchUiState(state) {
   state.ui.leaderboards = {
     type: state.ui.leaderboards?.type ?? 'biggest-fish',
     records: state.ui.leaderboards?.records ?? [],
-    source: state.ui.leaderboards?.source ?? 'mock-fallback',
+    source: state.ui.leaderboards?.source ?? 'local-fallback',
     busy: false,
   };
 }
@@ -1120,12 +1126,15 @@ async function loadLeaderboardRecords(type = 'biggest-fish') {
 
   const response = await fetchLeaderboard(type);
   const records = response?.result?.records ?? response?.result?.items ?? [];
+  if (response?.fallback && import.meta.env?.DEV) {
+    console.warn('Leaderboard backend unavailable; using local-only fallback.', response.error ?? null);
+  }
   gameState.ui.leaderboards = {
     ...(gameState.ui.leaderboards ?? {}),
     type,
     busy: false,
     records,
-    source: response?.fallback ? 'mock-fallback' : response?.result?.source ?? 'server',
+    source: response?.fallback ? 'local-fallback' : response?.result?.source ?? 'server',
   };
   renderHud();
 }
@@ -1244,6 +1253,23 @@ function enterFishingWater(waterId) {
   arriveAtWater(gameState, waterId);
   openFishingMinigame(gameState, getRigMethod(gameState));
   gameState.ui.selectedHotspot = waterId;
+}
+
+function showLockedLocationNotice(locationId) {
+  const isBusStation = locationId === 'bus_station';
+  const location = isBusStation ? null : getFishingLocation(locationId);
+  const labelKey = isBusStation ? 'zoneBusStation' : location?.labelKey ?? 'locked';
+  const reasonKey = isBusStation ? 'requiresGrandmaTrust' : getLockedReasonKey(gameState, locationId);
+
+  gameState.ui ??= {};
+  gameState.ui.mapLockedNotice = {
+    labelKey,
+    reasonKey,
+    shownAt: Date.now(),
+  };
+
+  pushLog(gameState, isBusStation ? 'logBusStationLocked' : lockedLogKey(locationId));
+  pushFeedback(gameState, reasonKey, {}, 'item');
 }
 
 function lockedLogKey(waterId) {

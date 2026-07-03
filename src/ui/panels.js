@@ -22,7 +22,7 @@ import { assetPath } from '../utils/assetPath.js';
 import { getWorldMapAsset } from '../utils/worldMapAsset.js';
 import { loadCloudSession } from '../api/client.js';
 import { getActiveItemModifiers } from '../game/itemEffects.js';
-import { getMockLeaderboard, normalizeLeaderboardType } from '../game/leaderboards.js';
+import { getLocalLeaderboard, normalizeLeaderboardType } from '../game/leaderboards.js';
 import { getPlayerState } from '../game/playerState.js';
 import { isLayoutDebugEnabled } from '../utils/debugFlags.js';
 import {
@@ -997,9 +997,9 @@ function marketPricesMarkup(state) {
 export function leaderboardMarkup(state) {
   const leaderboardState = state.ui?.leaderboards ?? {};
   const type = normalizeLeaderboardType(leaderboardState.type ?? 'biggest-fish');
-  const records = leaderboardState.records?.length ? leaderboardState.records : getMockLeaderboard(type, state);
+  const records = leaderboardState.records?.length ? leaderboardState.records : getLocalLeaderboard(type, state);
   const busy = Boolean(leaderboardState.busy);
-  const source = leaderboardState.source ?? 'mock-fallback';
+  const source = leaderboardState.source ?? 'local-fallback';
   const tabs = [
     ['biggest-fish', 'Найбільша риба'],
     ['trophies', 'Трофеї'],
@@ -1015,13 +1015,22 @@ export function leaderboardMarkup(state) {
         `).join('')}
       </div>
       <div class="leaderboard-status">
-        <strong>${source === 'server' ? 'Серверні записи' : 'Тестові записи'}</strong>
-        <small>${busy ? 'Оновлюємо список...' : source === 'server' ? 'Поточний список з сервера' : 'Поки що це mock/local fallback до майбутнього бекенда'}</small>
+        <strong>${source === 'server' ? 'Серверні записи' : 'Локальний рейтинг'}</strong>
+        <small>${busy ? 'Оновлюємо список...' : source === 'server' ? 'Поточний список з сервера' : 'Збережись у хмару, щоб потрапити в загальний рейтинг. Якщо сервер рейтингу недоступний, показуємо тільки твій локальний результат.'}</small>
       </div>
       <div class="leaderboard-list">
-        ${records.map((record, index) => leaderboardRecordMarkup(record, index, type)).join('')}
+        ${records.length ? records.map((record, index) => leaderboardRecordMarkup(record, index, type)).join('') : leaderboardEmptyMarkup()}
       </div>
     </section>
+  `;
+}
+
+function leaderboardEmptyMarkup() {
+  return `
+    <article class="leaderboard-empty">
+      <strong>Рейтинг ще порожній</strong>
+      <span>Злови першу рибу і збережись у хмару, щоб претендувати на місце в рейтингу.</span>
+    </article>
   `;
 }
 
@@ -1038,7 +1047,7 @@ function leaderboardRecordMarkup(record, index, type) {
       <div class="leaderboard-record__body">
         <strong>${title}</strong>
         <span>${detail}</span>
-        <small>${escapeHtml(record.tackleSummary ?? '')}${record.caughtAt ? ` · ${escapeHtml(record.caughtAt)}` : ''}${record.verified ? ' · verified' : ' · local/mock'}</small>
+        <small>${escapeHtml(record.tackleSummary ?? '')}${record.caughtAt ? ` · ${escapeHtml(record.caughtAt)}` : ''}${record.verified ? ' · verified' : ' · local'}</small>
       </div>
     </article>
   `;

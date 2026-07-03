@@ -1,5 +1,5 @@
 import { ApiError, apiRequest } from './client.js';
-import { getMockLeaderboard, normalizeLeaderboardType } from '../game/leaderboards.js';
+import { normalizeLeaderboardType } from '../game/leaderboards.js';
 
 function failureResult(error, fallbackMessage) {
   return {
@@ -77,8 +77,8 @@ export async function fetchLeaderboard(type = 'biggest-fish') {
   return {
     ok: true,
     result: {
-      records: getMockLeaderboard(normalizedType),
-      source: 'mock-fallback',
+      records: [],
+      source: 'local-fallback',
       verified: false,
     },
     fallback: true,
