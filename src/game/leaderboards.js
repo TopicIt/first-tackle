@@ -44,19 +44,19 @@ export function normalizeLeaderboardType(type = 'biggest-fish') {
 }
 
 export function getMockLeaderboard(type = 'biggest-fish', state = null) {
+  return getLocalLeaderboard(type, state);
+}
+
+export function getLocalLeaderboard(type = 'biggest-fish', state = null) {
   const normalizedType = normalizeLeaderboardType(type);
-  const records = [...(MOCK_LEADERBOARDS[normalizedType] ?? MOCK_LEADERBOARDS['biggest-fish'])];
   const localRecord = state ? getLocalPlayerLeaderboardRecord(state, normalizedType) : null;
-  if (localRecord) {
-    records.unshift(localRecord);
-  }
-  return records.slice(0, 8);
+  return localRecord ? [localRecord] : [];
 }
 
 export function getLocalPlayerLeaderboardRecord(state, type = 'biggest-fish') {
   const normalizedType = normalizeLeaderboardType(type);
   const playerState = getPlayerState(state);
-  const playerName = playerState.profile?.playerName || 'Гість';
+  const playerName = playerState.profile?.playerName || state.playerProfile?.name || 'Гість';
 
   if (normalizedType === 'coins') {
     const coins = playerState.economy?.totalCoinsEarned ?? 0;
@@ -72,7 +72,7 @@ export function getLocalPlayerLeaderboardRecord(state, type = 'biggest-fish') {
   }
 
   const catchesByLocation = playerState.stats?.catchesByLocation ?? {};
-  const locationName = Object.keys(catchesByLocation)[0] ?? 'Невідомо';
+  const locationName = Object.keys(catchesByLocation)[0] ?? 'Локально';
   return {
     playerName,
     fishId: biggestFish.fishId,

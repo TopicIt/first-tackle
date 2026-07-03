@@ -46,7 +46,8 @@ function hotspotMarkup(hotspot, state) {
   const tutorialTarget = isTutorialTarget(state, hotspot.action ?? `open:${hotspot.scene}`) ? ' is-tutorial-target' : '';
   const style = hotspotStyle(hotspot);
   const ariaLabel = locked ? `${t(hotspot.labelKey)} - ${t(lockedReason)}` : t(hotspot.actionKey);
-  const label = `${hotspot.direction === 'left' ? '← ' : ''}${t(hotspot.labelKey)}${hotspot.direction === 'right' ? ' →' : ''}${locked ? ` / ${t(lockedReason)}` : ''}`;
+  const label = `${hotspot.direction === 'left' ? '← ' : ''}${t(hotspot.labelKey)}${hotspot.direction === 'right' ? ' →' : ''}`;
+  const badges = locked ? requirementBadges(lockedReason) : [];
 
   return `
     <button
@@ -55,9 +56,13 @@ function hotspotMarkup(hotspot, state) {
       style="${style}"
       type="button"
       aria-label="${ariaLabel}"
+      ${locked ? `title="${escapeHtml(t(lockedReason))}"` : ''}
     >
       <span class="map-hotspot__area"></span>
-      <span class="map-hotspot__label">${label}</span>
+      <span class="map-hotspot__label">
+        <span class="map-hotspot__name">${escapeHtml(label)}</span>
+        ${badges.length ? `<span class="map-hotspot__badges" aria-hidden="true">${badges.map((badge) => `<span class="map-hotspot__badge">${badge}</span>`).join('')}</span>` : ''}
+      </span>
     </button>
   `;
 }
@@ -94,8 +99,33 @@ function getHotspotLockedReason(hotspot, state) {
   return 'locked';
 }
 
+function requirementBadges(reasonKey) {
+  if (reasonKey === 'requiresScooterOrBicycle') {
+    return ['🛴', '🚲'];
+  }
+  if (reasonKey === 'requiresBicycle') {
+    return ['🚲'];
+  }
+  if (reasonKey === 'requiresBusTicket') {
+    return ['🎟'];
+  }
+  if (reasonKey === 'requiresGrandmaTrust') {
+    return ['🤝'];
+  }
+  return ['🔒'];
+}
+
 export function updateMapOverlayMotion(elapsedMs) {
   void elapsedMs;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 function hotspotStyle(hotspot) {

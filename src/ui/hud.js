@@ -15,7 +15,7 @@ import {
 import { locationSceneMarkup } from './locationScene.js';
 import { locationTransitionMarkup } from './locationTransition.js';
 import { mapOverlayMarkup } from './mapOverlay.js';
-import { cloudSaveHintMarkup, cloudSaveMenuMarkup, cloudSavePanelMarkup } from './cloudSavePanel.js';
+import { cloudSaveMenuMarkup, cloudSavePanelMarkup, cloudSaveStartupMarkup } from './cloudSavePanel.js';
 import { syncFishingLineOverlay } from './fishingMinigame.js';
 import { getLanguage, t } from '../i18n/i18n.js';
 import { buildInfo } from '../buildInfo.js';
@@ -133,11 +133,15 @@ export function createHud(root, handlers) {
       event.preventDefault();
       const data = new FormData(cloudAuthForm);
       const mode = event.submitter?.value === 'register' ? 'register' : 'login';
+      const linkedProfileName = cloudAuthForm
+        .closest('.startup-flow__panel')
+        ?.querySelector('[data-profile-name-input]')
+        ?.value;
       handlers.onCloudAuth?.({
         mode,
         email: data.get('email'),
         password: data.get('password'),
-        displayName: data.get('displayName'),
+        displayName: data.get('displayName') || linkedProfileName,
       });
       return;
     }
@@ -203,14 +207,15 @@ export function createHud(root, handlers) {
       button.blur();
     }
     const panelToggleFromMobileMenu = action.startsWith('panel:toggle:') && Boolean(mobileMenu);
+    const cloudActionFromMobileMenu = action.startsWith('cloud:') && Boolean(mobileMenu);
     const keepMobileMenuOpen = action.startsWith('panel:toggle:')
       && !panelToggleFromMobileMenu
       && (mobileMenuOpen || Boolean(root.querySelector('.mobile-menu[open]')) || Boolean(mobileMenu));
     handlers.onDismissStartupTitle?.();
-    if (!action.startsWith('panel:toggle:') || panelToggleFromMobileMenu) {
+    if ((!action.startsWith('panel:toggle:') && !cloudActionFromMobileMenu) || panelToggleFromMobileMenu) {
       mobileMenu?.removeAttribute('open');
       mobileMenuOpen = false;
-    } else if (keepMobileMenuOpen || mobileMenu) {
+    } else if (keepMobileMenuOpen || cloudActionFromMobileMenu || mobileMenu) {
       mobileMenuOpen = true;
     }
 
@@ -220,7 +225,7 @@ export function createHud(root, handlers) {
     else if (action === 'transition:skip') handlers.onTransitionDone();
     else handlers.onAction(action);
 
-    restoreMobileMenu(root, keepMobileMenuOpen);
+    restoreMobileMenu(root, keepMobileMenuOpen || cloudActionFromMobileMenu);
     if (preservedScroll) {
       restorePreservedScroll(root, preservedScroll);
     }
@@ -280,6 +285,7 @@ export function createHud(root, handlers) {
 
       root.innerHTML = `
         ${mapOverlayMarkup(renderState)}
+        ${mapLockedNoticeMarkup(state)}
         ${mapOpen || state.ui?.startupTitleDismissed ? '' : `<div class="startup-title" aria-hidden="true">${t('appTitle')}</div>`}
         ${mapOpen ? `
           <div class="map-top-controls" aria-label="${t('map')}">
@@ -306,14 +312,8 @@ export function createHud(root, handlers) {
                 <span></span><span></span><span></span>
               </summary>
               <div class="mobile-menu__sheet">
-                <div class="mobile-menu__quick-actions" aria-label="Швидкі дії">
-                  <button data-action="profile:open" type="button">Профіль</button>
-                  <button data-action="save:now" type="button">Зберегти</button>
-                  <button data-action="cloud:open" type="button">Хмарне збереження</button>
-                  <button data-action="panel:toggle:settings" type="button">Налаштування</button>
-                </div>
+                ${mobileProfileSummaryMarkup(state)}
                 <nav class="mobile-menu__list">
-                  ${menuButton('profile', 'profile', collapsedPanels)}
                   ${menuButton('inventory', 'inventory', collapsedPanels)}
                   ${menuButton('keepnet', 'keepnet', collapsedPanels)}
                   ${menuButton('tackle', 'tackle', collapsedPanels)}
@@ -323,12 +323,12 @@ export function createHud(root, handlers) {
                   ${menuButton('achievements', 'achievements', collapsedPanels)}
                   ${menuButton('leaderboard', 'leaderboard', collapsedPanels)}
                   ${menuButton('mapViewer', 'map', collapsedPanels)}
-                  ${menuButton('settings', 'settings', collapsedPanels)}
                 </nav>
+                ${cloudSaveMenuMarkup(state)}
                 <div class="mobile-menu__service">
-                  <button class="mobile-menu__cloud-save" data-action="cloud:open" type="button">${t('cloudSave')}</button>
                   <button data-action="save" type="button">${t('save')}</button>
                   <button data-action="load" type="button">${t('load')}</button>
+                  <button data-action="panel:toggle:settings" type="button">${t('settings')}</button>
                   <button data-action="reset" type="button">${t('reset')}</button>
                   <button data-language-toggle="true" type="button" aria-label="Switch language">${getLanguage().toUpperCase()} / ${t('languageToggle')}</button>
                 </div>
@@ -756,17 +756,19 @@ function startupOverlayMarkup(state) {
     const selectedAvatar = state.playerProfile?.avatar ?? DEFAULT_AVATAR;
     return `
       <section class="startup-flow" aria-label="${t('profile')}">
-        <form class="startup-flow__panel profile-form" data-profile-form>
+        <div class="startup-flow__panel startup-flow__panel--profile">
           <img class="startup-flow__logo" src="${assetPath('/assets/logo/logo-mark.png')}" onerror="this.style.display='none'" alt="" />
           <h1>${GAME_TITLE}</h1>
-          <img class="profile-form__selected" src="${assetPath(selectedAvatar)}" onerror="this.src='${assetPath(DEFAULT_AVATAR)}'" alt="" />
-          <input data-profile-name-input name="name" type="text" autocomplete="name" value="${escapeHtml(state.playerProfile?.name ?? '')}" placeholder="${t('defaultPlayerName')}" />
-          <div class="avatar-grid">
-            ${profileAvatars.map((avatar) => avatarButtonMarkup(avatar, selectedAvatar)).join('')}
-          </div>
-          <button type="submit">${t('next')}</button>
-          ${cloudSaveHintMarkup(state)}
-        </form>
+          <form class="profile-form profile-form--startup" data-profile-form>
+            <img class="profile-form__selected" src="${assetPath(selectedAvatar)}" onerror="this.src='${assetPath(DEFAULT_AVATAR)}'" alt="" />
+            <input data-profile-name-input name="name" type="text" autocomplete="name" value="${escapeHtml(state.playerProfile?.name ?? '')}" placeholder="${t('defaultPlayerName')}" />
+            <div class="avatar-grid">
+              ${profileAvatars.map((avatar) => avatarButtonMarkup(avatar, selectedAvatar)).join('')}
+            </div>
+            <button type="submit">${t('next')}</button>
+          </form>
+          ${cloudSaveStartupMarkup(state)}
+        </div>
       </section>
     `;
   }
@@ -1011,10 +1013,47 @@ function actionButtonMarkup(action) {
   `;
 }
 
+function mobileProfileSummaryMarkup(state) {
+  const profile = state.playerProfile ?? {};
+  const selectedStar = getSelectedProfileStar(state);
+  const name = profile.name || t('defaultPlayerName');
+  const level = profile.level ?? 1;
+  const fishCaught = state.stats?.totalFishCaught ?? profile.fishCaughtTotal ?? 0;
+
+  return `
+    <section class="mobile-menu__profile-summary">
+      <div class="mobile-menu__profile-avatar">
+        <img src="${profileImageSrc(profile)}" onerror="this.src='${assetPath(DEFAULT_AVATAR)}'" alt="" />
+        ${selectedStar ? `<span style="--star-color:${selectedStar.color}" aria-hidden="true">&#9733;</span>` : ''}
+      </div>
+      <div>
+        <strong>${escapeHtml(name)}</strong>
+        <small>${t('levelLabel')}: ${level} · ${t('totalFishCaught')}: ${fishCaught}</small>
+      </div>
+      <button data-action="profile:open" type="button">${t('profile')}</button>
+    </section>
+  `;
+}
+
 function menuButton(panelId, labelKey, collapsedPanels) {
   const open = !collapsedPanels[panelId];
   const label = labelKey === 'leaderboard' ? 'Лідери' : t(labelKey);
   return `<button class="glass-menu-button${open ? ' is-active' : ''}" data-action="panel:toggle:${panelId}" type="button">${label}</button>`;
+}
+
+function mapLockedNoticeMarkup(state) {
+  const notice = state.ui?.mapLockedNotice;
+  if (!notice) {
+    return '';
+  }
+
+  return `
+    <aside class="map-locked-notice" role="status" aria-live="polite">
+      <button data-action="mapLockedNotice:close" type="button" aria-label="${t('close')}">&times;</button>
+      <strong>${t(notice.labelKey ?? 'locked')}</strong>
+      <span>${t(notice.reasonKey ?? 'locked')}</span>
+    </aside>
+  `;
 }
 
 function debugLayoutBadgeMarkup(state, context) {
