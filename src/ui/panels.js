@@ -1596,9 +1596,15 @@ function waterDepthsMarkup(waterId) {
 function waterCastSpotsMarkup(waterId) {
   const spots = castSpots
     .filter((spot) => (spot.waterId ?? 'canal') === waterId)
-    .slice(0, 4)
-    .map((spot) => t(spot.labelKey));
-  return spots.length ? spots.join(', ') : t('none');
+    .map((spot) => {
+      const topFish = Object.entries(spot.weights)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([fishId]) => t(fishData.find((fish) => fish.id === fishId)?.nameKey ?? fishId))
+        .join(', ');
+      return `${t(spot.labelKey)}${topFish ? ` (${topFish})` : ''}`;
+    });
+  return spots.length ? spots.join('; ') : t('none');
 }
 
 function favoriteWaterLabel(state) {

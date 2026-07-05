@@ -1,7 +1,8 @@
 export const waterFishDistribution = {
   canal: {
-    fishIds: ['rotan', 'crucian', 'bleak', 'roach', 'loach'],
-    weights: { rotan: 2.15, crucian: 2.55, bleak: 1.45, roach: 1.1, loach: 0.18 },
+    // TODO: "рогаль" has no direct fishId/localized species on main yet; add it here only after species data and assets exist.
+    fishIds: ['rotan', 'crucian', 'rudd', 'plotytsia', 'roach', 'loach', 'pike'],
+    weights: { rotan: 2.15, crucian: 2.55, rudd: 0.5, plotytsia: 1.05, roach: 0.85, loach: 0.18, pike: 0.08 },
     size: { crucian: [0.92, 1.08], rotan: [0.9, 1.05] },
   },
   sluice: {

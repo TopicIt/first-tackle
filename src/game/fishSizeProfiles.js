@@ -67,8 +67,9 @@ export function rollFishWeight(fishId, options = {}) {
   const baitBonus = options.baitFits ? (baitSizeBonus[options.baitId] ?? 0) : 0;
   const waterBonus = waterQualitySizeBonus[options.waterId] ?? 0;
   const tackleBonus = options.tackleTrophyBonus ?? 0;
+  const hookBonus = getHookSizeBonus(fishId, options.hookId);
   const depthBonus = depthSizeBonus[options.depth] ?? 0;
-  const multiplier = 1 + baitBonus + waterBonus + tackleBonus + depthBonus;
+  const multiplier = 1 + baitBonus + waterBonus + tackleBonus + hookBonus + depthBonus;
   const minWeight = Math.max(sizeProfile.min, options.minWeight ?? 0);
   const capped = Math.min(sizeProfile.max, Math.round(base * multiplier));
   return Math.max(minWeight, capped);
@@ -103,6 +104,33 @@ function profile(min, common, uncommon, rare, trophyWeight, legendaryWeight, max
     max,
     weights,
   };
+}
+
+function getHookSizeBonus(fishId, hookId) {
+  const tinyFish = ['bleak', 'gudgeon', 'rotan', 'loach', 'plotytsia'];
+  const largeFish = ['pike', 'sudak', 'som', 'carp', 'grass_carp', 'silver_carp', 'bream', 'eel'];
+
+  if (hookId === 'small_hook') {
+    if (tinyFish.includes(fishId)) return 0.025;
+    if (largeFish.includes(fishId)) return -0.035;
+    return -0.005;
+  }
+
+  if (hookId === 'large_hook') {
+    if (tinyFish.includes(fishId)) return -0.04;
+    if (largeFish.includes(fishId)) return 0.04;
+    return 0.01;
+  }
+
+  if (hookId === 'sharper_hook') {
+    return largeFish.includes(fishId) ? 0.025 : 0.01;
+  }
+
+  if (hookId === 'old_dull_hook') {
+    return -0.015;
+  }
+
+  return 0;
 }
 
 function randomInt(min, max) {
