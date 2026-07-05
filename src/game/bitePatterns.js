@@ -20,7 +20,7 @@ export const castSpots = [
     scale: 1.18,
     allowedMethods: ['handline', 'stickRod'],
     waterId: 'canal',
-    weights: getWaterFishWeights('canal', { rotan: 1.55, crucian: 0.72, bleak: 0.35, roach: 0.25, loach: 0.8 }),
+    weights: getWaterFishWeights('canal', { rotan: 1.55, crucian: 0.72, rudd: 0.35, plotytsia: 0.45, roach: 0.25, loach: 0.8, pike: 0.35 }),
   },
   {
     id: 'shallow_weeds',
@@ -31,7 +31,7 @@ export const castSpots = [
     scale: 1.04,
     allowedMethods: ['handline', 'stickRod'],
     waterId: 'canal',
-    weights: getWaterFishWeights('canal', { rotan: 1.05, crucian: 1.18, bleak: 0.35, roach: 0.82, loach: 0.5 }),
+    weights: getWaterFishWeights('canal', { rotan: 1.05, crucian: 1.18, rudd: 0.75, plotytsia: 0.82, roach: 0.82, loach: 0.5, pike: 0.4 }),
   },
   {
     id: 'open_middle',
@@ -42,7 +42,7 @@ export const castSpots = [
     scale: 0.92,
     allowedMethods: ['stickRod'],
     waterId: 'canal',
-    weights: getWaterFishWeights('canal', { rotan: 0.28, crucian: 1.5, bleak: 1.2, roach: 1.35, loach: 0.35 }),
+    weights: getWaterFishWeights('canal', { rotan: 0.28, crucian: 1.5, rudd: 0.8, plotytsia: 1.35, roach: 1.15, loach: 0.35, pike: 0.55 }),
   },
   {
     id: 'reed_pocket',
@@ -53,7 +53,7 @@ export const castSpots = [
     scale: 0.86,
     allowedMethods: ['stickRod'],
     waterId: 'canal',
-    weights: getWaterFishWeights('canal', { rotan: 0.35, crucian: 1.12, bleak: 0.65, roach: 1.15, loach: 0.4 }),
+    weights: getWaterFishWeights('canal', { rotan: 0.35, crucian: 1.12, rudd: 1.35, plotytsia: 1.05, roach: 0.95, loach: 0.4, pike: 0.85 }),
   },
   {
     id: 'muddy_bottom',
@@ -64,7 +64,7 @@ export const castSpots = [
     scale: 0.94,
     allowedMethods: ['stickRod'],
     waterId: 'canal',
-    weights: getWaterFishWeights('canal', { rotan: 0.7, crucian: 1.28, bleak: 0.4, roach: 0.75, loach: 1.55 }),
+    weights: getWaterFishWeights('canal', { rotan: 0.7, crucian: 1.28, rudd: 0.45, plotytsia: 0.75, roach: 0.65, loach: 1.55, pike: 0.4 }),
   },
   {
     id: 'far_shadow',
@@ -75,7 +75,7 @@ export const castSpots = [
     scale: 0.72,
     allowedMethods: ['betterLine'],
     waterId: 'canal',
-    weights: getWaterFishWeights('canal', { rotan: 0.3, crucian: 1.18, bleak: 0.6, roach: 1.2, loach: 0.35 }),
+    weights: getWaterFishWeights('canal', { rotan: 0.3, crucian: 1.18, rudd: 1.25, plotytsia: 1.2, roach: 0.95, loach: 0.35, pike: 1.05 }),
   },
   {
     id: 'sluice_near_bank',
