@@ -85,7 +85,7 @@ import { assetPath } from './utils/assetPath.js';
 import { getWorldMapAsset } from './utils/worldMapAsset.js';
 import { ApiError, loadCloudSession, saveCloudSession } from './api/client.js';
 import { getProfile, login, logout, register } from './api/authApi.js';
-import { getSaveStatus, loadSave as loadCloudSave, syncSave as syncCloudSave } from './api/saveApi.js';
+import { loadSave as loadCloudSave, syncSave as syncCloudSave } from './api/saveApi.js';
 import { fetchLeaderboard } from './api/gameApi.js';
 import { primeCatalogCache } from './api/catalogApi.js';
 import { syncPlayerStateFromGameState } from './game/playerState.js';
@@ -138,8 +138,8 @@ let cloudAutosavePending = false;
 let lastCloudAutosaveStartedAt = 0;
 
 const CLOUD_SAVE_HINT_DISMISSED_KEY = 'first-tackle-cloud-save-hint-dismissed-v1';
-const CLOUD_AUTOSAVE_DELAY_MS = 18000;
-const CLOUD_AUTOSAVE_MIN_INTERVAL_MS = 30000;
+const CLOUD_AUTOSAVE_DELAY_MS = 45000;
+const CLOUD_AUTOSAVE_MIN_INTERVAL_MS = 90000;
 
 queueCatalogWarmup();
 
@@ -1057,6 +1057,10 @@ function normalizePanelStateForViewport(state) {
   state.ui.collapsedPanels = {
     ...(state.ui.collapsedPanels ?? {}),
   };
+  const profileSetupIncomplete = !state.playerProfile?.setupComplete || !state.progress?.profileSetupComplete;
+  if (profileSetupIncomplete) {
+    state.ui.collapsedPanels.profile = false;
+  }
 
   const resolvedViewMode = applyViewModeToDocument(state);
   if (resolvedViewMode !== 'mobile') {
@@ -1066,6 +1070,10 @@ function normalizePanelStateForViewport(state) {
   state.ui.collapsedPanels.status = false;
 
   for (const panelId of ['profile', 'inventory', 'keepnet', 'tackle', 'guide', 'journal', 'quests', 'achievements', 'leaderboard', 'mapViewer', 'settings']) {
+    if (panelId === 'profile' && profileSetupIncomplete) {
+      state.ui.collapsedPanels.profile = false;
+      continue;
+    }
     state.ui.collapsedPanels[panelId] = true;
   }
 }
@@ -1125,7 +1133,7 @@ async function loadLeaderboardRecords(type = 'biggest-fish') {
   renderHud();
 
   const response = await fetchLeaderboard(type);
-  const records = response?.result?.records ?? response?.result?.items ?? [];
+  const records = response?.result?.records ?? response?.result?.items ?? response?.result?.rows ?? [];
   if (response?.fallback && import.meta.env?.DEV) {
     console.warn('Leaderboard backend unavailable; using local-only fallback.', response.error ?? null);
   }
@@ -1135,6 +1143,9 @@ async function loadLeaderboardRecords(type = 'biggest-fish') {
     busy: false,
     records,
     source: response?.fallback ? 'local-fallback' : response?.result?.source ?? 'server',
+    message: response?.fallback
+      ? response?.result?.message ?? response?.error?.message ?? 'Leaderboard server unavailable; showing local records.'
+      : '',
   };
   renderHud();
 }
@@ -1491,13 +1502,9 @@ async function handleCloudAuth(payload) {
       await login(String(payload.email ?? '').trim(), String(payload.password ?? ''));
     }
     const profile = await getProfile();
-    const status = await getSaveStatus().catch(() => null);
-    saveCloudSession({
-      profile,
-      saveMetadata: status?.exists ? status : null,
-      lastMessage: 'Вхід виконано. Автозбереження в хмару увімкнеться після змін у грі.',
-    });
-    setCloudBusy(false, 'Вхід виконано. Автозбереження в хмару увімкнеться після змін у грі.');
+    saveCloudSession({ profile });
+    const message = await loadLatestCloudSaveAfterAuth(profile);
+    setCloudBusy(false, message);
   } catch (error) {
     setCloudBusy(false, cloudErrorMessage(error));
   }
@@ -1525,17 +1532,18 @@ async function handleCloudAction(actionId) {
 }
 
 async function uploadLocalSaveToCloud() {
-  setCloudBusy(true, 'Завантажуємо локальний сейв на сервер...');
+  setCloudBusy(true, 'Зберігаємо прогрес...');
   renderHud();
   try {
     const result = await syncCurrentSaveToCloud();
     saveCloudSession({
       ...(loadCloudSession() ?? {}),
       saveMetadata: result.metadata,
-      lastMessage: `Локальний сейв завантажено. Ревізія сервера: ${result.metadata?.revision ?? '?'}.`,
+      lastMessage: 'Збережено',
     });
     lastCloudAutosaveSignature = getCloudSaveSignature();
-    setCloudBusy(false, `Локальний сейв завантажено. Ревізія сервера: ${result.metadata?.revision ?? '?'}.`);
+    setCloudBusy(false, 'Збережено');
+    pushFeedback(gameState, 'Збережено', {}, 'item');
   } catch (error) {
     setCloudBusy(false, cloudErrorMessage(error));
   }
@@ -1573,15 +1581,76 @@ async function downloadCloudSave() {
     saveCloudSession({
       ...(loadCloudSession() ?? {}),
       saveMetadata: result.metadata,
-      lastMessage: 'Сейв із сервера завантажено.',
+      lastMessage: 'Останнє збереження завантажено',
     });
-    setCloudBusy(false, 'Сейв із сервера завантажено.');
+    setCloudBusy(false, 'Останнє збереження завантажено');
     lastCloudAutosaveSignature = getCloudSaveSignature();
+    pushFeedback(gameState, 'Останнє збереження завантажено', {}, 'item');
     pushLog(gameState, 'logLoaded');
   } catch (error) {
     setCloudBusy(false, cloudErrorMessage(error));
   }
   renderHud();
+}
+
+async function loadLatestCloudSaveAfterAuth(profile) {
+  let result = null;
+  try {
+    result = await loadCloudSave();
+  } catch (error) {
+    const message = cloudErrorMessage(error);
+    saveCloudSession({
+      ...(loadCloudSession() ?? {}),
+      profile,
+      lastMessage: message,
+    });
+    return message;
+  }
+
+  const metadata = result?.metadata ?? null;
+  if (!metadata?.exists || !result?.payload) {
+    const message = 'Хмарного збереження ще немає. Локальний прогрес залишено.';
+    saveCloudSession({
+      ...(loadCloudSession() ?? {}),
+      profile,
+      saveMetadata: metadata,
+      lastMessage: message,
+    });
+    return message;
+  }
+
+  const serverRevision = Number(metadata.revision ?? 0);
+  const localRevision = Number(getPlayerState(gameState).revision ?? 0);
+  const shouldApplyCloudSave = !gameState.playerProfile?.setupComplete || serverRevision > localRevision;
+
+  if (!shouldApplyCloudSave) {
+    const message = serverRevision === localRevision
+      ? 'Локальний прогрес залишено: він уже актуальний.'
+      : 'Локальний прогрес новіший за хмарний. Автоматично не перезаписуємо.';
+    saveCloudSession({
+      ...(loadCloudSession() ?? {}),
+      profile,
+      saveMetadata: metadata,
+      lastMessage: message,
+    });
+    return message;
+  }
+
+  backupLocalSave('before-cloud-login-load');
+  gameState = importSave(JSON.stringify(result.payload));
+  ensureRuntimeState(gameState);
+  player.restore(gameState.player);
+  audio.syncSettings(gameState.settings.audio);
+  saveCloudSession({
+    ...(loadCloudSession() ?? {}),
+    profile,
+    saveMetadata: metadata,
+    lastMessage: 'Останнє збереження завантажено',
+  });
+  lastCloudAutosaveSignature = getCloudSaveSignature();
+  pushFeedback(gameState, 'Останнє збереження завантажено', {}, 'item');
+  pushLog(gameState, 'logLoaded');
+  return 'Останнє збереження завантажено';
 }
 
 async function syncCurrentSaveToCloud() {

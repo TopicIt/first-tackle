@@ -346,8 +346,8 @@ function profileCloudSaveMarkup(state) {
       </dl>
       <div class="profile-cloud-save__actions">
         ${loggedIn ? `
-          <button data-action="cloud:upload" type="button"${busy ? ' disabled' : ''}>Синхронізувати зараз</button>
-          <button data-action="cloud:download" type="button"${busy ? ' disabled' : ''}>Завантажити з хмари</button>
+          <button data-action="cloud:upload" type="button"${busy ? ' disabled' : ''}>Зберегти зараз</button>
+          <button data-action="cloud:download" type="button"${busy ? ' disabled' : ''}>Завантажити останнє збереження</button>
           <button data-action="cloud:logout" type="button"${busy ? ' disabled' : ''}>${t('cloudSaveLogoutShort')}</button>
         ` : `
           <button data-action="cloud:open" type="button"${busy ? ' disabled' : ''}>Увійти для хмари</button>
@@ -1000,6 +1000,9 @@ export function leaderboardMarkup(state) {
   const records = leaderboardState.records?.length ? leaderboardState.records : getLocalLeaderboard(type, state);
   const busy = Boolean(leaderboardState.busy);
   const source = leaderboardState.source ?? 'local-fallback';
+  const fallbackMessage = leaderboardState.message
+    ? ` ${escapeHtml(leaderboardState.message)}`
+    : '';
   const tabs = [
     ['biggest-fish', 'Найбільша риба'],
     ['trophies', 'Трофеї'],
@@ -1016,7 +1019,7 @@ export function leaderboardMarkup(state) {
       </div>
       <div class="leaderboard-status">
         <strong>${source === 'server' ? 'Серверні записи' : 'Локальний рейтинг'}</strong>
-        <small>${busy ? 'Оновлюємо список...' : source === 'server' ? 'Поточний список з сервера' : 'Збережись у хмару, щоб потрапити в загальний рейтинг. Якщо сервер рейтингу недоступний, показуємо тільки твій локальний результат.'}</small>
+        <small>${busy ? 'Оновлюємо список...' : source === 'server' ? 'Поточний список з сервера' : `Серверний рейтинг недоступний, показуємо локальний результат.${fallbackMessage}`}</small>
       </div>
       <div class="leaderboard-list">
         ${records.length ? records.map((record, index) => leaderboardRecordMarkup(record, index, type)).join('') : leaderboardEmptyMarkup()}
@@ -1041,13 +1044,18 @@ function leaderboardRecordMarkup(record, index, type) {
   const detail = type === 'coins'
     ? `${record.coins ?? 0} монет · ${escapeHtml(record.locationName ?? 'Всі водойми')}`
     : `${Number(record.weightKg ?? 0).toFixed(2)} кг · ${escapeHtml(record.locationName ?? 'Невідомо')} · ${escapeHtml(record.baitName ?? 'Без наживки')}`;
+  const playerStats = [
+    record.level ? `рівень ${record.level}` : '',
+    record.xp ? `${record.xp} XP` : '',
+    record.totalFishCaught ? `${record.totalFishCaught} риб` : '',
+  ].filter(Boolean).join(' · ');
   return `
     <article class="leaderboard-record${record.localPlayer ? ' is-local' : ''}">
       <span class="leaderboard-record__rank">#${index + 1}</span>
       <div class="leaderboard-record__body">
         <strong>${title}</strong>
         <span>${detail}</span>
-        <small>${escapeHtml(record.tackleSummary ?? '')}${record.caughtAt ? ` · ${escapeHtml(record.caughtAt)}` : ''}${record.verified ? ' · verified' : ' · local'}</small>
+        <small>${escapeHtml(record.tackleSummary ?? '')}${playerStats ? ` · ${escapeHtml(playerStats)}` : ''}${record.caughtAt ? ` · ${escapeHtml(record.caughtAt)}` : ''}${record.verified ? ' · server' : ' · local'}</small>
       </div>
     </article>
   `;

@@ -205,8 +205,8 @@ function loggedInActionsMarkup(profile, metadata, message, isBusy) {
   void metadata;
   return `
     <div class="settings-action-row settings-action-row--stack cloud-save-shortcut__actions">
-      <button data-action="cloud:upload" type="button"${isBusy ? ' disabled' : ''}>Синхронізувати зараз</button>
-      <button data-action="cloud:download" type="button"${isBusy ? ' disabled' : ''}>Завантажити з хмари</button>
+      <button data-action="cloud:upload" type="button"${isBusy ? ' disabled' : ''}>Зберегти зараз</button>
+      <button data-action="cloud:download" type="button"${isBusy ? ' disabled' : ''}>Завантажити останнє збереження</button>
       <button data-action="cloud:logout" type="button"${isBusy ? ' disabled' : ''}>Вийти</button>
     </div>
     ${messageMarkup(message)}
