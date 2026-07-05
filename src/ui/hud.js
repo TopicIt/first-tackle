@@ -568,8 +568,8 @@ export function createHud(root, handlers) {
             <section class="settings-block">
               <p class="section-label">Прогрес</p>
               <div class="settings-action-row settings-action-row--stack">
-                <button data-action="cloud:upload" type="button">Синхронізувати зараз</button>
-                <button data-action="cloud:download" type="button">Завантажити з хмари</button>
+                <button data-action="cloud:upload" type="button">Зберегти зараз</button>
+                <button data-action="cloud:download" type="button">Завантажити останнє збереження</button>
                 <button class="danger" data-action="save:reset" type="button">${t('resetProgress')}</button>
               </div>
             </section>

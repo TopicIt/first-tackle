@@ -63,7 +63,12 @@ export function getLocalPlayerLeaderboardRecord(state, type = 'biggest-fish') {
     if (!coins) {
       return null;
     }
-    return createCoinRecord(playerName, coins, 'Локально', false, true);
+    return {
+      ...createCoinRecord(playerName, coins, 'Локально', false, true),
+      level: playerState.profile?.level ?? 1,
+      xp: playerState.profile?.xp ?? 0,
+      totalFishCaught: playerState.stats?.fishCaughtTotal ?? 0,
+    };
   }
 
   const biggestFish = playerState.stats?.biggestFish;
@@ -86,6 +91,10 @@ export function getLocalPlayerLeaderboardRecord(state, type = 'biggest-fish') {
     caughtAt: biggestFish.caughtAtDay ? `День ${biggestFish.caughtAtDay}` : 'Локально',
     verified: false,
     localPlayer: true,
+    level: playerState.profile?.level ?? 1,
+    xp: playerState.profile?.xp ?? 0,
+    totalFishCaught: playerState.stats?.fishCaughtTotal ?? 0,
+    biggestFishWeightGrams: biggestFish.weightGrams ?? 0,
   };
 }
 

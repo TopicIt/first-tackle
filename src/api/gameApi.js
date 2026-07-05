@@ -80,6 +80,9 @@ export async function fetchLeaderboard(type = 'biggest-fish') {
       records: [],
       source: 'local-fallback',
       verified: false,
+      message: response.error?.status === 404
+        ? 'Leaderboard backend endpoint is not deployed yet.'
+        : response.error?.message ?? 'Leaderboard server is unavailable.',
     },
     fallback: true,
     error: response.error ?? null,
