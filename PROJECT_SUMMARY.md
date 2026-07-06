@@ -1,10 +1,70 @@
 # First Tackle Project Summary
 
-Updated: 2026-07-06
+Updated: 2026-07-07
 
 ## Current State
 
 First Tackle is a local-first browser fishing game with optional account/cloud save support. The frontend remains responsible for rendering, offline play, fishing UI, and local save continuity. The available backend source lives in `D:\first-tackle-api` and currently supports auth, profile, cloud saves, and now read-only leaderboard endpoints aggregated from latest cloud saves.
+
+## MVP 1.1 Leaderboard, Guide, Progression, And Mobile Polish
+
+Completed on branch `codex/mvp11-leaderboard-guide-progression`.
+
+Feature commit: `d3ba72f` (`MVP 1.1 leaderboard guide progression polish`).
+
+Main merge commit: `f9a98ba` (`Merge MVP 1.1 leaderboard guide progression`).
+
+Deployment status: GitHub Pages workflow run `28827145021` completed successfully for merge commit `f9a98ba`.
+
+Live URL: `https://topicit.github.io/first-tackle/` verified with HTTP 200 after deployment.
+
+Completed work:
+
+- Reworked the frontend leaderboard to two MVP boards: biggest fish and monthly trophies grouped by fish, with collapsed species groups, refresh/sync action, avatar buttons, and public profile modal UI.
+- Added frontend profile sync to PATCH display name/avatar/star metadata to the backend profile and sync the current cloud save before manual leaderboard refresh when logged in.
+- Restored current profile identity in local leaderboard rows and carried readable fish/water/bait/depth/date metadata for biggest-fish records.
+- Added user-facing fish population indexes per water/fish and tied trophy eligibility to population `10+`, with catch/trophy classification aligned to that threshold.
+- Restored fish-guide depth detail blocks and added water population histograms with the `10+` trophy threshold marker.
+- Simplified fish guide casting guidance to readable water/zone/depth/population hints instead of raw internal spot labels.
+- Fixed player-state migration so a real game-state profile level/xp overrides stale legacy `playerState` values, preventing level progress from sticking at level 1.
+- Changed mobile/low-power transition gating to track each unique transition ID in localStorage, so each mobile transition can show once before later suppression.
+- Kept the mobile hamburger cloud-save UI compact by default, fixed its text wrapping/overflow, and raised mobile menu z-index above active panels so menu buttons remain tappable.
+- Raised startup flow z-index above mobile panels so first-launch intro/skip/profile controls receive taps before the HUD panels.
+- Added subtle bobber/cast-target perspective scaling based on water position.
+
+Changed files/modules:
+
+- `src/api/authApi.js`, `src/api/gameApi.js`: profile PATCH helper and leaderboard endpoint mapping.
+- `src/game/leaderboards.js`, `src/main.js`: two-board leaderboard model, local fallback rows, refresh/sync, public profile actions.
+- `src/game/waterFishDistribution.js`, `src/game/fishInventory.js`: population indexes and trophy threshold enforcement.
+- `src/game/playerState.js`, `src/game/gameAuthority.js`, `src/game/state.js`, `src/game/save.js`: profile level migration, XP/level diff metadata, biggest-fish metadata persistence.
+- `src/game/locationTransitions.js`: per-transition first mobile playback tracking.
+- `src/ui/panels.js`, `src/ui/cloudSavePanel.js`, `src/ui/fishingMinigame.js`, `style.css`: leaderboard UI, guide population/depth UI, mobile menu/panel layering, compact cloud-save menu, bobber scaling.
+
+Verification:
+
+- `npm.cmd install` completed in the clean MVP 1.1 worktree before implementation verification.
+- `npm.cmd run build` passed in the feature worktree and again after merging to `main`.
+- `git diff --check` passed after EOF cleanup; only standard Windows LF-to-CRLF warnings were reported during Git operations.
+- No `npm test` or check script is defined in `package.json`.
+- Focused module smoke passed for player-state level migration, local leaderboard identity/metadata, monthly trophy grouping, population threshold values, trophy blocking on low-population waters, per-transition mobile playback gating, guide population/depth render markers, leaderboard refresh/avatar/group render markers, and profile cloud/leaderboard action render markers.
+- In-app browser smoke at `390x844` verified first-launch startup controls are tappable above HUD panels, mobile hamburger opens, cloud-save shortcut is compact/readable with no horizontal overflow, Settings opens from the hamburger menu, Profile opens from the top mobile profile control, Leaderboard opens with two tabs and refresh, and Guide opens from the hamburger menu.
+- Live GitHub Pages URL returned HTTP 200 and the deployed HTML references built `/first-tackle/assets/` bundles.
+
+Known remaining issues:
+
+- Backend leaderboard rows still come from latest cloud-save aggregation and are not server-authoritative anti-cheat records.
+- Backend leaderboard responses do not yet expose enough public profile/avatar metadata for rich remote player cards; frontend shows richer identity for local/current player rows and default avatars for incomplete remote rows.
+- Monthly trophy leaderboard grouping can only group rows that include fish IDs; if the backend returns score-only trophy rows, the frontend falls back to local grouped trophy data.
+- Vite still warns that the main JS chunk is larger than 500 kB.
+- Existing unrelated dirty worktrees/asset changes outside this clean MVP 1.1 worktree were left untouched.
+
+Recommended next tasks:
+
+- Add backend public profile fields and fish IDs to leaderboard responses, then make remote avatar/profile rows fully data-backed.
+- Move competitive catch/trophy records server-side for verified leaderboards.
+- Real-device test the first-launch intro, hamburger menu, Settings/Profile, guide, and leaderboard on iPhone Safari.
+- Continue JS bundle splitting/lazy loading to reduce the large main chunk.
 
 ## MVP 1 Usability Pass
 
