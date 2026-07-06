@@ -42,6 +42,7 @@ Verification:
 
 - `npm.cmd run build` passed on the feature worktree.
 - `npm.cmd run build` passed again after merging into `main`.
+- No `npm test` or check script is defined in `package.json`.
 - Module smoke check passed for tutorial order/copy and first mobile transition gating.
 - In-app browser smoke at iPhone 14-sized viewport verified Profile opens, scrolls, and closes.
 - In-app browser smoke at iPhone 14-sized viewport verified Settings opens from mobile menu, scrolls, closes, and the menu closes before the panel opens.
