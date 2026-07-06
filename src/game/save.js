@@ -316,6 +316,10 @@ function mergeState(base, saved) {
       biggestFishSpecies: saved.stats?.biggestFishSpecies ?? null,
       biggestFishCaughtAtDay: saved.stats?.biggestFishCaughtAtDay ?? null,
       biggestFishCaughtAtTime: saved.stats?.biggestFishCaughtAtTime ?? null,
+      biggestFishWaterId: saved.stats?.biggestFishWaterId ?? null,
+      biggestFishBait: saved.stats?.biggestFishBait ?? null,
+      biggestFishDepth: saved.stats?.biggestFishDepth ?? null,
+      biggestFishCatchSpotId: saved.stats?.biggestFishCatchSpotId ?? null,
     },
     catchJournal: {
       ...base.catchJournal,

@@ -7,6 +7,7 @@ import { persistCatchCardImage } from './fishCardImages.js';
 import { addProfileCoinsEarned, awardCatchXp, syncGrandmaTrust, syncProfileDerivedStats } from './profile.js';
 import { syncCompletedSpeciesStars } from './achievementStars.js';
 import { syncQuestProgress } from './quests.js';
+import { canCatchTrophyInWater } from './waterFishDistribution.js';
 
 const trackedStatuses = ['fresh', 'cleaned', 'salted', 'drying', 'ready_taranka', 'taranka', 'smoked', 'live_bait'];
 const liveBaitSpecies = ['gudgeon', 'crucian', 'plotytsia', 'loach', 'bleak'];
@@ -438,6 +439,10 @@ function updateAllTimeBiggestFish(state, entry) {
   state.stats.biggestFishSpecies = entry.fishId;
   state.stats.biggestFishCaughtAtDay = entry.caughtAtDay ?? state.day ?? null;
   state.stats.biggestFishCaughtAtTime = entry.caughtAtTime ?? null;
+  state.stats.biggestFishWaterId = entry.waterId ?? null;
+  state.stats.biggestFishBait = entry.bait ?? null;
+  state.stats.biggestFishDepth = entry.depth ?? null;
+  state.stats.biggestFishCatchSpotId = entry.catchSpotId ?? null;
 }
 
 function minNullable(a, b) {
@@ -503,6 +508,9 @@ function updateCatchJournal(state, entry) {
 export function classifyTrophyCatch(entry, fish = getFishData(entry?.fishId)) {
   void fish;
   if (entry?.depth === 'surface') {
+    return null;
+  }
+  if (!canCatchTrophyInWater(entry?.waterId ?? 'canal', entry?.fishId)) {
     return null;
   }
   const favoriteBaits = biteProfiles[entry?.fishId]?.preferred?.baits ?? [];

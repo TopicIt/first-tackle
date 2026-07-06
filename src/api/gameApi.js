@@ -63,7 +63,8 @@ export function syncGameProfile(payload) {
 
 export async function fetchLeaderboard(type = 'biggest-fish') {
   const normalizedType = normalizeLeaderboardType(type);
-  const leaderboardType = encodeURIComponent(normalizedType);
+  const backendType = normalizedType === 'monthly-trophies' ? 'trophies' : normalizedType;
+  const leaderboardType = encodeURIComponent(backendType);
   const response = await safeGameRequest(
     `/api/leaderboard/${leaderboardType}`,
     {},

@@ -188,11 +188,12 @@ function spotListButtonMarkup(spot, selectedSpot) {
 function castSpotMarkup(spot, selectedSpot) {
   const selected = spot.id === selectedSpot ? ' is-selected' : '';
   const disabled = spot.allowed ? '' : ' is-disabled';
+  const scale = getSpotPerspectiveScale(spot, spot.target);
   return `
     <button
       class="cast-spot${selected}${disabled}"
       data-action="spot:${spot.id}"
-      style="--spot-x:${spot.target.x}%;--spot-y:${spot.target.y}%;--spot-scale:${spot.scale};"
+      style="--spot-x:${spot.target.x}%;--spot-y:${spot.target.y}%;--spot-scale:${scale};"
       data-selected-label="${t(spot.labelKey)}"
       type="button"
       title="${spot.reasonKey ? t(spot.reasonKey) : t(spot.labelKey)}"
@@ -316,7 +317,8 @@ function bobberStyle(minigame) {
   }
 
   const target = minigame.castTarget ?? { x: 18, y: 68 };
-  const scale = minigame.selectedSpot ? getCastSpot(minigame.selectedSpot).scale : getZoneScale(minigame.selectedZone);
+  const spot = minigame.selectedSpot ? getCastSpot(minigame.selectedSpot) : null;
+  const scale = spot ? getSpotPerspectiveScale(spot, target) : getZoneScale(minigame.selectedZone);
   return `--bobber-x:${target.x}%;--bobber-y:${target.y}%;--bobber-scale:${scale};--ripple-scale:${scale};`;
 }
 
@@ -334,6 +336,13 @@ function getZoneScale(zone) {
   }
 
   return 1;
+}
+
+function getSpotPerspectiveScale(spot, target = spot?.target) {
+  const y = Number(target?.y ?? spot?.target?.y ?? 52);
+  const depthScale = 0.72 + Math.max(0, Math.min(1, (y - 30) / 40)) * 0.5;
+  const tunedScale = Number(spot?.scale ?? 1);
+  return Number(Math.max(0.68, Math.min(1.22, (depthScale * 0.72) + (tunedScale * 0.28))).toFixed(2));
 }
 
 function canStrike(minigame) {

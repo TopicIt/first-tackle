@@ -8,7 +8,7 @@ export function cloudSavePanelMarkup(state) {
   return `
     <section class="settings-block cloud-save-panel">
       <p class="section-label">Хмарне збереження</p>
-      <p class="cloud-save-panel__note">Гість зберігає прогрес на цьому пристрої. Після входу синхронізація з хмарою стає основним способом збереження, а локальний кеш лишається резервом.</p>
+      <p class="cloud-save-panel__note">Гість зберігає прогрес на цьому пристрої. Після входу хмара синхронізує прогрес і лишає локальний кеш резервом.</p>
       ${model.loggedIn
         ? loggedInMarkup(model.profile, model.metadata, model.message, model.busy)
         : loggedOutMarkup(model.message, model.busy)}
@@ -37,7 +37,7 @@ export function cloudSaveShortcutMarkup(state) {
 
 export function cloudSaveMenuMarkup(state) {
   const model = getCloudSaveModel(state);
-  const expanded = model.busy || !model.loggedIn || Boolean(model.message);
+  const expanded = model.busy || Boolean(model.message);
   const revisionText = isLayoutDebugEnabled() ? ` · Ревізія: ${model.playerState.revision ?? 0}` : '';
   const primaryStatus = model.busy
     ? 'Синхронізація...'
@@ -97,7 +97,7 @@ export function cloudSaveStartupMarkup(state) {
               compact: true,
               displayName: playerName,
               displayNameFromProfile: true,
-              note: 'Реєстрація використає ім’я профілю вище. Якщо вже маєш акаунт, увійди та завантаж хмарний сейв перед локальним стартом.',
+              note: 'Реєстрація використає імʼя профілю вище. Якщо акаунт уже є, увійдіть і завантажте хмарний сейв перед локальним стартом.',
             })}
       </div>
     </details>
@@ -113,7 +113,7 @@ export function cloudSaveHintMarkup(state) {
     <aside class="cloud-save-hint" aria-label="Хмарне збереження">
       <div>
         <strong>Хмарне збереження доступне</strong>
-        <span>Грати можна і без входу. Акаунт додає синхронізацію та безпечне хмарне автозбереження.</span>
+        <span>Грати можна і без входу. Акаунт додає синхронізацію та безпечніше хмарне автозбереження.</span>
       </div>
       <div class="cloud-save-hint__actions">
         <button data-action="cloud:open" type="button">Відкрити</button>
@@ -170,7 +170,7 @@ function loggedOutMarkup(message, isBusy, options = {}) {
         <input name="displayName" type="hidden" value="${escapeHtml(displayNameValue)}" data-cloud-profile-name />
       ` : `
         <label>
-          <span>Ім'я для реєстрації</span>
+          <span>Імʼя для реєстрації</span>
           <input name="displayName" type="text" autocomplete="name" maxlength="80" />
         </label>
       `}
@@ -180,7 +180,7 @@ function loggedOutMarkup(message, isBusy, options = {}) {
       </div>
     </form>
     ${note ? `<p class="cloud-save-panel__note">${escapeHtml(note)}</p>` : ''}
-    ${displayNameFromProfile && displayNameValue ? `<p class="cloud-save-panel__note">Ім'я акаунта: <strong>${escapeHtml(displayNameValue)}</strong></p>` : ''}
+    ${displayNameFromProfile && displayNameValue ? `<p class="cloud-save-panel__note">Імʼя акаунта: <strong>${escapeHtml(displayNameValue)}</strong></p>` : ''}
     ${messageMarkup(message)}
   `;
 }

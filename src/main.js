@@ -84,11 +84,12 @@ import { getLanguage, t, toggleLanguage } from './i18n/i18n.js';
 import { assetPath } from './utils/assetPath.js';
 import { getWorldMapAsset } from './utils/worldMapAsset.js';
 import { ApiError, loadCloudSession, saveCloudSession } from './api/client.js';
-import { getProfile, login, logout, register } from './api/authApi.js';
+import { getProfile, login, logout, register, updateProfileOnServer } from './api/authApi.js';
 import { loadSave as loadCloudSave, syncSave as syncCloudSave } from './api/saveApi.js';
 import { fetchLeaderboard } from './api/gameApi.js';
 import { primeCatalogCache } from './api/catalogApi.js';
 import { syncPlayerStateFromGameState } from './game/playerState.js';
+import { getLocalLeaderboard } from './game/leaderboards.js';
 
 const canvas = document.querySelector('#game');
 const hudRoot = document.querySelector('#hud');
@@ -160,6 +161,7 @@ const hud = createHud(hudRoot, {
     if (actionId.startsWith('profile:avatar:')) {
       selectAvatar(gameState, actionId.replace('profile:avatar:', ''));
       syncPlayerStateFromGameState(gameState, { incrementRevision: true, reason: 'profile-avatar-selected' });
+      syncCloudProfileFromGameState('profile-avatar-selected');
       renderHud();
       return;
     }
@@ -167,6 +169,7 @@ const hud = createHud(hudRoot, {
     if (actionId.startsWith('profile:star:')) {
       selectProfileStar(gameState, actionId.replace('profile:star:', ''));
       syncPlayerStateFromGameState(gameState, { incrementRevision: true, reason: 'profile-star-selected' });
+      syncCloudProfileFromGameState('profile-star-selected');
       renderHud();
       return;
     }
@@ -530,6 +533,42 @@ const hud = createHud(hudRoot, {
       };
       gameState.audioQueue.push('ui_click');
       loadLeaderboardRecords(type);
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'leaderboard:refresh') {
+      refreshLeaderboardAndMaybeSync();
+      return;
+    }
+
+    if (actionId.startsWith('leaderboard:toggleSpecies:')) {
+      const fishId = actionId.replace('leaderboard:toggleSpecies:', '');
+      gameState.ui.expandedLeaderboardSpecies = {
+        ...(gameState.ui.expandedLeaderboardSpecies ?? {}),
+        [fishId]: !gameState.ui.expandedLeaderboardSpecies?.[fishId],
+      };
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId === 'leaderboard:profile:close') {
+      gameState.ui.publicProfile = null;
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('leaderboard:profile:')) {
+      const index = Number(actionId.replace('leaderboard:profile:', ''));
+      const type = gameState.ui?.leaderboards?.type ?? 'biggest-fish';
+      const records = gameState.ui?.leaderboards?.records?.length
+        ? gameState.ui.leaderboards.records
+        : getLocalLeaderboard(type, gameState);
+      const record = records?.[index];
+      gameState.ui.publicProfile = record ? { record } : null;
+      gameState.audioQueue.push('ui_click');
       renderHud();
       return;
     }
@@ -1001,6 +1040,7 @@ const hud = createHud(hudRoot, {
       nameCustom: true,
     });
     syncPlayerStateFromGameState(gameState, { incrementRevision: true, reason: 'profile-updated' });
+    syncCloudProfileFromGameState('profile-updated');
     gameState.ui.editingProfile = false;
     advanceStartupAfterProfile();
     renderHud();
@@ -1008,6 +1048,7 @@ const hud = createHud(hudRoot, {
   onProfilePhotoUpload(dataUrl) {
     setCustomAvatar(gameState, dataUrl);
     syncPlayerStateFromGameState(gameState, { incrementRevision: true, reason: 'profile-avatar-uploaded' });
+    syncCloudProfileFromGameState('profile-avatar-uploaded');
     gameState.ui.editingProfile = true;
     renderHud();
   },
@@ -1137,21 +1178,22 @@ function hasOpenMenuOverlay(state) {
 
 async function loadLeaderboardRecords(type = 'biggest-fish') {
   gameState.ui ??= {};
+  const normalizedType = type === 'trophies' ? 'monthly-trophies' : type;
   gameState.ui.leaderboards = {
     ...(gameState.ui.leaderboards ?? {}),
-    type,
+    type: normalizedType,
     busy: true,
   };
   renderHud();
 
-  const response = await fetchLeaderboard(type);
+  const response = await fetchLeaderboard(normalizedType);
   const records = response?.result?.records ?? response?.result?.items ?? response?.result?.rows ?? [];
   if (response?.fallback && import.meta.env?.DEV) {
     console.warn('Leaderboard backend unavailable; using local-only fallback.', response.error ?? null);
   }
   gameState.ui.leaderboards = {
     ...(gameState.ui.leaderboards ?? {}),
-    type,
+    type: normalizedType,
     busy: false,
     records,
     source: response?.fallback
@@ -1164,6 +1206,80 @@ async function loadLeaderboardRecords(type = 'biggest-fish') {
       : '',
   };
   renderHud();
+}
+
+async function refreshLeaderboardAndMaybeSync() {
+  const type = gameState.ui?.leaderboards?.type ?? 'biggest-fish';
+  const session = loadCloudSession();
+
+  if (!session?.accessToken) {
+    gameState.ui.leaderboards = {
+      ...(gameState.ui.leaderboards ?? {}),
+      message: 'Увійдіть у хмару, щоб синхронізувати серверну таблицю. Локальні рекорди оновлено.',
+    };
+    await loadLeaderboardRecords(type);
+    return;
+  }
+
+  setCloudBusy(true, 'Оновлюємо таблицю лідерів...');
+  gameState.ui.leaderboards = {
+    ...(gameState.ui.leaderboards ?? {}),
+    busy: true,
+    message: 'Синхронізуємо профіль і сейв перед оновленням таблиці.',
+  };
+  renderHud();
+
+  try {
+    await syncCloudProfileFromGameState('leaderboard-refresh', { silent: true });
+    const result = await syncCurrentSaveToCloud();
+    saveCloudSession({
+      ...(loadCloudSession() ?? {}),
+      saveMetadata: result.metadata,
+      lastMessage: 'Таблицю лідерів оновлено',
+    });
+    lastCloudAutosaveSignature = getCloudSaveSignature();
+    setCloudBusy(false, 'Таблицю лідерів оновлено');
+  } catch (error) {
+    setCloudBusy(false, cloudErrorMessage(error));
+  }
+
+  await loadLeaderboardRecords(type);
+}
+
+async function syncCloudProfileFromGameState(reason = 'profile-sync', options = {}) {
+  const session = loadCloudSession();
+  if (!session?.accessToken) {
+    return null;
+  }
+
+  try {
+    const profile = await updateProfileOnServer({
+      displayName: gameState.playerProfile?.name,
+      avatarId: gameState.playerProfile?.avatarId ?? gameState.playerProfile?.avatar,
+      avatarCustomUrl: gameState.playerProfile?.avatarType === 'custom'
+        ? gameState.playerProfile?.customAvatarDataUrl
+        : null,
+      selectedStarId: gameState.playerProfile?.selectedStarId ?? null,
+    });
+    saveCloudSession({
+      ...(loadCloudSession() ?? {}),
+      profile,
+      lastMessage: options.silent ? loadCloudSession()?.lastMessage : 'Профіль синхронізовано',
+    });
+    if (!options.silent) {
+      queueCloudAutosave({ immediate: true });
+    }
+    return profile;
+  } catch (error) {
+    if (!options.silent) {
+      setCloudBusy(false, cloudErrorMessage(error));
+      renderHud();
+    }
+    if (import.meta.env?.DEV) {
+      console.warn(`Could not sync cloud profile after ${reason}.`, error);
+    }
+    return null;
+  }
 }
 
 function dismissStartupTitle() {
@@ -1258,7 +1374,7 @@ function applyPerformanceSettings(state) {
 function startLocationTransition(sceneId) {
   gameState.ui.transitionVisits ??= {};
   const transition = getLocationTransition(sceneId, gameState);
-  if (!transition || !shouldUseLocationTransitions(gameState)) {
+  if (!transition || !shouldUseLocationTransitions(gameState, transition)) {
     return false;
   }
 

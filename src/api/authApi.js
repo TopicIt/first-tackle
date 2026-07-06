@@ -46,6 +46,15 @@ export async function getProfile() {
   return profile;
 }
 
+export async function updateProfileOnServer(payload = {}) {
+  const profile = await apiRequest('/profile/me', {
+    method: 'PATCH',
+    body: payload,
+  });
+  updateCloudSessionProfile(profile);
+  return profile;
+}
+
 export function logout() {
   clearCloudSession();
 }
