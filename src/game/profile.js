@@ -38,16 +38,33 @@ export const tutorialSteps = [
     actionId: 'drawer:complete',
   },
   {
-    id: 'canal',
-    labelKey: 'tutorialStepGoCanal',
-    placeKey: 'tutorialPlaceGoCanal',
-    actionId: 'open:canal',
+    id: 'firstFish',
+    labelKey: 'tutorialStepFirstFish',
+    placeKey: 'tutorialPlaceFirstFish',
+    actionIds: ['minigame:keep', 'minigame:openKeepnet'],
   },
   {
-    id: 'firstTrophy',
-    labelKey: 'questFirstTrophyTitle',
-    placeKey: 'questFirstTrophyDesc',
-    actionId: 'minigame:start:active',
+    id: 'exitToMap',
+    labelKey: 'tutorialStepExitToMap',
+    placeKey: 'tutorialPlaceExitToMap',
+    actionId: 'minigame:menu',
+  },
+  {
+    id: 'openMarket',
+    labelKey: 'tutorialStepOpenMarket',
+    placeKey: 'tutorialPlaceOpenMarket',
+    actionId: 'open:market',
+  },
+  {
+    id: 'sellFish',
+    labelKey: 'tutorialStepSellFish',
+    placeKey: 'tutorialPlaceSellFish',
+    actionPrefix: 'sell:',
+  },
+  {
+    id: 'final',
+    labelKey: 'tutorialStepFinal',
+    finalTextKey: 'tutorialFinalText',
   },
 ];
 
@@ -281,12 +298,28 @@ export function advanceTutorialForAction(state, actionId) {
   }
 
   const step = tutorialSteps[tutorial.step ?? 0];
-  if (!step || step.actionId !== actionId) {
+  if (!matchesTutorialAction(step, actionId)) {
     return false;
   }
 
   completeTutorialStep(state);
   return true;
+}
+
+function matchesTutorialAction(step, actionId) {
+  if (!step) {
+    return false;
+  }
+
+  if (step.actionId === actionId) {
+    return true;
+  }
+
+  if (Array.isArray(step.actionIds) && step.actionIds.includes(actionId)) {
+    return true;
+  }
+
+  return Boolean(step.actionPrefix && String(actionId).startsWith(step.actionPrefix));
 }
 
 export function skipTutorial(state) {

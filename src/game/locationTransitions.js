@@ -82,6 +82,7 @@ export const locationTransitions = {
 
 export const ANIMATION_PLAY_LIMIT = 5;
 export const INTRO_VIDEO_ANIMATION_ID = 'introVideo';
+const MOBILE_FIRST_TRANSITION_SEEN_KEY = 'first-tackle-mobile-transition-seen-v1';
 
 export function normalizeAnimationLimits(state) {
   state.settings ??= {};
@@ -101,7 +102,10 @@ export function canPlayLimitedAnimation(state, animation) {
   if (!animationId) {
     return true;
   }
-  if (state?.settings?.transitions?.enabled === false || state?.settings?.performance?.lowPower) {
+  if (state?.settings?.transitions?.enabled === false) {
+    return false;
+  }
+  if (state?.settings?.performance?.lowPower && !shouldAllowFirstMobileTransition(state)) {
     return false;
   }
   normalizeAnimationLimits(state);
@@ -116,6 +120,7 @@ export function recordLimitedAnimationPlay(state, animation) {
   normalizeAnimationLimits(state);
   const nextCount = (state.settings.animationLimits.counts[animationId] ?? 0) + 1;
   state.settings.animationLimits.counts[animationId] = nextCount;
+  markFirstMobileTransitionSeen(state);
   return nextCount;
 }
 
@@ -195,5 +200,46 @@ export function markLocationTransitionVisit(state, transition) {
 }
 
 export function shouldUseLocationTransitions(state) {
-  return state.settings?.transitions?.enabled !== false && !state.settings?.performance?.lowPower;
+  return state.settings?.transitions?.enabled !== false
+    && (!state.settings?.performance?.lowPower || shouldAllowFirstMobileTransition(state));
+}
+
+function shouldAllowFirstMobileTransition(state) {
+  return isMobileOrTouch(state) && !hasSeenFirstMobileTransition();
+}
+
+function isMobileOrTouch(state) {
+  if (state?.ui?.resolvedViewMode === 'mobile') {
+    return true;
+  }
+
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return Boolean(
+    window.matchMedia?.('(pointer: coarse)').matches
+      || window.matchMedia?.('(hover: none)').matches
+      || navigator.maxTouchPoints > 0,
+  );
+}
+
+function hasSeenFirstMobileTransition() {
+  try {
+    return localStorage.getItem(MOBILE_FIRST_TRANSITION_SEEN_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function markFirstMobileTransitionSeen(state) {
+  if (!isMobileOrTouch(state)) {
+    return;
+  }
+
+  try {
+    localStorage.setItem(MOBILE_FIRST_TRANSITION_SEEN_KEY, 'true');
+  } catch {
+    // Storage can be unavailable in private or embedded contexts.
+  }
 }
