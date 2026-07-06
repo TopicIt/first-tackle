@@ -127,6 +127,7 @@ const audio = createAudioManager(gameState.settings.audio);
 let spaceIsDown = false;
 let fishingActionLockedUntil = 0;
 let lastHudRenderAt = 0;
+let lastFrameWorkAt = 0;
 let rememberedMarketScrollTop = 0;
 let lastAutosaveAt = 0;
 let lastAutosaveSignature = '';
@@ -140,6 +141,8 @@ let lastCloudAutosaveStartedAt = 0;
 const CLOUD_SAVE_HINT_DISMISSED_KEY = 'first-tackle-cloud-save-hint-dismissed-v1';
 const CLOUD_AUTOSAVE_DELAY_MS = 45000;
 const CLOUD_AUTOSAVE_MIN_INTERVAL_MS = 90000;
+const MOBILE_CLOUD_AUTOSAVE_DELAY_MS = 120000;
+const MOBILE_CLOUD_AUTOSAVE_MIN_INTERVAL_MS = 180000;
 
 queueCatalogWarmup();
 
@@ -652,6 +655,7 @@ const hud = createHud(hudRoot, {
       gameState.settings.performance = {
         ...(gameState.settings.performance ?? {}),
         lowPower: !gameState.settings.performance?.lowPower,
+        lowPowerExplicit: true,
       };
       applyPerformanceSettings(gameState);
       gameState.audioQueue.push('ui_click');
@@ -1142,7 +1146,11 @@ async function loadLeaderboardRecords(type = 'biggest-fish') {
     type,
     busy: false,
     records,
-    source: response?.fallback ? 'local-fallback' : response?.result?.source ?? 'server',
+    source: response?.fallback
+      ? 'local-fallback'
+      : String(response?.result?.source ?? 'server').startsWith('server')
+        ? 'server'
+        : response?.result?.source ?? 'server',
     message: response?.fallback
       ? response?.result?.message ?? response?.error?.message ?? 'Leaderboard server unavailable; showing local records.'
       : '',
@@ -1204,20 +1212,39 @@ function normalizeTransitionSettings(state) {
   }
 }
 
+function isMobileLowPowerTarget() {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  const narrow = window.matchMedia?.('(max-width: 820px)').matches ?? window.innerWidth <= 820;
+  const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+  const touchCapable = navigator.maxTouchPoints > 0;
+  return narrow || (coarsePointer && touchCapable);
+}
+
 function normalizePerformanceSettings(state) {
   state.settings ??= {};
-  const savedLowPower = state.settings.performance?.lowPower;
+  const savedPerformance = state.settings.performance ?? {};
+  const savedLowPower = savedPerformance.lowPower;
+  const lowPowerExplicit = savedPerformance.lowPowerExplicit === true;
+  const shouldDefaultLowPower = isMobileLowPowerTarget()
+    || (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
   state.settings.performance = {
-    ...(state.settings.performance ?? {}),
-    lowPower: typeof savedLowPower === 'boolean'
+    ...savedPerformance,
+    lowPower: lowPowerExplicit && typeof savedLowPower === 'boolean'
       ? savedLowPower
-      : window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
+      : shouldDefaultLowPower,
+    lowPowerExplicit,
   };
 }
 
 function applyPerformanceSettings(state) {
   normalizePerformanceSettings(state);
-  document.documentElement.classList.toggle('low-power-mode', Boolean(state.settings.performance.lowPower));
+  const root = document.documentElement;
+  root.classList.toggle('low-power-mode', Boolean(state.settings.performance.lowPower));
+  root.classList.toggle('mobile-low-power-target', isMobileLowPowerTarget());
+  root.classList.toggle('menu-overlay-open', hasOpenMenuOverlay(state));
 }
 
 function startLocationTransition(sceneId) {
@@ -1295,6 +1322,7 @@ function lockedLogKey(waterId) {
 }
 
 function renderHud() {
+  applyPerformanceSettings(gameState);
   syncQuestProgress(gameState);
   ensureCafeOrders(gameState);
   syncProfileDerivedStats(gameState);
@@ -1756,8 +1784,11 @@ function queueCloudAutosave({ immediate = false } = {}) {
   }
 
   const now = performance.now();
-  const waitForInterval = Math.max(0, CLOUD_AUTOSAVE_MIN_INTERVAL_MS - (now - lastCloudAutosaveStartedAt));
-  const delay = immediate ? waitForInterval : Math.max(CLOUD_AUTOSAVE_DELAY_MS, waitForInterval);
+  const conservativeAutosave = isMobileLowPowerTarget() || gameState.settings?.performance?.lowPower;
+  const autosaveDelay = conservativeAutosave ? MOBILE_CLOUD_AUTOSAVE_DELAY_MS : CLOUD_AUTOSAVE_DELAY_MS;
+  const autosaveMinInterval = conservativeAutosave ? MOBILE_CLOUD_AUTOSAVE_MIN_INTERVAL_MS : CLOUD_AUTOSAVE_MIN_INTERVAL_MS;
+  const waitForInterval = Math.max(0, autosaveMinInterval - (now - lastCloudAutosaveStartedAt));
+  const delay = immediate ? waitForInterval : Math.max(autosaveDelay, waitForInterval);
 
   if (cloudAutosaveTimer) {
     window.clearTimeout(cloudAutosaveTimer);
@@ -1927,13 +1958,66 @@ window.addEventListener('keyup', (event) => {
 resize();
 renderHud();
 
-function animate() {
+function getFrameWorkIntervalMs(state) {
+  const lowPower = Boolean(state.settings?.performance?.lowPower);
+  const mobileTarget = isMobileLowPowerTarget();
+  const menuOverlayOpen = hasOpenMenuOverlay(state);
+  const minigame = state.ui?.fishingMinigame;
+
+  if (document.hidden) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  if (menuOverlayOpen && (lowPower || mobileTarget)) {
+    return 500;
+  }
+
+  if (minigame?.open) {
+    if (['strike_window', 'animating'].includes(minigame.phase)) {
+      return lowPower || mobileTarget ? 38 : 16;
+    }
+    if (['cast', 'waiting'].includes(minigame.phase)) {
+      return lowPower || mobileTarget ? 160 : 80;
+    }
+    return lowPower || mobileTarget ? 240 : 120;
+  }
+
+  if (state.ui?.activeScene) {
+    return lowPower || mobileTarget ? 500 : 250;
+  }
+
+  return lowPower || mobileTarget ? 180 : 16;
+}
+
+function getHudRenderIntervalMs(state) {
+  const lowPower = Boolean(state.settings?.performance?.lowPower);
+  const mobileTarget = isMobileLowPowerTarget();
+  const minigame = state.ui?.fishingMinigame;
+
+  if (minigame?.open) {
+    return lowPower || mobileTarget ? 240 : 120;
+  }
+
+  if (state.ui?.activeScene) {
+    return lowPower || mobileTarget ? 900 : 500;
+  }
+
+  return lowPower || mobileTarget ? 360 : 180;
+}
+
+function animate(nowMs = performance.now()) {
   requestAnimationFrame(animate);
 
   if (document.hidden) {
     clock.getDelta();
     return;
   }
+
+  const frameWorkIntervalMs = getFrameWorkIntervalMs(gameState);
+  if (nowMs - lastFrameWorkAt < frameWorkIntervalMs) {
+    return;
+  }
+  lastFrameWorkAt = nowMs;
 
   const delta = Math.min(clock.getDelta(), 0.05);
   const minigameOpen = Boolean(gameState.ui?.fishingMinigame?.open);
@@ -1950,7 +2034,7 @@ function animate() {
   gameState.settings.audio.musicTrackId = audio.getCurrentTrackId();
   syncPlayerToState();
   const now = performance.now();
-  const renderEveryMs = minigameOpen ? 120 : activeSceneOpen ? 500 : 180;
+  const renderEveryMs = getHudRenderIntervalMs(gameState);
   if (now - lastHudRenderAt >= renderEveryMs) {
     lastHudRenderAt = now;
     renderHud();

@@ -44,6 +44,8 @@ export function createFishingMinigameState(method) {
     castTarget: null,
     castAreaTarget: null,
     consumedBait: null,
+    baitConsumptionCommitted: false,
+    pendingLiveBaitEntryId: null,
     currentCatchEntryId: null,
     debugFishChance: null,
     idleEventAt: 0,
@@ -206,12 +208,18 @@ export function castLine(state, nowMs) {
     return;
   }
 
-  if (!consumeBait(state, minigame.selectedBait)) {
+  if (!hasBaitAvailable(state, minigame.selectedBait)) {
     minigame.statusKey = 'logNeedBait';
     return;
   }
 
   minigame.consumedBait = minigame.selectedBait;
+  minigame.baitConsumptionCommitted = false;
+  minigame.pendingLiveBaitEntryId = minigame.selectedBait === 'live_bait'
+    ? getFishEntries(state, 'live_bait')[0]?.id ?? null
+    : null;
+  minigame.consumedLiveBaitSourceFishId = null;
+  minigame.consumedLiveBaitQuality = null;
   advanceTime(state, 35);
   minigame.phase = 'cast';
   minigame.bobberState = 'cast';
@@ -476,6 +484,10 @@ export function castAgain(state) {
   minigame.strikeWindowEndAt = 0;
   minigame.currentCatchEntryId = null;
   minigame.consumedBait = null;
+  minigame.baitConsumptionCommitted = false;
+  minigame.pendingLiveBaitEntryId = null;
+  minigame.consumedLiveBaitSourceFishId = null;
+  minigame.consumedLiveBaitQuality = null;
   minigame.debugFishChance = null;
   state.ui.collapsedPanels = {
     ...(state.ui.collapsedPanels ?? {}),
@@ -511,6 +523,11 @@ export function recastLine(state) {
   minigame.nextStepAt = 0;
   minigame.strikeWindowStartAt = 0;
   minigame.strikeWindowEndAt = 0;
+  minigame.consumedBait = null;
+  minigame.baitConsumptionCommitted = false;
+  minigame.pendingLiveBaitEntryId = null;
+  minigame.consumedLiveBaitSourceFishId = null;
+  minigame.consumedLiveBaitQuality = null;
   minigame.debugFishChance = null;
   state.ui.collapsedPanels = {
     ...(state.ui.collapsedPanels ?? {}),
@@ -862,6 +879,10 @@ function resolveMinigameResult(state, result) {
   minigame.statusKey = result.statusKey;
   queueSound(state, result.sound);
 
+  if (shouldCommitBaitForOutcome(result.outcome)) {
+    commitPendingBait(state, minigame);
+  }
+
   if (result.outcome === 'caught' && result.catchResult) {
     if ((state.stats?.totalFishCaught ?? 0) === 1) {
       pushLog(state, 'logFirstCatch');
@@ -940,7 +961,47 @@ function tickRareInsect(state, minigame, nowMs) {
   queueSound(state, 'insect_buzz');
 }
 
-function consumeBait(state, baitId) {
+function hasBaitAvailable(state, baitId) {
+  if (baitId === 'small_worms') {
+    return countItem(state, 'smallWorms') > 0;
+  }
+
+  if (['worms', 'larvae', 'bread', 'mastyrka', 'corn', 'dough', 'nightcrawler'].includes(baitId)) {
+    return countItem(state, baitId) > 0;
+  }
+
+  if (baitId === 'live_bait') {
+    return getFishEntries(state, 'live_bait').length > 0;
+  }
+
+  return false;
+}
+
+function shouldCommitBaitForOutcome(outcome) {
+  return [
+    'caught',
+    'line_broke',
+    'rod_broke',
+    'escaped',
+    'hook_lost',
+    'bait_stolen',
+    'too_late',
+  ].includes(outcome);
+}
+
+function commitPendingBait(state, minigame) {
+  if (!minigame?.consumedBait || minigame.baitConsumptionCommitted) {
+    return true;
+  }
+
+  const committed = consumeBait(state, minigame.consumedBait, {
+    liveBaitEntryId: minigame.pendingLiveBaitEntryId,
+  });
+  minigame.baitConsumptionCommitted = committed;
+  return committed;
+}
+
+function consumeBait(state, baitId, options = {}) {
   if (baitId === 'small_worms') {
     return removeItem(state, 'smallWorms', 1);
   }
@@ -950,7 +1011,9 @@ function consumeBait(state, baitId) {
   }
 
   if (baitId === 'live_bait') {
-    const liveBait = getFishEntries(state, 'live_bait')[0];
+    const liveBait = getFishEntries(state, 'live_bait')
+      .find((entry) => entry.id === options.liveBaitEntryId)
+      ?? getFishEntries(state, 'live_bait')[0];
     if (!liveBait) {
       return false;
     }

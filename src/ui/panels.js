@@ -41,6 +41,9 @@ import {
   renderItemDetails,
 } from './itemRenderers.js';
 
+const specialGuideFishIds = ['loach', 'pike', 'canadian_catfish', 'sudak', 'som', 'eel', 'carp', 'grass_carp', 'silver_carp'];
+const predatorGuideFishIds = ['pike', 'sudak', 'som', 'eel'];
+
 const inventoryOrder = [
   'thread',
   'simpleHook',
@@ -1038,11 +1041,16 @@ function leaderboardEmptyMarkup() {
 }
 
 function leaderboardRecordMarkup(record, index, type) {
-  const title = type === 'coins'
+  const scoreOnlyRecord = !record.fishId && (record.trophies != null || record.totalFishCaught != null);
+  const title = type === 'coins' || scoreOnlyRecord
     ? escapeHtml(record.playerName)
     : `${escapeHtml(record.playerName)} - ${t(record.fishName ?? record.fishId ?? 'fishCrucian')}`;
   const detail = type === 'coins'
     ? `${record.coins ?? 0} монет · ${escapeHtml(record.locationName ?? 'Всі водойми')}`
+    : type === 'trophies' && record.trophies != null
+      ? `${record.trophies} трофеїв · ${escapeHtml(record.locationName ?? 'Всі водойми')}`
+      : type === 'total-fish' && record.totalFishCaught != null
+        ? `${record.totalFishCaught} риб · ${escapeHtml(record.locationName ?? 'Всі водойми')}`
     : `${Number(record.weightKg ?? 0).toFixed(2)} кг · ${escapeHtml(record.locationName ?? 'Невідомо')} · ${escapeHtml(record.baitName ?? 'Без наживки')}`;
   const playerStats = [
     record.level ? `рівень ${record.level}` : '',
@@ -1055,7 +1063,7 @@ function leaderboardRecordMarkup(record, index, type) {
       <div class="leaderboard-record__body">
         <strong>${title}</strong>
         <span>${detail}</span>
-        <small>${escapeHtml(record.tackleSummary ?? '')}${playerStats ? ` · ${escapeHtml(playerStats)}` : ''}${record.caughtAt ? ` · ${escapeHtml(record.caughtAt)}` : ''}${record.verified ? ' · server' : ' · local'}</small>
+        <small>${escapeHtml(record.tackleSummary ?? '')}${playerStats ? ` · ${escapeHtml(playerStats)}` : ''}${record.caughtAt ? ` · ${escapeHtml(record.caughtAt)}` : ''}${record.verified ? ' · server' : record.serverBacked || String(record.source ?? '').startsWith('server') ? ' · server, unverified' : ' · local'}</small>
       </div>
     </article>
   `;
@@ -1205,12 +1213,12 @@ function fishGuideDetailMarkup(entry, discovered) {
       <div class="guide-fish-detail__grid">
         ${guideInfoBlockMarkup('whereItLives', [
           guideChipGroupMarkup(fishWaterChips(entry.fishId), 'guide-chip--water'),
-          guideChipGroupMarkup(habitatChips(entry.livesKey), 'guide-chip--habitat'),
+          fishRealCastSpotMarkup(entry.fishId),
+          canadianCatfishAliasMarkup(entry.fishId),
         ].join(''))}
         ${guideInfoBlockMarkup('bestTime', guideChipGroupMarkup(timeChips(entry.timeKey), 'guide-chip--time'))}
         ${guideInfoBlockMarkup('preferredBait', guideBaitChipsMarkup(entry.fishId, true))}
         ${guideInfoBlockMarkup('weakerBaits', guideBaitChipsMarkup(entry.fishId, false))}
-        ${guideInfoBlockMarkup('depthPreference', depthPreferenceDetailMarkup(entry.fishId))}
         ${guideInfoBlockMarkup('trophyThresholds', thresholdRowsMarkup(entry.fishId), 'guide-fish-detail__block--trophies')}
       </div>
     </div>
@@ -1240,7 +1248,6 @@ function watersGuideAccordionMarkup(state) {
             <div><dt>${t('bestTime')}</dt><dd>${t(water.bestTimeKey)}</dd></div>
             <div><dt>${t('tackle')}</dt><dd>${t(water.tackleKey)}</dd></div>
             <div><dt>${t('preferredBait')}</dt><dd>${t(water.baitKey)}</dd></div>
-            <div><dt>${t('recommendedDepths')}</dt><dd>${waterDepthsMarkup(water.id)}</dd></div>
             <div><dt>${t('castingSpots')}</dt><dd>${waterCastSpotsMarkup(water.id)}</dd></div>
             ${unlocked ? '' : `<div><dt>${t('unlock')}</dt><dd>${t(water.unlockKey)}</dd></div>`}
           </dl>
@@ -1450,6 +1457,80 @@ function fishWaterChips(fishId) {
     .map((water) => t(water.nameKey));
 }
 
+function fishRealCastSpotMarkup(fishId) {
+  const rows = waterGuide
+    .map((water) => {
+      const spots = castSpots
+        .filter((spot) => (spot.waterId ?? 'canal') === water.id && Number(spot.weights?.[fishId] ?? 0) > 0)
+        .sort((a, b) => Number(b.weights?.[fishId] ?? 0) - Number(a.weights?.[fishId] ?? 0))
+        .map((spot) => `<span class="guide-chip guide-chip--spot">${escapeHtml(t(spot.labelKey))}</span>`)
+        .join('');
+
+      return spots
+        ? `<div class="guide-real-spot-row"><strong>${escapeHtml(t(water.nameKey))}</strong><div class="guide-chip-list">${spots}</div></div>`
+        : '';
+    })
+    .filter(Boolean)
+    .join('');
+
+  return rows
+    ? `<div class="guide-real-spot-list">${rows}</div>`
+    : `<p>${t('guideSeeWaterCastSpots')}</p>`;
+}
+
+function canadianCatfishAliasMarkup(fishId) {
+  if (fishId !== 'canadian_catfish') {
+    return '';
+  }
+
+  return `<p class="guide-alias-note">${t('guideCanadianCatfishAlias')}</p>`;
+}
+
+function castSpotFishGroups(spot) {
+  const sorted = Object.entries(spot.weights ?? {})
+    .filter(([, weight]) => Number(weight) > 0)
+    .sort((a, b) => b[1] - a[1]);
+  const maxWeight = Number(sorted[0]?.[1] ?? 0);
+  const used = new Set();
+  const special = sorted
+    .filter(([fishId, weight]) => (
+      specialGuideFishIds.includes(fishId)
+      || Number(weight) <= maxWeight * 0.42
+    ))
+    .map(([fishId]) => fishId);
+  const predators = special.filter((fishId) => predatorGuideFishIds.includes(fishId));
+  const rare = special.filter((fishId) => !predatorGuideFishIds.includes(fishId));
+  const main = sorted
+    .map(([fishId]) => fishId)
+    .filter((fishId) => !special.includes(fishId))
+    .slice(0, 5);
+
+  const groups = [
+    ['guideCastMainFish', main],
+    ['guideCastRareFish', rare],
+    ['guideCastPredatorFish', predators],
+  ].map(([labelKey, fishIds]) => {
+    const uniqueFishIds = fishIds.filter((fishId) => {
+      if (used.has(fishId)) {
+        return false;
+      }
+      used.add(fishId);
+      return true;
+    });
+    return uniqueFishIds.length ? [labelKey, uniqueFishIds] : null;
+  }).filter(Boolean);
+
+  const missing = sorted
+    .map(([fishId]) => fishId)
+    .filter((fishId) => !used.has(fishId))
+    .slice(0, 4);
+  if (missing.length) {
+    groups.push(['guideCastOtherFish', missing]);
+  }
+
+  return groups;
+}
+
 function habitatChips(livesKey) {
   const text = t(livesKey).replace(/[.!?]+$/g, '');
   return text
@@ -1605,14 +1686,25 @@ function waterCastSpotsMarkup(waterId) {
   const spots = castSpots
     .filter((spot) => (spot.waterId ?? 'canal') === waterId)
     .map((spot) => {
-      const topFish = Object.entries(spot.weights)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
-        .map(([fishId]) => t(fishData.find((fish) => fish.id === fishId)?.nameKey ?? fishId))
-        .join(', ');
-      return `${t(spot.labelKey)}${topFish ? ` (${topFish})` : ''}`;
+      const groups = castSpotFishGroups(spot)
+        .map(([labelKey, fishIds]) => `
+          <div class="guide-cast-spot__group">
+            <span>${t(labelKey)}</span>
+            <div class="guide-chip-list">
+              ${fishIds.map((fishId) => `<span class="guide-chip ${specialGuideFishIds.includes(fishId) ? 'guide-chip--rare' : ''}">${t(fishData.find((fish) => fish.id === fishId)?.nameKey ?? fishId)}</span>`).join('')}
+            </div>
+          </div>
+        `)
+        .join('');
+
+      return `
+        <article class="guide-cast-spot">
+          <strong>${t(spot.labelKey)}</strong>
+          ${groups}
+        </article>
+      `;
     });
-  return spots.length ? spots.join('; ') : t('none');
+  return spots.length ? `<div class="guide-cast-spot-list">${spots.join('')}</div>` : t('none');
 }
 
 function favoriteWaterLabel(state) {

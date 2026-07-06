@@ -2037,6 +2037,8 @@
 :root.low-power-mode .bird,
 :root.low-power-mode .dragonfly,
 :root.low-power-mode .surface-ring,
+:root.low-power-mode .fishing-stage__rings,
+:root.low-power-mode .fishing-stage__bobber--idle,
 :root.low-power-mode .reed,
 :root.low-power-mode .fishing-figure__hat,
 :root.low-power-mode .fishing-figure__body,
@@ -2050,5 +2052,23 @@
 :root.low-power-mode .dragonfly,
 :root.low-power-mode .surface-ring {
   display: none;
+}
+
+:root.low-power-mode .fishing-stage {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+:root.low-power-mode .fishing-stage__bobber--idle {
+  transform: translate(-50%, -50%) translateY(0) scale(var(--bobber-scale, 1));
+}
+
+:root.low-power-mode .fishing-stage__bobber--tiny_nibble {
+  animation-duration: 1.6s;
+}
+
+:root.low-power-mode .fishing-stage__bobber--slow_dip,
+:root.low-power-mode .fishing-stage__bobber--lift {
+  animation-duration: 2.2s;
 }
 

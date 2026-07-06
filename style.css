@@ -951,9 +951,8 @@ button:disabled {
 }
 
 .cloud-save-shortcut__actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
   gap: 6px;
 }
 
@@ -990,7 +989,10 @@ button:disabled {
 }
 
 .cloud-save-shortcut__actions button {
-  flex: 1 1 86px;
+  width: 100%;
+  min-width: 0;
+  line-height: 1.15;
+  white-space: normal;
 }
 
 .cloud-save-shortcut.is-connected {
@@ -1068,9 +1070,8 @@ button:disabled {
 
 .cloud-save-panel__endpoint {
   display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .cloud-save-panel__account {
@@ -1087,11 +1088,10 @@ button:disabled {
 }
 
 .cloud-save-panel__account span {
-  overflow: hidden;
   color: #bdd6ce;
   font-size: 0.74rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .cloud-save-panel__status {
@@ -1101,9 +1101,10 @@ button:disabled {
 }
 
 .cloud-save-panel__status div {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
   gap: 8px;
+  align-items: baseline;
   border-radius: 6px;
   background: rgb(255 255 255 / 6%);
   padding: 5px 7px;
@@ -1122,7 +1123,8 @@ button:disabled {
 
 .cloud-save-panel__status dd {
   color: #fff8df;
-  text-align: right;
+  overflow-wrap: anywhere;
+  text-align: left;
 }
 
 .profile-card {
@@ -1274,7 +1276,7 @@ button:disabled {
 }
 
 .profile-cloud-save__head {
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
 
@@ -1288,7 +1290,7 @@ button:disabled {
   color: #ffe28a;
   font-size: 0.78rem;
   overflow-wrap: anywhere;
-  text-align: right;
+  text-align: left;
 }
 
 .profile-cloud-save.is-connected .profile-cloud-save__head strong {
@@ -1303,7 +1305,7 @@ button:disabled {
 
 .profile-cloud-save__status div {
   display: grid;
-  grid-template-columns: minmax(74px, auto) minmax(0, 1fr);
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
   gap: 8px;
   align-items: baseline;
 }
@@ -1322,7 +1324,7 @@ button:disabled {
 .profile-cloud-save__status dd {
   color: #fff8df;
   overflow-wrap: anywhere;
-  text-align: right;
+  text-align: left;
 }
 
 .profile-cloud-save__actions {
@@ -1941,6 +1943,32 @@ button:disabled {
 :root.low-power-mode .startup-title,
 :root.low-power-mode .startup-flow__loader {
   animation: none !important;
+}
+
+:root.low-power-mode .glass-menu,
+:root.low-power-mode .panel,
+:root.low-power-mode .mobile-menu,
+:root.mobile-low-power-target.menu-overlay-open .glass-menu,
+:root.mobile-low-power-target.menu-overlay-open .panel,
+:root.mobile-low-power-target.menu-overlay-open .mobile-menu {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 10px 24px rgb(0 0 0 / 22%);
+}
+
+:root.low-power-mode .cloud-save-shortcut,
+:root.low-power-mode .profile-cloud-save,
+:root.low-power-mode .guide-card,
+:root.mobile-low-power-target.menu-overlay-open .cloud-save-shortcut,
+:root.mobile-low-power-target.menu-overlay-open .profile-cloud-save,
+:root.mobile-low-power-target.menu-overlay-open .guide-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: none !important;
+}
+
+:root.mobile-low-power-target.menu-overlay-open canvas {
+  filter: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3096,6 +3124,71 @@ button:disabled {
 
 .guide-chip--habitat {
   color: #dcece2;
+}
+
+.guide-chip--spot {
+  border-color: rgb(132 216 169 / 28%);
+  background: rgb(132 216 169 / 12%);
+}
+
+.guide-chip--rare {
+  border-color: rgb(255 206 112 / 34%);
+  background: rgb(255 206 112 / 15%);
+  color: #ffe28a;
+}
+
+.guide-real-spot-list,
+.guide-cast-spot-list {
+  display: grid;
+  gap: 8px;
+}
+
+.guide-real-spot-row {
+  display: grid;
+  gap: 5px;
+  border-radius: 10px;
+  background: rgb(0 0 0 / 12%);
+  padding: 7px;
+}
+
+.guide-real-spot-row strong,
+.guide-cast-spot strong {
+  color: #fff8df;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.guide-alias-note {
+  margin: 8px 0 0;
+  border-left: 3px solid #f3c45f;
+  border-radius: 6px;
+  background: rgb(243 196 95 / 10%);
+  color: #ffe28a;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  padding: 7px 8px;
+}
+
+.guide-cast-spot {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 12px;
+  background: rgb(7 14 14 / 20%);
+  padding: 9px;
+}
+
+.guide-cast-spot__group {
+  display: grid;
+  gap: 4px;
+}
+
+.guide-cast-spot__group > span {
+  color: #bdd6ce;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .guide-bait-chip {

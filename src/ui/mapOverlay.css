@@ -375,6 +375,8 @@
 :root.low-power-mode .illustrated-map__breath,
 :root.low-power-mode .illustrated-map__water,
 :root.low-power-mode .map-hotspot__area,
+:root.menu-overlay-open .illustrated-map__breath,
+:root.menu-overlay-open .illustrated-map__water,
 body:has(.mobile-menu[open]) .illustrated-map__breath,
 body:has(.mobile-menu[open]) .illustrated-map__water,
 body:has(.side-detail-panel:not(.is-collapsed)) .illustrated-map__breath,
@@ -384,6 +386,8 @@ body:has(.side-detail-panel:not(.is-collapsed)) .illustrated-map__water {
 
 :root.low-power-mode .illustrated-map__breath,
 :root.low-power-mode .illustrated-map__water,
+:root.menu-overlay-open .illustrated-map__breath,
+:root.menu-overlay-open .illustrated-map__water,
 body:has(.mobile-menu[open]) .illustrated-map__breath,
 body:has(.mobile-menu[open]) .illustrated-map__water,
 body:has(.side-detail-panel:not(.is-collapsed)) .illustrated-map__breath,
