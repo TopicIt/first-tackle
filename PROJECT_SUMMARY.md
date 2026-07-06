@@ -6,6 +6,59 @@ Updated: 2026-07-06
 
 First Tackle is a local-first browser fishing game with optional account/cloud save support. The frontend remains responsible for rendering, offline play, fishing UI, and local save continuity. The available backend source lives in `D:\first-tackle-api` and currently supports auth, profile, cloud saves, and now read-only leaderboard endpoints aggregated from latest cloud saves.
 
+## MVP 1 Usability Pass
+
+Completed on branch `codex/mvp1-usability-pass`.
+
+Feature commit: `ea03ba3` (`fix: prepare mvp1 usability pass`).
+
+Main merge commit: `5bf3568` (`merge: mvp1 usability pass`).
+
+Deployment status: pending push and GitHub Pages confirmation at the time of this summary update.
+
+Live URL: `https://topicit.github.io/first-tackle/` pending post-push verification.
+
+Completed work:
+
+- Fixed mobile Profile and Settings panels so they open as top-layer, scrollable sheets with safe-area-aware viewport height, iOS momentum scrolling, stronger z-index, and no menu-overlap positioning.
+- Reworked the starter tutorial after drawer assembly to say `Злови першу рибину`, then guide the loop through keeping the fish, exiting to the map, opening the market, selling fish, and reading the final short excursion.
+- Added the final tutorial text about selling catch, buying better gear, improving tackle, trophy learning/rewards, leaderboards, and saving progress through auth.
+- Allowed mobile/touch low-power sessions to show transition video once on first launch before the existing low-power suppression resumes for later launches.
+- Restored fish-guide depth recommendations in fish summaries and detailed depth blocks, matching current depth preferences and surface restrictions more closely.
+
+Changed files/modules:
+
+- `src/game/profile.js`: tutorial step sequence and flexible action matching.
+- `src/main.js`: tutorial advancement for keep, exit-to-map, and successful fish sale actions.
+- `src/ui/hud.js`: final tutorial rendering and tutorial action labels.
+- `src/i18n/translations.js`: new Ukrainian tutorial copy and final text.
+- `src/game/locationTransitions.js`: first mobile/touch transition exception using localStorage.
+- `src/ui/panels.js`: per-fish recommended-depth summary and clearer depth notes.
+- `style.css`: mobile panel layering, viewport height, safe-area, and scroll behavior.
+
+Verification:
+
+- `npm.cmd run build` passed on the feature worktree.
+- `npm.cmd run build` passed again after merging into `main`.
+- Module smoke check passed for tutorial order/copy and first mobile transition gating.
+- In-app browser smoke at iPhone 14-sized viewport verified Profile opens, scrolls, and closes.
+- In-app browser smoke at iPhone 14-sized viewport verified Settings opens from mobile menu, scrolls, closes, and the menu closes before the panel opens.
+- Fresh-origin mobile smoke verified first-launch intro video is visible with local video sources; autoplay remained paused in the automation browser but the transition UI/video is not hidden.
+- Fish guide smoke verified per-fish `Радимо глибину` summaries and detailed depth recommendations.
+
+Known remaining issues:
+
+- Browser automation could not fully complete the drawer minigame on the iPhone-sized viewport because the old-hook visual target was overlapped by drawer clutter in the test surface; tutorial order/copy was verified by module smoke instead.
+- Vite still warns that the main JS chunk is larger than 500 kB.
+- Existing unrelated dirty asset/package-lock changes remain in the original worktree and were not included in the MVP 1 usability commits.
+
+Recommended next tasks:
+
+- Manually test the full first-run tutorial on a real iPhone Safari device, including drawer item tapping and first fish sale.
+- Confirm the GitHub Pages deployment after pushing `main`.
+- Profile the large JS chunk and split/lazy-load non-critical UI or 3D code.
+- Revisit drawer clutter hit targets on narrow mobile screens if real-device tapping reproduces the old-hook overlap.
+
 ## This Sprint
 
 - Added an aggressive mobile low-power path: phone-like/touch/narrow viewports default to low-power unless the player explicitly toggles it off.
