@@ -1618,11 +1618,17 @@
 :root.low-power-mode .location-scene__art::before,
 :root.low-power-mode .location-scene__art::after,
 :root.low-power-mode .scene-atmosphere *,
-:root.low-power-mode .scene-feedback {
+:root.low-power-mode .scene-feedback,
+:root.menu-overlay-open .location-scene__image,
+:root.menu-overlay-open .location-scene__art::before,
+:root.menu-overlay-open .location-scene__art::after,
+:root.menu-overlay-open .scene-atmosphere *,
+:root.menu-overlay-open .scene-feedback {
   animation: none !important;
 }
 
-:root.low-power-mode .scene-atmosphere {
+:root.low-power-mode .scene-atmosphere,
+:root.menu-overlay-open .scene-atmosphere {
   display: none;
 }
 
