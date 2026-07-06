@@ -766,12 +766,14 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'minigame:keep') {
       keepCatch(gameState);
+      advanceTutorialForAction(gameState, actionId);
       renderHud();
       return;
     }
 
     if (actionId === 'minigame:openKeepnet') {
       keepCatch(gameState);
+      advanceTutorialForAction(gameState, actionId);
       gameState.ui.collapsedPanels = {
         ...(gameState.ui.collapsedPanels ?? {}),
         keepnet: false,
@@ -821,6 +823,7 @@ const hud = createHud(hudRoot, {
       gameState.ui.activeScene = null;
       closeFishingMinigame(gameState);
       keepQuestsCollapsed(gameState);
+      advanceTutorialForAction(gameState, actionId);
       renderHud();
       return;
     }
@@ -840,6 +843,7 @@ const hud = createHud(hudRoot, {
       }
     }
     const marketScrollTop = captureMarketScroll(actionId);
+    const fishBasketCountBefore = gameState.fishBasket?.length ?? 0;
     runAction(actionId, gameState, context);
     if (
       (actionId.startsWith('travel:water:') || actionId.startsWith('ticket:buy:'))
@@ -848,7 +852,11 @@ const hud = createHud(hudRoot, {
     ) {
       openFishingMinigame(gameState, getRigMethod(gameState));
     }
-    advanceTutorialForAction(gameState, actionId);
+    const soldFishForTutorial = actionId.startsWith('sell:')
+      && (gameState.fishBasket?.length ?? 0) < fishBasketCountBefore;
+    if (!actionId.startsWith('sell:') || soldFishForTutorial) {
+      advanceTutorialForAction(gameState, actionId);
+    }
     syncPlayerToState();
     renderHud();
     restoreMarketScroll(marketScrollTop, actionId);

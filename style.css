@@ -1655,6 +1655,11 @@ button:disabled {
   margin: 0;
 }
 
+.tutorial-float__final {
+  display: grid;
+  gap: 8px;
+}
+
 .tutorial-float__close {
   position: absolute;
   right: 8px;
@@ -3342,11 +3347,15 @@ button:disabled {
     bottom: 12px;
     z-index: 60;
     width: auto;
+    height: auto;
     max-height: min(92vh, calc(100vh - 84px));
     overflow: hidden;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
     padding: 12px;
     background: rgb(8 17 18 / 34%);
     backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
   }
 
   .profile-panel .panel-collapsible,
@@ -3359,7 +3368,9 @@ button:disabled {
   .settings-panel .panel-collapsible {
     min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding-bottom: max(20px, calc(20px + env(safe-area-inset-bottom)));
+    -webkit-overflow-scrolling: touch;
   }
 
   .profile-panel:not(.is-collapsed),
@@ -3370,7 +3381,8 @@ button:disabled {
   .tackle-panel:not(.is-collapsed),
   .guide-panel:not(.is-collapsed),
   .settings-panel:not(.is-collapsed) {
-    z-index: 96;
+    z-index: 320;
+    pointer-events: auto;
   }
 
   .guide-panel {
@@ -3792,11 +3804,15 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet * {
   bottom: max(8px, env(safe-area-inset-bottom));
   z-index: 60;
   width: auto;
+  height: auto;
   max-height: calc(100dvh - max(56px, calc(env(safe-area-inset-top) + 48px)) - max(8px, env(safe-area-inset-bottom)));
   overflow: hidden;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   padding: 12px;
   background: rgb(8 17 18 / 34%);
   backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
 }
 
 :root[data-view-mode="mobile"] .profile-panel .panel-collapsible,
@@ -3809,7 +3825,9 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet * {
 :root[data-view-mode="mobile"] .settings-panel .panel-collapsible {
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding-bottom: max(20px, calc(20px + env(safe-area-inset-bottom)));
+  -webkit-overflow-scrolling: touch;
 }
 
 :root[data-view-mode="mobile"] .profile-panel:not(.is-collapsed),
@@ -3820,13 +3838,14 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet * {
 :root[data-view-mode="mobile"] .tackle-panel:not(.is-collapsed),
 :root[data-view-mode="mobile"] .guide-panel:not(.is-collapsed),
 :root[data-view-mode="mobile"] .settings-panel:not(.is-collapsed) {
-  z-index: 96;
+  z-index: 320;
+  pointer-events: auto;
 }
 
 :root[data-view-mode="mobile"] .guide-panel {
-  top: 48px;
-  bottom: 12px;
-  max-height: min(92vh, calc(100vh - 60px));
+  top: max(48px, calc(env(safe-area-inset-top) + 40px));
+  bottom: max(8px, env(safe-area-inset-bottom));
+  max-height: calc(100dvh - max(48px, calc(env(safe-area-inset-top) + 40px)) - max(8px, env(safe-area-inset-bottom)));
 }
 
 :root[data-view-mode="mobile"] .market-card,
@@ -3951,13 +3970,7 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet * {
 
 @media (min-width: 560px) {
   :root[data-view-mode="mobile"] body:has(.mobile-menu[open]) .side-detail-panel:not(.is-collapsed) {
-    left: min(316px, 42vw);
-    right: 8px;
-    top: calc(max(8px, env(safe-area-inset-top)) + 52px);
-    bottom: 12px;
-    z-index: 305;
-    width: auto;
-    max-height: calc(100dvh - 72px - env(safe-area-inset-bottom));
+    z-index: 320;
   }
 }
 
@@ -3968,10 +3981,7 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet * {
   }
 
   :root[data-view-mode="mobile"] body:has(.mobile-menu[open]) .side-detail-panel:not(.is-collapsed) {
-    top: calc(max(8px, env(safe-area-inset-top)) + 314px);
-    bottom: 12px;
-    z-index: 250;
-    max-height: calc(100dvh - 328px - env(safe-area-inset-bottom));
+    z-index: 320;
   }
 }
 

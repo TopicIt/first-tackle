@@ -1093,6 +1093,7 @@ function fishGuideAccordionMarkup(state) {
           <span>
             <h3>${t(entry.nameKey)}${discovered ? '' : ` - ${t('undiscoveredFish')}`}</h3>
             <small>${t(entry.livesKey)}</small>
+            <small>${t('recommendedDepths')}: ${depthPreferenceMarkup(entry.fishId)}</small>
           </span>
           <strong class="guide-card__expand">${isOpen ? '-' : '+'}</strong>
         </button>
@@ -1373,7 +1374,7 @@ function depthPreferenceDetailMarkup(fishId) {
   const preferred = preference === 'any' ? new Set(['surface', 'middle', 'bottom']) : new Set([preference]);
   const rows = ['surface', 'middle', 'bottom'].map((depth) => {
     const label = t(`depth${toPascalCase(depth)}`);
-    const note = depthNoteForFish(fishId, depth, preferred.has(depth));
+    const note = depthGuideNoteForFish(fishId, depth, preferred.has(depth));
     return `<li class="${preferred.has(depth) ? 'is-preferred' : ''}"><strong>${label}</strong><span>${note}</span></li>`;
   }).join('');
   return `<ul class="guide-depth-list">${rows}</ul>`;
@@ -1393,6 +1394,32 @@ function depthNoteForFish(fishId, depth, preferred) {
   }
 
   return depth === 'surface' ? t('catchCategorySmall') : t('catchCategoryOrdinary');
+}
+
+function depthGuideNoteForFish(fishId, depth, preferred) {
+  const fish = fishData.find((entry) => entry.id === fishId);
+  const language = getLanguage();
+  if (fishId === 'crucian') {
+    return {
+      surface: language === 'uk' ? 'дрібна риба, трофеїв немає' : 'small fish, no trophies',
+      middle: language === 'uk' ? 'звичайний улов' : 'ordinary catch',
+      bottom: language === 'uk' ? 'кращий шанс на трофей' : 'better trophy chance',
+    }[depth];
+  }
+
+  if (depth === 'surface' && fish?.surfaceBite === false) {
+    return language === 'uk' ? 'не клює біля поверхні' : 'does not bite near the surface';
+  }
+
+  if (preferred) {
+    return language === 'uk' ? 'найкраща глибина' : 'best depth';
+  }
+
+  if (fish?.depthPreference === 'surface' && depth === 'bottom') {
+    return language === 'uk' ? 'трофейний шанс нижчий' : 'lower trophy chance';
+  }
+
+  return language === 'uk' ? 'можна ловити, але шанс нижчий' : 'can bite, but chance is lower';
 }
 
 function thresholdRowsMarkup(fishId) {

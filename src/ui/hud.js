@@ -779,6 +779,7 @@ function tutorialPromptMarkup(state) {
       ? ` style="left:${position.x}px;top:${position.y}px;right:auto;bottom:auto;transform:none;"`
       : '';
     const label = t(step.labelKey ?? 'firstTackleTutorial');
+    const finalText = step.finalTextKey ? tutorialFinalTextMarkup(step.finalTextKey) : '';
     return `
       <aside class="tutorial-float tutorial-float--helper${collapsed ? ' is-collapsed' : ''}" data-tutorial-panel${style}>
         <div class="tutorial-float__row" data-tutorial-drag>
@@ -794,8 +795,11 @@ function tutorialPromptMarkup(state) {
           </button>
         ` : `
           <h2>${label}</h2>
-          <p>${t(step.placeKey ?? 'tutorialCollectHint')}</p>
-          <small>${t('tutorialPressButton', { button: t(tutorialActionLabelKey(step.actionId)) })}</small>
+          ${finalText || `
+            <p>${t(step.placeKey ?? 'tutorialCollectHint')}</p>
+            <small>${t('tutorialPressButton', { button: t(tutorialActionLabelKey(step.actionId ?? step.actionIds?.[0] ?? step.actionPrefix)) })}</small>
+          `}
+          ${finalText ? `<button class="tutorial-float__start" data-action="tutorial:step" type="button">${t('tutorialDone')}</button>` : ''}
         `}
       </aside>
     `;
@@ -1093,6 +1097,27 @@ function tutorialActionLabelKey(actionId) {
     'drawer:open': 'drawerCollectAction',
     'drawer:complete': 'drawerSearchAction',
     'open:canal': 'openPond',
+    'minigame:keep': 'keep',
+    'minigame:openKeepnet': 'keep',
+    'minigame:menu': 'backToMap',
+    'open:market': 'openMarket',
+    'sell:': 'sellFish',
     'minigame:start:active': 'startFishingWithTackle',
   }[actionId] ?? 'collectPart';
+}
+
+function tutorialFinalTextMarkup(key) {
+  const text = t(key);
+  if (!text || text === key) {
+    return '';
+  }
+
+  const paragraphs = text
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => `<p>${escapeHtml(part)}</p>`)
+    .join('');
+
+  return `<div class="tutorial-float__final">${paragraphs}</div>`;
 }
