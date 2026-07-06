@@ -82,7 +82,7 @@ export const locationTransitions = {
 
 export const ANIMATION_PLAY_LIMIT = 5;
 export const INTRO_VIDEO_ANIMATION_ID = 'introVideo';
-const MOBILE_FIRST_TRANSITION_SEEN_KEY = 'first-tackle-mobile-transition-seen-v1';
+const MOBILE_TRANSITION_SEEN_PREFIX = 'first-tackle-mobile-transition-seen-v2:';
 
 export function normalizeAnimationLimits(state) {
   state.settings ??= {};
@@ -105,7 +105,7 @@ export function canPlayLimitedAnimation(state, animation) {
   if (state?.settings?.transitions?.enabled === false) {
     return false;
   }
-  if (state?.settings?.performance?.lowPower && !shouldAllowFirstMobileTransition(state)) {
+  if (state?.settings?.performance?.lowPower && !shouldAllowFirstMobileTransition(state, animation)) {
     return false;
   }
   normalizeAnimationLimits(state);
@@ -120,7 +120,7 @@ export function recordLimitedAnimationPlay(state, animation) {
   normalizeAnimationLimits(state);
   const nextCount = (state.settings.animationLimits.counts[animationId] ?? 0) + 1;
   state.settings.animationLimits.counts[animationId] = nextCount;
-  markFirstMobileTransitionSeen(state);
+  markMobileTransitionSeen(state, animation);
   return nextCount;
 }
 
@@ -199,13 +199,13 @@ export function markLocationTransitionVisit(state, transition) {
   };
 }
 
-export function shouldUseLocationTransitions(state) {
+export function shouldUseLocationTransitions(state, animation = null) {
   return state.settings?.transitions?.enabled !== false
-    && (!state.settings?.performance?.lowPower || shouldAllowFirstMobileTransition(state));
+    && (!state.settings?.performance?.lowPower || shouldAllowFirstMobileTransition(state, animation));
 }
 
-function shouldAllowFirstMobileTransition(state) {
-  return isMobileOrTouch(state) && !hasSeenFirstMobileTransition();
+function shouldAllowFirstMobileTransition(state, animation) {
+  return isMobileOrTouch(state) && !hasSeenMobileTransition(animation);
 }
 
 function isMobileOrTouch(state) {
@@ -224,21 +224,30 @@ function isMobileOrTouch(state) {
   );
 }
 
-function hasSeenFirstMobileTransition() {
+function hasSeenMobileTransition(animation) {
+  const animationId = getAnimationUsageId(animation);
+  if (!animationId) {
+    return false;
+  }
   try {
-    return localStorage.getItem(MOBILE_FIRST_TRANSITION_SEEN_KEY) === 'true';
+    return localStorage.getItem(`${MOBILE_TRANSITION_SEEN_PREFIX}${animationId}`) === 'true';
   } catch {
     return false;
   }
 }
 
-function markFirstMobileTransitionSeen(state) {
+function markMobileTransitionSeen(state, animation) {
   if (!isMobileOrTouch(state)) {
     return;
   }
 
+  const animationId = getAnimationUsageId(animation);
+  if (!animationId) {
+    return;
+  }
+
   try {
-    localStorage.setItem(MOBILE_FIRST_TRANSITION_SEEN_KEY, 'true');
+    localStorage.setItem(`${MOBILE_TRANSITION_SEEN_PREFIX}${animationId}`, 'true');
   } catch {
     // Storage can be unavailable in private or embedded contexts.
   }

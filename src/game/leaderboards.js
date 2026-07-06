@@ -1,46 +1,20 @@
-import { fishData } from './fishData.js';
+﻿import { DEFAULT_AVATAR, DEFAULT_PLAYER_NAME } from './state.js';
 import { getPlayerState } from './playerState.js';
 
-const MOCK_LEADERBOARDS = {
-  'biggest-fish': [
-    createFishRecord('Дмитро', 'carp', 2.4, 'fire_ponds', 'Ставки', 'Кукурудза', '2026-06-28', true),
-    createFishRecord('Олег', 'pike', 1.9, 'canal', 'Канава', 'Блешня', '2026-06-27', true),
-    createFishRecord('Марина', 'bream', 1.6, 'sluice', 'Шлюз', 'Мастирка', '2026-06-26', true),
-    createFishRecord('Іра', 'lynok', 1.4, 'greada', 'Гряда', 'Личинки', '2026-06-25', false),
-    createFishRecord('Сашко', 'som', 3.1, 'mining_lake', 'Карʼєр', 'Живець', '2026-06-24', true),
-  ],
-  trophies: [
-    createFishRecord('Дмитро', 'carp', 2.4, 'fire_ponds', 'Ставки', 'Кукурудза', '2026-06-28', true),
-    createFishRecord('Сашко', 'som', 3.1, 'mining_lake', 'Карʼєр', 'Живець', '2026-06-24', true),
-    createFishRecord('Олег', 'pike', 1.9, 'canal', 'Канава', 'Блешня', '2026-06-27', true),
-    createFishRecord('Марина', 'bream', 1.6, 'sluice', 'Шлюз', 'Мастирка', '2026-06-26', false),
-  ],
-  coins: [
-    createCoinRecord('Дмитро', 4820, '2026-06-28', true),
-    createCoinRecord('Марина', 4310, '2026-06-27', true),
-    createCoinRecord('Іра', 3975, '2026-06-26', false),
-    createCoinRecord('Олег', 3840, '2026-06-25', true),
-    createCoinRecord('Сашко', 3620, '2026-06-24', true),
-  ],
-  'by-location': [
-    createFishRecord('Олег', 'pike', 1.9, 'canal', 'Канава', 'Блешня', '2026-06-27', true),
-    createFishRecord('Марина', 'bream', 1.6, 'sluice', 'Шлюз', 'Мастирка', '2026-06-26', true),
-    createFishRecord('Іра', 'lynok', 1.4, 'greada', 'Гряда', 'Личинки', '2026-06-25', false),
-    createFishRecord('Сашко', 'som', 3.1, 'mining_lake', 'Карʼєр', 'Живець', '2026-06-24', true),
-  ],
-};
+export const leaderboardTypes = ['biggest-fish', 'monthly-trophies'];
 
 export function normalizeLeaderboardType(type = 'biggest-fish') {
   const aliases = {
     biggestFish: 'biggest-fish',
     biggest: 'biggest-fish',
-    trophies: 'trophies',
-    coins: 'coins',
-    byLocation: 'by-location',
-    location: 'by-location',
+    trophies: 'monthly-trophies',
+    monthly: 'monthly-trophies',
+    monthlyTrophies: 'monthly-trophies',
+    'monthly-trophies': 'monthly-trophies',
   };
 
-  return aliases[type] ?? type;
+  const normalized = aliases[type] ?? type;
+  return leaderboardTypes.includes(normalized) ? normalized : 'biggest-fish';
 }
 
 export function getMockLeaderboard(type = 'biggest-fish', state = null) {
@@ -48,91 +22,122 @@ export function getMockLeaderboard(type = 'biggest-fish', state = null) {
 }
 
 export function getLocalLeaderboard(type = 'biggest-fish', state = null) {
+  if (!state) {
+    return [];
+  }
+
   const normalizedType = normalizeLeaderboardType(type);
-  const localRecord = state ? getLocalPlayerLeaderboardRecord(state, normalizedType) : null;
+  if (normalizedType === 'monthly-trophies') {
+    return getLocalMonthlyTrophyRecords(state);
+  }
+
+  const localRecord = getLocalPlayerLeaderboardRecord(state, normalizedType);
   return localRecord ? [localRecord] : [];
 }
 
 export function getLocalPlayerLeaderboardRecord(state, type = 'biggest-fish') {
   const normalizedType = normalizeLeaderboardType(type);
-  const playerState = getPlayerState(state);
-  const playerName = playerState.profile?.playerName || state.playerProfile?.name || 'Гість';
-
-  if (normalizedType === 'coins') {
-    const coins = playerState.economy?.totalCoinsEarned ?? 0;
-    if (!coins) {
-      return null;
-    }
-    return {
-      ...createCoinRecord(playerName, coins, 'Локально', false, true),
-      level: playerState.profile?.level ?? 1,
-      xp: playerState.profile?.xp ?? 0,
-      totalFishCaught: playerState.stats?.fishCaughtTotal ?? 0,
-    };
+  if (normalizedType === 'monthly-trophies') {
+    return null;
   }
 
-  const biggestFish = playerState.stats?.biggestFish;
+  const playerState = getPlayerState(state);
+  const identity = getCurrentPlayerIdentity(state);
+  const biggestFish = richestBiggestFish(state, playerState);
   if (!biggestFish?.fishId || !biggestFish.weightGrams) {
     return null;
   }
 
-  const catchesByLocation = playerState.stats?.catchesByLocation ?? {};
-  const locationName = Object.keys(catchesByLocation)[0] ?? 'Локально';
   return {
-    playerName,
+    ...identity,
     fishId: biggestFish.fishId,
-    fishName: fishName(biggestFish.fishId),
-    weightKg: Number((biggestFish.weightGrams / 1000).toFixed(2)),
-    locationId: locationName,
-    locationName,
-    baitId: null,
-    baitName: 'Локальний запис',
-    tackleSummary: 'Поточна снасть',
-    caughtAt: biggestFish.caughtAtDay ? `День ${biggestFish.caughtAtDay}` : 'Локально',
+    fishName: biggestFish.fishId,
+    weightKg: Number((biggestFish.weightGrams / 1000).toFixed(3)),
+    weightGrams: biggestFish.weightGrams,
+    locationId: biggestFish.waterId ?? biggestFish.locationId ?? null,
+    baitId: biggestFish.bait ?? biggestFish.baitId ?? null,
+    catchSpotId: biggestFish.catchSpotId ?? null,
+    depth: biggestFish.depth ?? null,
+    tackleSummary: biggestFish.tackleSummary ?? null,
+    caughtAt: biggestFish.caughtAtTime ?? (biggestFish.caughtAtDay ? `День ${biggestFish.caughtAtDay}` : 'Локально'),
     verified: false,
     localPlayer: true,
-    level: playerState.profile?.level ?? 1,
-    xp: playerState.profile?.xp ?? 0,
-    totalFishCaught: playerState.stats?.fishCaughtTotal ?? 0,
+    level: playerState.profile?.level ?? state.playerProfile?.level ?? 1,
+    xp: playerState.profile?.xp ?? state.playerProfile?.xp ?? 0,
+    totalFishCaught: playerState.stats?.fishCaughtTotal ?? state.playerProfile?.fishCaughtTotal ?? state.stats?.totalFishCaught ?? 0,
     biggestFishWeightGrams: biggestFish.weightGrams ?? 0,
   };
 }
 
-function createFishRecord(playerName, fishId, weightKg, locationId, locationName, baitName, caughtAt, verified) {
+export function getLocalMonthlyTrophyRecords(state) {
+  const identity = getCurrentPlayerIdentity(state);
+  const currentDay = Number(state.day ?? 1);
+  const sinceDay = Math.max(1, currentDay - 29);
+  const groups = new Map();
+
+  for (const trophy of state.trophies ?? []) {
+    const fishId = trophy?.fishId;
+    if (!fishId) {
+      continue;
+    }
+
+    const caughtAtDay = Number(trophy.caughtAtDay ?? currentDay);
+    if (caughtAtDay < sinceDay) {
+      continue;
+    }
+
+    const current = groups.get(fishId) ?? {
+      ...identity,
+      fishId,
+      fishName: fishId,
+      trophyCount: 0,
+      trophies: 0,
+      bestTrophyWeightGrams: 0,
+      bestTrophyWeightKg: null,
+      caughtAt: 'Останні 30 днів',
+      verified: false,
+      localPlayer: true,
+      level: state.playerProfile?.level ?? 1,
+      xp: state.playerProfile?.xp ?? 0,
+      totalFishCaught: state.playerProfile?.fishCaughtTotal ?? state.stats?.totalFishCaught ?? 0,
+    };
+    current.trophyCount += 1;
+    current.trophies = current.trophyCount;
+    current.bestTrophyWeightGrams = Math.max(current.bestTrophyWeightGrams, Number(trophy.weightGrams ?? 0));
+    current.bestTrophyWeightKg = current.bestTrophyWeightGrams
+      ? Number((current.bestTrophyWeightGrams / 1000).toFixed(3))
+      : null;
+    groups.set(fishId, current);
+  }
+
+  return [...groups.values()].sort((a, b) => (
+    (b.trophyCount ?? 0) - (a.trophyCount ?? 0)
+    || (b.bestTrophyWeightGrams ?? 0) - (a.bestTrophyWeightGrams ?? 0)
+  ));
+}
+
+export function getCurrentPlayerIdentity(state) {
+  const profile = state.playerProfile ?? {};
+  const playerState = state.playerState?.profile ?? {};
+  const name = profile.name || profile.playerName || playerState.playerName || DEFAULT_PLAYER_NAME;
   return {
-    playerName,
-    fishId,
-    fishName: fishName(fishId),
-    weightKg,
-    locationId,
-    locationName,
-    baitId: null,
-    baitName,
-    tackleSummary: 'Поплавок',
-    caughtAt,
-    verified,
-    localPlayer: false,
+    playerId: state.playerState?.profile?.accountId ?? state.playerState?.profile?.userId ?? 'local-player',
+    playerName: name,
+    displayName: name,
+    avatar: profile.avatar || playerState.avatarId || DEFAULT_AVATAR,
+    avatarId: profile.avatarId || profile.avatar || playerState.avatarId || DEFAULT_AVATAR,
+    avatarType: profile.avatarType ?? 'preset',
+    customAvatarDataUrl: profile.customAvatarDataUrl ?? null,
   };
 }
 
-function createCoinRecord(playerName, coins, caughtAt, verified, localPlayer = false) {
-  return {
-    playerName,
-    fishId: null,
-    fishName: null,
-    weightKg: null,
-    locationId: null,
-    locationName: 'Всі водойми',
-    baitId: null,
-    baitName: null,
-    tackleSummary: `${coins} монет`,
-    caughtAt,
-    verified,
-    localPlayer,
-    coins,
-  };
-}
+function richestBiggestFish(state, playerState) {
+  const basketBest = [...(state.fishBasket ?? [])]
+    .filter((entry) => Number(entry.weightGrams ?? 0) > 0)
+    .sort((a, b) => Number(b.weightGrams ?? 0) - Number(a.weightGrams ?? 0))[0];
+  if (basketBest) {
+    return basketBest;
+  }
 
-function fishName(fishId) {
-  return fishData.find((fish) => fish.id === fishId)?.nameKey ?? fishId;
+  return playerState.stats?.biggestFish;
 }

@@ -326,6 +326,8 @@ function snapshotPlayerState(state) {
     fishStorageSummary: getKeepnetSummary(state),
     fishCaughtTotal: state.playerProfile?.fishCaughtTotal ?? state.stats?.totalFishCaught ?? 0,
     totalCoinsEarned: state.playerProfile?.totalCoinsEarned ?? 0,
+    xp: state.playerProfile?.xp ?? 0,
+    level: state.playerProfile?.level ?? 1,
   };
 }
 
@@ -370,7 +372,8 @@ function objectDiff(before = {}, after = {}) {
 function rewardDiff(before, after) {
   return {
     coins: Math.max(0, after.coins - before.coins),
-    xp: 0,
+    xp: Math.max(0, (after.xp ?? 0) - (before.xp ?? 0)),
+    level: after.level ?? before.level ?? 1,
   };
 }
 

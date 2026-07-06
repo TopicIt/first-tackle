@@ -1,48 +1,52 @@
+export const TROPHY_POPULATION_THRESHOLD = 10;
+
+const POPULATION_WEIGHT_SCALE = 0.1;
+
 export const waterFishDistribution = {
   canal: {
-    // Local/common name "рогаль" maps to the existing canadian_catfish species.
+    // Local/common name "rohal" maps to the existing canadian_catfish species in other waters.
     fishIds: ['rotan', 'crucian', 'rudd', 'plotytsia', 'roach', 'loach', 'pike'],
-    weights: { rotan: 2.15, crucian: 2.55, rudd: 0.5, plotytsia: 1.05, roach: 0.85, loach: 0.18, pike: 0.08 },
+    population: { rotan: 22, crucian: 26, rudd: 5, plotytsia: 11, roach: 9, loach: 2, pike: 1 },
     size: { crucian: [0.92, 1.08], rotan: [0.9, 1.05] },
   },
   sluice: {
-    fishIds: ['okun', 'pike', 'crucian', 'gudgeon', 'plotytsia', 'roach', 'rudd', 'white_bream'],
-    weights: { okun: 2.9, pike: 0.62, crucian: 1.35, gudgeon: 1.8, plotytsia: 2.25, roach: 1.25, rudd: 0.72, white_bream: 1.35 },
+    fishIds: ['okun', 'pike', 'crucian', 'gudgeon', 'plotytsia', 'roach', 'rudd', 'white_bream', 'bleak'],
+    population: { okun: 20, pike: 10, crucian: 15, gudgeon: 15, plotytsia: 8, roach: 15, rudd: 10, white_bream: 8, bleak: 15 },
     size: { okun: [1.02, 1.16], pike: [1.04, 1.16] },
   },
   fire_ponds: {
     fishIds: ['crucian', 'roach', 'rudd', 'carp', 'grass_carp', 'silver_carp'],
-    weights: { crucian: 5.6, roach: 1.15, rudd: 1.65, carp: 0.46, grass_carp: 0.12, silver_carp: 0.1 },
+    population: { crucian: 56, roach: 12, rudd: 17, carp: 15, grass_carp: 10, silver_carp: 10 },
     size: { crucian: [1.14, 1.34], carp: [1.08, 1.24], grass_carp: [1.08, 1.22], silver_carp: [1.08, 1.22] },
   },
   greada: {
     fishIds: ['crucian', 'rotan', 'lynok', 'canadian_catfish', 'loach'],
-    weights: { crucian: 2.45, rotan: 0.45, lynok: 0.58, canadian_catfish: 2.75, loach: 0.82 },
+    population: { crucian: 25, rotan: 5, lynok: 6, canadian_catfish: 30, loach: 8 },
     size: { canadian_catfish: [1.1, 1.28], lynok: [1.06, 1.18] },
   },
   lake_tur: {
     fishIds: ['crucian', 'bleak', 'rudd', 'loach', 'pike', 'okun', 'lynok', 'sudak', 'som', 'canadian_catfish', 'gudgeon', 'white_bream', 'bream', 'plotytsia'],
-    weights: {
-      crucian: 1.2,
-      bleak: 1.3,
-      rudd: 2.2,
-      loach: 0.42,
-      pike: 0.75,
-      okun: 2.4,
-      lynok: 1.05,
-      sudak: 0.72,
-      som: 0.46,
-      canadian_catfish: 2.35,
-      gudgeon: 0.75,
-      white_bream: 1.4,
-      bream: 0.85,
-      plotytsia: 1.5,
+    population: {
+      crucian: 12,
+      bleak: 13,
+      rudd: 22,
+      loach: 10,
+      pike: 10,
+      okun: 24,
+      lynok: 11,
+      sudak: 10,
+      som: 10,
+      canadian_catfish: 24,
+      gudgeon: 10,
+      white_bream: 14,
+      bream: 10,
+      plotytsia: 15,
     },
     size: { som: [1.16, 1.48], canadian_catfish: [1.12, 1.32], sudak: [1.08, 1.22], pike: [1.08, 1.22] },
   },
   mining_lake: {
     fishIds: ['okun', 'crucian', 'lynok', 'canadian_catfish', 'white_bream', 'bream', 'plotytsia', 'eel'],
-    weights: { okun: 4.2, crucian: 1.25, lynok: 1.1, canadian_catfish: 1.4, white_bream: 1.65, bream: 1.15, plotytsia: 2.15, eel: 0.38 },
+    population: { okun: 42, crucian: 13, lynok: 11, canadian_catfish: 14, white_bream: 17, bream: 12, plotytsia: 22, eel: 4 },
     size: { okun: [1.08, 1.24], lynok: [1.04, 1.16], bream: [1.04, 1.18] },
   },
 };
@@ -55,12 +59,24 @@ export function getWaterFishIds(waterId = 'canal') {
   return getWaterFishDistribution(waterId).fishIds;
 }
 
+export function getWaterFishPopulation(waterId = 'canal') {
+  return { ...(getWaterFishDistribution(waterId).population ?? {}) };
+}
+
+export function getWaterPopulationIndex(waterId = 'canal', fishId) {
+  return Number(getWaterFishDistribution(waterId).population?.[fishId] ?? 0);
+}
+
+export function canCatchTrophyInWater(waterId = 'canal', fishId) {
+  return getWaterPopulationIndex(waterId, fishId) >= TROPHY_POPULATION_THRESHOLD;
+}
+
 export function getWaterFishWeights(waterId = 'canal', spotWeights = {}) {
   const distribution = getWaterFishDistribution(waterId);
   const weights = {};
 
   for (const fishId of distribution.fishIds) {
-    const baseWeight = distribution.weights[fishId] ?? 1;
+    const baseWeight = getWaterPopulationIndex(waterId, fishId) * POPULATION_WEIGHT_SCALE;
     const spotScale = spotWeights[fishId] ?? 1;
     weights[fishId] = Number((baseWeight * spotScale).toFixed(3));
   }

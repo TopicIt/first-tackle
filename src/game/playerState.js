@@ -87,6 +87,7 @@ export function migratePlayerState(rawSaveOrState = {}) {
     profile: {
       ...base.profile,
       ...(existing.profile ?? {}),
+      ...(hasLegacyGameState ? derived.profile : {}),
     },
     economy: {
       ...base.economy,
@@ -253,6 +254,10 @@ function derivePlayerStateFromGameState(state) {
       weightGrams: stats.biggestFishWeight ?? 0,
       caughtAtDay: stats.biggestFishCaughtAtDay ?? null,
       caughtAtTime: stats.biggestFishCaughtAtTime ?? null,
+      waterId: stats.biggestFishWaterId ?? null,
+      bait: stats.biggestFishBait ?? null,
+      depth: stats.biggestFishDepth ?? null,
+      catchSpotId: stats.biggestFishCatchSpotId ?? null,
     }
     : null;
 
