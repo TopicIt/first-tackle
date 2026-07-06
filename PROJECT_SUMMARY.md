@@ -14,9 +14,11 @@ Feature commit: `ea03ba3` (`fix: prepare mvp1 usability pass`).
 
 Main merge commit: `5bf3568` (`merge: mvp1 usability pass`).
 
-Deployment status: pending push and GitHub Pages confirmation at the time of this summary update.
+Deployment status: GitHub Pages deployment succeeded on retry commit `4f7ca33` (`chore: retry pages deploy`) in workflow run `28774799950`.
 
-Live URL: `https://topicit.github.io/first-tackle/` pending post-push verification.
+The first deploy attempt for docs commit `d53f465` built successfully but the Pages deploy job failed; the retry run completed successfully.
+
+Live URL: `https://topicit.github.io/first-tackle/` verified with HTTP 200 after deployment.
 
 Completed work:
 
@@ -45,6 +47,7 @@ Verification:
 - In-app browser smoke at iPhone 14-sized viewport verified Settings opens from mobile menu, scrolls, closes, and the menu closes before the panel opens.
 - Fresh-origin mobile smoke verified first-launch intro video is visible with local video sources; autoplay remained paused in the automation browser but the transition UI/video is not hidden.
 - Fish guide smoke verified per-fish `Радимо глибину` summaries and detailed depth recommendations.
+- GitHub Pages workflow run `28774799950` completed successfully, and the live URL returned HTTP 200.
 
 Known remaining issues:
 
@@ -55,7 +58,7 @@ Known remaining issues:
 Recommended next tasks:
 
 - Manually test the full first-run tutorial on a real iPhone Safari device, including drawer item tapping and first fish sale.
-- Confirm the GitHub Pages deployment after pushing `main`.
+- Monitor GitHub Pages if intermittent deploy-job failures recur.
 - Profile the large JS chunk and split/lazy-load non-critical UI or 3D code.
 - Revisit drawer clutter hit targets on narrow mobile screens if real-device tapping reproduces the old-hook overlap.
 
