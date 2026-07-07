@@ -228,3 +228,63 @@ Current limitation: these endpoints aggregate user cloud-save payloads. Rows are
 - Continue removing expensive mobile blur/backdrop-filter and large shadows.
 - Review canvas/update frequency after device profiling.
 - Add stricter low-power animation limits and low-power defaults for new features.
+
+## Guide Leaderboard Profile Optimization
+
+Completed on branch `codex/guide-leaderboard-profile-optimization`.
+
+Feature commit: `7fd47f2` (`fix: clean guide leaderboard profile flows`).
+
+Main merge commit: `fe416b1` (`merge: guide leaderboard profile optimization`).
+
+Deployment status: GitHub Pages workflow run `28848907821` completed successfully. Live URL `https://topicit.github.io/first-tackle/` returned HTTP 200; deployed JS `index-A2Cmedqg.js` contains the new leaderboard profile/reset tombstone code, and the optimized grandma-house transition MP4 is live at 1,459,785 bytes.
+
+Completed work:
+
+- Fixed the guide tab regression: `Види риб` now renders fish species cards again, while `Водойми` keeps the dashboard layout with full descriptions, best time, bait/tackle notes, population block, and cast-spot matrix.
+- Hardened reset/save cleanup: full reset now clears first-tackle local/session caches, fish/catch/journal/trophy/leaderboard/guide/profile/cloud cache keys, `first-tackle-save-v1`, `first-tackle-save-v2`, save backups, mobile transition markers, cloud autosave queue/signatures, and `first-tackle-cloud-session-v1`; it writes `first-tackle-reset-tombstone-v1` and blocks older cloud saves from reappearing after reset.
+- Cleaned leaderboard rules: biggest-fish and trophy boards filter to the last 30 days and max 50 rows; trophy rows require real trophy markers (`realTrophy`, `isTrophy`, `trophy`, stars, tier, trophy key, or trophy catch category), so ordinary catches are ignored.
+- Made leaderboard avatar/name/detail rows open a public profile modal with player identity, biggest fish, trophy count, and notable catches when available.
+- Replaced raw internal leaderboard labels with Ukrainian labels for bait, depth, cast spot, tackle, and waterbody.
+- Adjusted pike bait logic and guide copy: live bait remains best, while worm/nightcrawler rare bites are possible.
+- Optimized `public/assets/transitions/grandma-house/grandma-house-flyin.mp4` from 8,775,399 bytes to 1,459,785 bytes.
+- Safely inspected the dirty `D:\first-tackle` worktree and removed only the generated `.codex-remote-attachments` cache; review-worthy dirty asset/package-lock changes were left untouched.
+
+Changed files/modules:
+
+- `src/ui/panels.js`, `style.css`: guide tab routing, waterbody dashboard details, leaderboard clickable rows/profile modal, readable labels, profile/modal styling.
+- `src/game/leaderboards.js`, `src/game/fishInventory.js`: recent/limit filters and trophy marker compatibility.
+- `src/main.js`: full reset cleanup, reset tombstone, older-cloud-save guard, leaderboard profile action filtering.
+- `src/game/fishChanceCalculator.js`, `src/i18n/translations.js`: pike rare bait behavior and guide text.
+- `public/assets/transitions/grandma-house/grandma-house-flyin.mp4`: compressed active transition asset.
+
+Verification:
+
+- `npm.cmd run build` passed on the feature branch and after merging to `main`.
+- `git diff --check` passed; only standard Windows LF-to-CRLF warnings were reported.
+- Focused module smoke passed for guide tab separation, population-before-spots ordering, biggest leaderboard 50-row/recent filtering, trophy marker filtering, old trophy hiding, ordinary-fish exclusion, and pike live-bait preference with rare worm/nightcrawler compatibility.
+- Mobile Playwright smoke at `390x844` passed for fish guide, waterbody dashboard, leaderboard profile opening, no raw internal leaderboard labels, Profile opening/scrolling, Settings opening/scrolling, and reset clearing seeded cache keys while leaving fresh save plus reset tombstone.
+- Live URL returned HTTP 200 after deployment.
+
+Measured state:
+
+- Worktree size: about 200.69 MB in `D:\first-tackle-main-merge`.
+- Common Git object store: about 352.26 MB at `D:\first-tackle\.git`.
+- `node_modules`: about 79.12 MB.
+- `dist`: about 34.83 MB.
+- `public/assets`: about 33.62 MB.
+- Final local build output: main JS 1,089.02 kB, CSS 174.05 kB, 3D chunk 6.45 kB.
+
+Known remaining issues:
+
+- Vite still warns that the main JS chunk is larger than 500 kB; deeper code splitting/lazy loading remains needed.
+- Backend leaderboard rows are still latest-cloud-save aggregates, not server-authoritative verified catch records.
+- Remote public profiles depend on whatever metadata the backend row provides; incomplete rows use graceful fallback/default avatar data.
+- The original `D:\first-tackle` worktree remains dirty with many generated/optimized assets and a package-lock change that need separate review before keeping or discarding.
+
+Recommended next tasks:
+
+- Split/lazy-load heavy guide, leaderboard, profile/cloud, transition, and optional panel modules.
+- Add backend public profile fields, fish IDs, trophy markers, and timestamps to leaderboard rows in a stable schema.
+- Review and either adopt or discard the remaining dirty asset/package-lock changes in `D:\first-tackle`.
+- Real-device smoke test guide, leaderboard profile modal, reset, and Settings/Profile sheets on iPhone Safari.
