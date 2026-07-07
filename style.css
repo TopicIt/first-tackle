@@ -1468,6 +1468,32 @@ button:disabled {
   font-size: 0.8rem;
 }
 
+.leaderboard-record__profile-link {
+  width: fit-content;
+  max-width: 100%;
+  border: 0;
+  background: transparent;
+  color: #fff8df;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 900;
+  line-height: 1.15;
+  padding: 0;
+  text-align: left;
+}
+
+.leaderboard-record__profile-link--detail {
+  color: #dcece2;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.leaderboard-record__profile-link:hover,
+.leaderboard-record__profile-link:focus-visible {
+  color: #ffe28a;
+  text-decoration: underline;
+}
+
 .leaderboard-record__body span {
   color: #dcece2;
   font-size: 0.74rem;
@@ -2937,12 +2963,10 @@ button:disabled {
 }
 
 .guide-dashboard__current strong,
-.guide-dashboard__current span {
+.guide-dashboard__current span,
+.guide-dashboard__current p {
   display: block;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .guide-dashboard__current strong {
@@ -2955,6 +2979,72 @@ button:disabled {
   margin-top: 3px;
   color: #cfe1dc;
   font-size: 0.73rem;
+}
+
+.guide-dashboard__current p {
+  margin: 5px 0 7px;
+  color: #dcece2;
+  font-size: 0.74rem;
+  line-height: 1.32;
+}
+
+.guide-water-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+
+.guide-water-facts div {
+  min-width: 0;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 7px;
+  background: rgb(0 0 0 / 14%);
+  padding: 6px;
+}
+
+.guide-water-facts dt,
+.guide-water-facts dd {
+  margin: 0;
+}
+
+.guide-water-facts dt,
+.guide-water-spots > span {
+  color: #ffe28a;
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.guide-water-facts dd {
+  margin-top: 2px;
+  color: #f4fff8;
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+.guide-water-spots {
+  display: grid;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.guide-water-spots div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.guide-water-spots i {
+  border: 1px solid rgb(243 196 95 / 18%);
+  border-radius: 999px;
+  background: rgb(243 196 95 / 10%);
+  color: #fff8df;
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.1;
+  padding: 5px 7px;
 }
 
 .guide-dashboard-block {
@@ -5002,6 +5092,31 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet {
 .public-profile-card dt,
 .public-profile-card dd {
   margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.public-profile-card__catches {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+  border-top: 1px solid rgb(32 50 29 / 0.14);
+  padding-top: 8px;
+}
+
+.public-profile-card__catches strong {
+  color: #20321d;
+}
+
+.public-profile-card__catches ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.public-profile-card__catches li,
+.public-profile-card__catches span {
+  font-size: 0.78rem;
   overflow-wrap: anywhere;
 }
 

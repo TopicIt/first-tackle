@@ -151,7 +151,7 @@ export function getBaitSuitability(fishId, baitId) {
   }
   if (predatorFishIds.includes(fishId)) {
     if (baitId === 'small_worms') return fishId === 'okun' ? 0.22 : 0.06;
-    if (fishId === 'pike' && ['worms', 'nightcrawler'].includes(baitId)) return 0.08;
+    if (fishId === 'pike' && ['worms', 'nightcrawler'].includes(baitId)) return 0.14;
     return animalBaits.includes(baitId) ? 0.16 : 0.04;
   }
 
