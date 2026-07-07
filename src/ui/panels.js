@@ -1305,9 +1305,7 @@ function readableCastSpotName(castSpotId, fallback) {
 }
 
 function readableTackleName(tackleId, fallback) {
-  if (tackleId && !isTechnicalLabel(tackleId)) {
-    return escapeHtml(tackleId);
-  }
+  const normalizedTackleId = typeof tackleId === 'string' ? tackleId.trim() : tackleId;
   const labels = {
     handline: 'Ручна снасть',
     stickRod: 'Палиця-вудка',
@@ -1316,8 +1314,14 @@ function readableTackleName(tackleId, fallback) {
     properRod: t('componentProperRod'),
     betterLine: t('itemBetterLine'),
   };
-  if (tackleId && labels[tackleId]) {
-    return labels[tackleId];
+  if (typeof normalizedTackleId === 'string' && normalizedTackleId.includes('/')) {
+    return readableTackleName(normalizedTackleId.split('/')[0].trim(), fallback);
+  }
+  if (normalizedTackleId && labels[normalizedTackleId]) {
+    return labels[normalizedTackleId];
+  }
+  if (normalizedTackleId && !isTechnicalLabel(normalizedTackleId)) {
+    return escapeHtml(normalizedTackleId);
   }
   return isTechnicalLabel(fallback) ? '' : escapeHtml(fallback ?? '');
 }
