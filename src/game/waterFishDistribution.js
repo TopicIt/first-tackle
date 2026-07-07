@@ -1,6 +1,18 @@
 export const TROPHY_POPULATION_THRESHOLD = 10;
+export const RARE_TROPHY_POPULATION_THRESHOLD = 5;
 
 const POPULATION_WEIGHT_SCALE = 0.1;
+const rareTrophyFishIds = new Set([
+  'loach',
+  'pike',
+  'lynok',
+  'sudak',
+  'som',
+  'carp',
+  'grass_carp',
+  'silver_carp',
+  'eel',
+]);
 
 export const waterFishDistribution = {
   canal: {
@@ -46,7 +58,7 @@ export const waterFishDistribution = {
   },
   mining_lake: {
     fishIds: ['okun', 'crucian', 'lynok', 'canadian_catfish', 'white_bream', 'bream', 'plotytsia', 'eel'],
-    population: { okun: 42, crucian: 13, lynok: 11, canadian_catfish: 14, white_bream: 17, bream: 12, plotytsia: 22, eel: 4 },
+    population: { okun: 42, crucian: 13, lynok: 11, canadian_catfish: 14, white_bream: 17, bream: 12, plotytsia: 22, eel: 5 },
     size: { okun: [1.08, 1.24], lynok: [1.04, 1.16], bream: [1.04, 1.18] },
   },
 };
@@ -67,8 +79,12 @@ export function getWaterPopulationIndex(waterId = 'canal', fishId) {
   return Number(getWaterFishDistribution(waterId).population?.[fishId] ?? 0);
 }
 
+export function getTrophyPopulationThreshold(fishId) {
+  return rareTrophyFishIds.has(fishId) ? RARE_TROPHY_POPULATION_THRESHOLD : TROPHY_POPULATION_THRESHOLD;
+}
+
 export function canCatchTrophyInWater(waterId = 'canal', fishId) {
-  return getWaterPopulationIndex(waterId, fishId) >= TROPHY_POPULATION_THRESHOLD;
+  return getWaterPopulationIndex(waterId, fishId) >= getTrophyPopulationThreshold(fishId);
 }
 
 export function getWaterFishWeights(waterId = 'canal', spotWeights = {}) {

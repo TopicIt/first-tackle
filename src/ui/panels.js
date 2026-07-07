@@ -22,12 +22,14 @@ import { assetPath } from '../utils/assetPath.js';
 import { getWorldMapAsset } from '../utils/worldMapAsset.js';
 import { loadCloudSession } from '../api/client.js';
 import { getActiveItemModifiers } from '../game/itemEffects.js';
-import { getLocalLeaderboard, normalizeLeaderboardType } from '../game/leaderboards.js';
+import { filterRealTrophyLeaderboardRecords, getLocalLeaderboard, normalizeLeaderboardType } from '../game/leaderboards.js';
 import { getPlayerState } from '../game/playerState.js';
 import { getFishingLocation } from '../game/locations.js';
 import {
   TROPHY_POPULATION_THRESHOLD,
   canCatchTrophyInWater,
+  getTrophyPopulationThreshold,
+  getWaterFishIds,
   getWaterFishPopulation,
   getWaterPopulationIndex,
 } from '../game/waterFishDistribution.js';
@@ -50,6 +52,28 @@ import {
 
 const specialGuideFishIds = ['loach', 'pike', 'canadian_catfish', 'sudak', 'som', 'eel', 'carp', 'grass_carp', 'silver_carp'];
 const predatorGuideFishIds = ['pike', 'sudak', 'som', 'eel'];
+const guideFishColors = {
+  crucian: '#f0a735',
+  rotan: '#d98b24',
+  roach: '#8edc75',
+  plotytsia: '#5dd6b3',
+  rudd: '#58a7f3',
+  loach: '#a679ff',
+  pike: '#e05b98',
+  okun: '#f2c04c',
+  lynok: '#c58cff',
+  sudak: '#d75575',
+  som: '#b65ad6',
+  canadian_catfish: '#c060b8',
+  carp: '#f08d4e',
+  grass_carp: '#76c869',
+  silver_carp: '#90d5df',
+  white_bream: '#c8d87a',
+  bream: '#d5ab5d',
+  bleak: '#7fc7ff',
+  gudgeon: '#baa26a',
+  eel: '#8b63d9',
+};
 
 const inventoryOrder = [
   'thread',
@@ -416,7 +440,7 @@ export function cafeMarkup(state) {
             </div>
             <h3>${t(order.titleKey)}</h3>
             <p>${t(order.descriptionKey)}</p>
-            <strong>${order.progress}/${order.required} В· ${t(order.fishNameKey)}${order.minWeight ? ` ${order.minWeight}g+` : ''}</strong>
+            <strong>${order.progress}/${order.required} · ${t(order.fishNameKey)}${order.minWeight ? ` ${order.minWeight}g+` : ''}</strong>
             <small class="cafe-order-card__reward">${t('reward')}: ${order.rewardCoins} ${t('coins').toLowerCase()}</small>
           </div>
           <button data-action="cafe:complete:${order.id}" type="button"${order.complete ? '' : ' disabled'}>
@@ -449,7 +473,7 @@ export function keepnetMarkup(state) {
 
 export function catchJournalMarkup(state) {
   const entries = getCatchJournal(state).filter((entry) => entry.discovered);
-  const trophies = state.trophies ?? [];
+  const trophies = (state.trophies ?? []).filter((entry) => entry?.isTrophy || entry?.tier || entry?.trophyTier || String(entry?.key ?? '').startsWith('trophyTier'));
 
   if (entries.length === 0) {
     return `<p class="empty-panel">${t('catchJournalEmpty')}</p>`;
@@ -593,8 +617,7 @@ export function guideMarkup(state) {
       `).join('')}
     </div>
     <div class="guide-body">
-      ${tab === 'waters' || tab === 'fish' ? guideTimeNoteMarkup(state) : ''}
-      ${tab === 'waters' ? watersGuideAccordionMarkup(state) : tab === 'fish' ? fishGuideAccordionMarkup(state) : guideAccordionMarkup(tab, state)}
+      ${tab === 'waters' || tab === 'fish' ? guideWaterDashboardMarkup(state) : guideAccordionMarkup(tab, state)}
     </div>
   `;
 }
@@ -709,7 +732,7 @@ function keepnetEntryMarkup(state, entry) {
   return `
     <div class="keepnet-entry">
       <img class="keepnet-entry__image" src="${assetPath(entry.selectedCardImage ?? resolveFishCatchCardImage(entry.fishId, entry))}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
-      <span>${entry.weightGrams}g В· ${t(statusKey(entry.status))}</span>
+      <span>${entry.weightGrams}g · ${t(statusKey(entry.status))}</span>
       ${catchCategoryBadgeMarkup(entry.catchCategory, entry.weightGrams)}
       <small>${entry.catchSpotId ? t(getCastSpot(entry.catchSpotId).labelKey) : t('unknownSpot')}</small>
       <small>${t('freshness')}: ${t(freshness.key)}</small>
@@ -733,7 +756,7 @@ function journalSpeciesMarkup(entry) {
             best: entry.bestWeight,
           })
           : t('journalNotCaughtYet')}</p>
-        ${discovered ? `<small>${t('bestSpot')}: ${entry.bestCatchSpotId ? t(getCastSpot(entry.bestCatchSpotId).labelKey) : t('unknownSpot')} В· ${t('bestBait')}: ${entry.bestBait ? t(`bait${toPascalCase(entry.bestBait)}`) : t('none')}</small>` : ''}
+        ${discovered ? `<small>${t('bestSpot')}: ${entry.bestCatchSpotId ? t(getCastSpot(entry.bestCatchSpotId).labelKey) : t('unknownSpot')} · ${t('bestBait')}: ${entry.bestBait ? t(`bait${toPascalCase(entry.bestBait)}`) : t('none')}</small>` : ''}
       </div>
     </article>
   `;
@@ -744,7 +767,7 @@ function trophyMarkup(trophy) {
   return `
     <div class="trophy-item${trophy.tier ? ` trophy-item--${trophy.tier}` : ''}">
       <strong>${t(trophy.key)}</strong>
-      <span>${t(fish?.nameKey ?? trophy.fishId)} В· ${trophy.weightGrams}g</span>
+      <span>${t(fish?.nameKey ?? trophy.fishId)} · ${trophy.weightGrams}g</span>
     </div>
   `;
 }
@@ -752,7 +775,7 @@ function trophyMarkup(trophy) {
 export function trophyBadgeMarkup(tier, weightGrams = null, locked = false) {
   const stars = { normal: '*', very_rare: '**', rarest: '***' }[tier] ?? '*';
   const weight = weightGrams ? ` ${weightGrams}g` : '';
-  return `<span class="trophy-badge trophy-badge--${tier}${locked ? ' is-locked' : ''}" title="${t(trophyKeyForTier(tier))}">${locked ? 'в–Ў' : stars}${weight || (locked ? ` ${t('locked')}` : '')}</span>`;
+  return `<span class="trophy-badge trophy-badge--${tier}${locked ? ' is-locked' : ''}" title="${t(trophyKeyForTier(tier))}">${locked ? '□' : stars}${weight || (locked ? ` ${t('locked')}` : '')}</span>`;
 }
 
 function profileImageSrc(profile) {
@@ -770,7 +793,7 @@ function trophyCardMarkup(trophy) {
       <img src="${speciesImage(trophy.fishId)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
       <div>
         <strong>${t(trophy.key)}</strong>
-        <span>${t(fish?.nameKey ?? trophy.fishId)} Р’В· ${trophy.weightGrams}g</span>
+        <span>${t(fish?.nameKey ?? trophy.fishId)} · ${trophy.weightGrams}g</span>
       </div>
     </div>
   `;
@@ -871,7 +894,7 @@ function marketSellMarkup(state) {
     <div class="market-summary">
       <p>${t('marketSellHint')}</p>
       <button data-action="sell:fish" type="button"${freshEntries.length === 0 ? ' disabled' : ''}>${t('sellAllFish')}</button>
-      <strong>${t('marketableFish')}: ${freshEntries.length} В· ${freshValue} ${t('coins').toLowerCase()}</strong>
+      <strong>${t('marketableFish')}: ${freshEntries.length} · ${freshValue} ${t('coins').toLowerCase()}</strong>
     </div>
     <section class="market-keepnet-sell">
       <div class="market-keepnet-sell__head">
@@ -893,7 +916,7 @@ function marketSellMarkup(state) {
         <div>
           <h3>${t('sellTaranka')}</h3>
           <p>${t('marketTarankaNote')}</p>
-          <strong>${countFishByStatus(state, 'taranka')} В· ${tarankaValue} ${t('coins').toLowerCase()}</strong>
+          <strong>${countFishByStatus(state, 'taranka')} · ${tarankaValue} ${t('coins').toLowerCase()}</strong>
         </div>
         <button data-action="sell:taranka" type="button"${tarankaEntries.length === 0 ? ' disabled' : ''}>${t('sell')}</button>
         ${marketReasonMarkup(tarankaEntries.length === 0 ? t('reasonNoTaranka') : '')}
@@ -904,7 +927,7 @@ function marketSellMarkup(state) {
         <div>
           <h3>${t('sellSmokedFish')}</h3>
           <p>${t('marketSmokedNote')}</p>
-          <strong>${smokedEntries.length} В· ${smokedValue} ${t('coins').toLowerCase()}</strong>
+          <strong>${smokedEntries.length} · ${smokedValue} ${t('coins').toLowerCase()}</strong>
         </div>
         <button data-action="sell:smoked" type="button"${smokedEntries.length === 0 ? ' disabled' : ''}>${t('sell')}</button>
         ${marketReasonMarkup(smokedEntries.length === 0 ? t('reasonNoSmokedFish') : '')}
@@ -916,14 +939,14 @@ function marketSellMarkup(state) {
 
 function marketBuyMarkup(state) {
   const categories = [
-    ['tackle', 'РЎРЅР°СЃС‚С–'],
-    ['bait', 'РќР°Р¶РёРІРєРё / РїСЂРёРєРѕСЂРјРєРё'],
-    ['other', 'Р С–Р·РЅРµ'],
+    ['tackle', t('marketCategoryTackle')],
+    ['bait', t('marketCategoryBait')],
+    ['other', t('marketCategoryOther')],
   ];
   const selectedCategory = state.ui?.marketBuyCategory ?? 'tackle';
   const items = getCatalogMarketItems().filter((item) => marketCategoryForItem(item) === selectedCategory);
   return `
-    <div class="market-buy-category-tabs" role="tablist" aria-label="РљР°С‚РµРіРѕСЂС–С— РєСЂР°РјРЅРёС†С–">
+    <div class="market-buy-category-tabs" role="tablist" aria-label="Категорії ринку">
       ${categories.map(([category, label]) => `
         <button class="market-buy-category-tab${selectedCategory === category ? ' is-selected' : ''}" data-action="market:buyCategory:${category}" type="button">${label}</button>
       `).join('')}
@@ -952,13 +975,13 @@ function marketBuyCardMarkup(state, item) {
     <article class="market-card market-card--buy${isExpanded ? ' is-expanded' : ''}">
       <span class="market-card__image-wrap">
         ${itemIconMarkup(item, { className: 'market-card__image' })}
-        ${item.amount && item.amount > 1 ? `<span class="market-card__qty-badge">Г—${item.amount}</span>` : ''}
+        ${item.amount && item.amount > 1 ? `<span class="market-card__qty-badge">×${item.amount}</span>` : ''}
       </span>
       <div class="market-card__content">
         ${renderItemCompactSummary(item, { bonusLimit: 2 })}
         <div class="market-card__meta">
           <strong>${owned ? t('owned') : formatItemPrice(item)}</strong>
-          ${isActive ? '<span class="market-card__status">РђРєС‚РёРІРЅРѕ</span>' : ''}
+          ${isActive ? '<span class="market-card__status">Активно</span>' : ''}
         </div>
       </div>
       <div class="market-card__actions">
@@ -995,7 +1018,7 @@ function marketPricesMarkup(state) {
             <img src="${speciesImage(fish.id)}" loading="lazy" decoding="async" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
             <span>${t(fish.nameKey)}</span>
             <strong>${trendArrow(price.trend)} ${price.currentPrice} ${t('uahPerKg')}</strong>
-            <small>${price.multiplier.toFixed(2)}x В· ${t(trendKey(price.trend))}</small>
+            <small>${price.multiplier.toFixed(2)}x · ${t(trendKey(price.trend))}</small>
           </article>
         `;
       }).join('')}
@@ -1007,8 +1030,9 @@ export function leaderboardMarkup(state) {
   const leaderboardState = state.ui?.leaderboards ?? {};
   const type = normalizeLeaderboardType(leaderboardState.type ?? 'biggest-fish');
   const rawRecords = leaderboardState.records?.length ? leaderboardState.records : getLocalLeaderboard(type, state);
-  const displayRecords = type === 'monthly-trophies' && rawRecords.length && rawRecords.every((record) => !record.fishId)
-    ? getLocalLeaderboard(type, state)
+  const trophyRecords = type === 'monthly-trophies' ? filterRealTrophyLeaderboardRecords(rawRecords) : rawRecords;
+  const displayRecords = type === 'monthly-trophies'
+    ? (trophyRecords.length ? trophyRecords : getLocalLeaderboard(type, state))
     : rawRecords;
   const records = normalizeLeaderboardRecords(displayRecords, type, state);
   const busy = Boolean(leaderboardState.busy);
@@ -1156,7 +1180,14 @@ function groupLeaderboardRecordsByFish(records) {
       groups.set(record.fishId, group);
     });
 
-  return [...groups.values()].sort((a, b) => b.totalTrophies - a.totalTrophies || b.bestWeight - a.bestWeight);
+  return [...groups.values()]
+    .map((group) => ({
+      ...group,
+      records: group.records
+        .sort((a, b) => Number(b.bestTrophyWeightGrams ?? b.weightGrams ?? 0) - Number(a.bestTrophyWeightGrams ?? a.weightGrams ?? 0))
+        .slice(0, 10),
+    }))
+    .sort((a, b) => b.totalTrophies - a.totalTrophies || b.bestWeight - a.bestWeight);
 }
 
 function publicProfileModalMarkup(state) {
@@ -1289,8 +1320,8 @@ function marketFishEntryMarkup(state, entry) {
   return `
     <div class="market-fish-entry">
       <div>
-        <span>${entry.weightGrams}g В· ${entry.status === 'cleaned' ? t('cleanedMarker') : t('freshness')}: ${entry.status === 'cleaned' ? '+5%' : t(freshness.key)}</span>
-        <small>${price.currentPrice} ${t('uahPerKg')} Р’В· ${entry.catchSpotId ? t(getCastSpot(entry.catchSpotId).labelKey) : t('unknownSpot')}</small>
+        <span>${entry.weightGrams}g · ${entry.status === 'cleaned' ? t('cleanedMarker') : t('freshness')}: ${entry.status === 'cleaned' ? '+5%' : t(freshness.key)}</span>
+        <small>${price.currentPrice} ${t('uahPerKg')} · ${entry.catchSpotId ? t(getCastSpot(entry.catchSpotId).labelKey) : t('unknownSpot')}</small>
       </div>
       <strong>${getFishSaleValue(state, entry)} ${t('coins').toLowerCase()}</strong>
       <button data-action="sell:entry:${entry.id}" type="button">${t('sell')}</button>
@@ -1328,6 +1359,156 @@ function getMarketableFishEntries(state) {
     ...getFishEntries(state, 'fresh'),
     ...getFishEntries(state, 'cleaned'),
   ];
+}
+
+function guideWaterDashboardMarkup(state) {
+  const waterId = currentGuideWaterId(state);
+  const water = waterGuide.find((entry) => entry.id === waterId) ?? waterGuide[0];
+  return `
+    <section class="guide-dashboard" aria-label="Довідник водойми">
+      <div class="guide-water-picker">
+        ${waterGuide.map((entry) => `
+          <button class="${entry.id === water.id ? 'is-selected' : ''}" data-action="guide:water:${entry.id}" type="button">
+            ${t(entry.nameKey)}
+          </button>
+        `).join('')}
+      </div>
+      <div class="guide-dashboard__current">
+        <img src="${assetPath(waterImages[water.id] ?? '/assets/locations/pond_location_concept.png')}" loading="lazy" decoding="async" onerror="this.src='${assetPath('/assets/locations/pond_location_concept.png')}'" alt="" />
+        <div>
+          <strong>${t(water.nameKey)}</strong>
+          <span>${t(water.bestTimeKey)} · ${t(water.tackleKey)}</span>
+        </div>
+      </div>
+      ${guidePopulationBlockMarkup(water.id)}
+      ${guideSpotMatrixBlockMarkup(water.id)}
+      <div class="guide-dashboard__notes">
+        <span>10+ відкриває шанс на трофей у цій водоймі.</span>
+        <span>Для рідкісних видів трофейний шанс може відкриватися з 5+.</span>
+      </div>
+    </section>
+  `;
+}
+
+function currentGuideWaterId(state) {
+  const candidates = [
+    state.ui?.guideWaterId,
+    state.ui?.activeScene,
+    state.travel?.selectedWater,
+  ];
+  return candidates.find((waterId) => waterGuide.some((water) => water.id === waterId)) ?? 'canal';
+}
+
+function guidePopulationBlockMarkup(waterId) {
+  const population = getWaterFishPopulation(waterId);
+  const fishIdsForWater = getWaterFishIds(waterId).filter((fishId) => Number(population[fishId] ?? 0) > 0);
+  const rows = fishIdsForWater
+    .sort((a, b) => Number(population[b] ?? 0) - Number(population[a] ?? 0))
+    .map((fishId) => {
+      const fish = fishData.find((entry) => entry.id === fishId);
+      const value = Math.max(0, Math.min(60, Number(population[fishId] ?? 0)));
+      const percent = Math.round(Math.min(100, (value / 30) * 100));
+      const threshold = getTrophyPopulationThreshold(fishId);
+      const trophy = value >= threshold;
+      return `
+        <div class="guide-population-chart__row" style="--fish-color:${fishColor(fishId)}; --population-width:${percent}%;">
+          <img src="${speciesImage(fishId)}" loading="lazy" decoding="async" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
+          <span>${t(fish?.nameKey ?? fishId)}</span>
+          <div class="guide-population-chart__bar"><i></i></div>
+          <strong>${value}/30${trophy ? ` · ${threshold}+` : ''}</strong>
+        </div>
+      `;
+    })
+    .join('');
+
+  return `
+    <article class="guide-dashboard-block guide-dashboard-block--population">
+      <header>
+        <div>
+          <p class="section-label">Популяція риб</p>
+          <h3>${t(waterGuide.find((water) => water.id === waterId)?.nameKey ?? 'waters')}</h3>
+        </div>
+      </header>
+      <div class="guide-population-chart">
+        ${rows || `<p>${t('none')}</p>`}
+      </div>
+      <div class="guide-population-legend" aria-label="Рівні популяції">
+        ${['Дуже висока', 'Висока', 'Середня', 'Низька', 'Дуже низька'].map((label) => `<span>${label}</span>`).join('')}
+      </div>
+    </article>
+  `;
+}
+
+function guideSpotMatrixBlockMarkup(waterId) {
+  const spots = castSpots.filter((spot) => (spot.waterId ?? 'canal') === waterId);
+  const fishIdsForWater = getWaterFishIds(waterId);
+  const maxWeight = Math.max(
+    0.01,
+    ...spots.flatMap((spot) => fishIdsForWater.map((fishId) => Number(spot.weights?.[fishId] ?? 0))),
+  );
+  const gridStyle = `--matrix-columns: repeat(${fishIdsForWater.length}, minmax(34px, 38px));`;
+  return `
+    <article class="guide-dashboard-block guide-dashboard-block--spots">
+      <header>
+        <div>
+          <p class="section-label">Місця закиду</p>
+          <h3>Де шукати рибу</h3>
+        </div>
+      </header>
+      <div class="guide-spot-matrix" style="${gridStyle}">
+        <div class="guide-spot-matrix__scroller">
+          <div class="guide-spot-matrix__head">
+            <span></span>
+            ${fishIdsForWater.map((fishId) => `
+              <div class="guide-spot-matrix__fish" title="${escapeHtml(t(fishData.find((fish) => fish.id === fishId)?.nameKey ?? fishId))}" style="--fish-color:${fishColor(fishId)};">
+                <img src="${speciesImage(fishId)}" loading="lazy" decoding="async" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
+              </div>
+            `).join('')}
+          </div>
+          ${spots.map((spot) => `
+            <div class="guide-spot-matrix__row">
+              <strong><span>${spotIconLabel(spot)}</span>${t(spot.labelKey)}</strong>
+              ${fishIdsForWater.map((fishId) => {
+                const ratio = Number(spot.weights?.[fishId] ?? 0) / maxWeight;
+                const level = suitabilityLevel(ratio);
+                return `<span class="guide-spot-dot guide-spot-dot--${level}" style="--fish-color:${fishColor(fishId)};" title="${escapeHtml(t(fishData.find((fish) => fish.id === fishId)?.nameKey ?? fishId))} · ${escapeHtml(t(spot.labelKey))}"></span>`;
+              }).join('')}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="guide-dot-legend">
+        <span><i class="guide-spot-dot guide-spot-dot--very-high"></i>дуже висока</span>
+        <span><i class="guide-spot-dot guide-spot-dot--high"></i>висока</span>
+        <span><i class="guide-spot-dot guide-spot-dot--medium"></i>середня</span>
+        <span><i class="guide-spot-dot guide-spot-dot--low"></i>низька</span>
+        <span><i class="guide-spot-dot guide-spot-dot--very-low"></i>дуже низька</span>
+      </div>
+    </article>
+  `;
+}
+
+function fishColor(fishId) {
+  return guideFishColors[fishId] ?? '#9fd2c1';
+}
+
+function suitabilityLevel(ratio) {
+  if (ratio >= 0.78) return 'very-high';
+  if (ratio >= 0.58) return 'high';
+  if (ratio >= 0.36) return 'medium';
+  if (ratio >= 0.16) return 'low';
+  return ratio > 0 ? 'very-low' : 'empty';
+}
+
+function spotIconLabel(spot) {
+  if (/dam/i.test(spot.id)) return 'Д';
+  if (/reed/i.test(spot.id)) return 'О';
+  if (/lil|lily/i.test(spot.id)) return 'Л';
+  if (/shadow|branch/i.test(spot.id)) return 'Г';
+  if (/weed|shallow/i.test(spot.id)) return 'Т';
+  if (/mud|middle|drop|shelf/i.test(spot.id)) return 'З';
+  if (/stone|pit|wall/i.test(spot.id)) return 'К';
+  return '•';
 }
 
 function fishGuideAccordionMarkup(state) {
@@ -1504,7 +1685,7 @@ function guideCatalogCardsMarkup(tab, expanded) {
           ${itemIconMarkup(item)}
           <span>
             <h3>${escapeHtml(getItemDisplayName(item, locale))}</h3>
-            <small>${escapeHtml(getCatalogCategoryLabel(item.category, locale))} В· ${escapeHtml(getItemShortDescription(item, locale))}</small>
+            <small>${escapeHtml(getCatalogCategoryLabel(item.category, locale))} · ${escapeHtml(getItemShortDescription(item, locale))}</small>
           </span>
           <strong class="guide-card__expand">${isOpen ? '-' : '+'}</strong>
         </button>
@@ -1548,7 +1729,7 @@ function fishGuideMarkup(state) {
     <article class="guide-card">
       <img src="${speciesImage(entry.fishId)}" onerror="this.src='${assetPath('/assets/fish/catch_result_frame.png')}'" alt="" />
       <div>
-        <h3>${t(entry.nameKey)} ${journal[entry.fishId]?.discovered ? '' : `В· ${t('undiscoveredFish')}`}</h3>
+        <h3>${t(entry.nameKey)} ${journal[entry.fishId]?.discovered ? '' : `· ${t('undiscoveredFish')}`}</h3>
         <p>${t(entry.descriptionKey)}</p>
         <dl>
           <div><dt>${t('whereItLives')}</dt><dd>${t(entry.livesKey)}</dd></div>
@@ -1571,7 +1752,7 @@ function watersGuideMarkup(state) {
       <article class="guide-card guide-card--wide">
         <img src="${assetPath(waterImages[water.id] ?? '/assets/locations/pond_location_concept.png')}" onerror="this.src='${assetPath('/assets/locations/pond_location_concept.png')}'" alt="" />
         <div>
-          <h3>${t(water.nameKey)} ${unlocked ? '' : `В· ${t('locked')}`}</h3>
+          <h3>${t(water.nameKey)} ${unlocked ? '' : `· ${t('locked')}`}</h3>
           <p>${t(water.descriptionKey)}</p>
           <dl>
             <div><dt>${t('fishSpecies')}</dt><dd>${water.fishIds.map((fishId) => t(fishData.find((fish) => fish.id === fishId)?.nameKey ?? fishId)).join(', ')}</dd></div>
@@ -1859,12 +2040,12 @@ function thresholdRowsMarkup(fishId) {
     return `<p>${t('none')}</p>`;
   }
 
-  const unit = getLanguage() === 'uk' ? 'Рі' : 'g';
+  const unit = getLanguage() === 'uk' ? 'г' : 'g';
   const trophy2 = Math.round(profile.trophyWeight * 1.45);
   const rows = [
-    ['в…', t('trophyTierNormal'), `${profile.trophyWeight}-${trophy2 - 1} ${unit}`],
-    ['в…в…', t('trophyTierVeryRare'), `${trophy2}-${profile.legendaryWeight - 1} ${unit}`],
-    ['в…в…в…', t('trophyTierRarest'), `${profile.legendaryWeight}+ ${unit}`],
+    ['★', t('trophyTierNormal'), `${profile.trophyWeight}-${trophy2 - 1} ${unit}`],
+    ['★★', t('trophyTierVeryRare'), `${trophy2}-${profile.legendaryWeight - 1} ${unit}`],
+    ['★★★', t('trophyTierRarest'), `${profile.legendaryWeight}+ ${unit}`],
   ];
 
   return `
@@ -1900,7 +2081,7 @@ function thresholdMarkup(fishId) {
   if (!profile) {
     return t('none');
   }
-  return `0 < ${profile.common[0]}g Р’В· * ${profile.common[0]}g Р’В· ${t('catchCategoryTrophy')} ${profile.trophyWeight}g Р’В· ** ${Math.round(profile.trophyWeight * 1.45)}g Р’В· *** ${profile.legendaryWeight}g`;
+  return `0 < ${profile.common[0]}g · ★ ${profile.trophyWeight}g · ★★ ${Math.round(profile.trophyWeight * 1.45)}g · ★★★ ${profile.legendaryWeight}g`;
 }
 
 function depthPreferenceMarkup(fishId) {
@@ -1998,7 +2179,7 @@ function toPascalCase(value) {
 }
 
 function trendArrow(trend) {
-  return { rising: 'в–І', falling: 'в–ј', stable: 'вЂў' }[trend] ?? 'вЂў';
+  return { rising: '▲', falling: '▼', stable: '•' }[trend] ?? '•';
 }
 
 function trendKey(trend) {

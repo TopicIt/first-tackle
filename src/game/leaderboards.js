@@ -1,4 +1,5 @@
 ﻿import { DEFAULT_AVATAR, DEFAULT_PLAYER_NAME } from './state.js';
+import { getRealTrophyHistory, isRealTrophyEntry } from './fishInventory.js';
 import { getPlayerState } from './playerState.js';
 
 export const leaderboardTypes = ['biggest-fish', 'monthly-trophies'];
@@ -71,18 +72,11 @@ export function getLocalPlayerLeaderboardRecord(state, type = 'biggest-fish') {
 
 export function getLocalMonthlyTrophyRecords(state) {
   const identity = getCurrentPlayerIdentity(state);
-  const currentDay = Number(state.day ?? 1);
-  const sinceDay = Math.max(1, currentDay - 29);
   const groups = new Map();
 
-  for (const trophy of state.trophies ?? []) {
+  for (const trophy of getRealTrophyHistory(state, { days: 30 })) {
     const fishId = trophy?.fishId;
     if (!fishId) {
-      continue;
-    }
-
-    const caughtAtDay = Number(trophy.caughtAtDay ?? currentDay);
-    if (caughtAtDay < sinceDay) {
       continue;
     }
 
@@ -94,15 +88,18 @@ export function getLocalMonthlyTrophyRecords(state) {
       trophies: 0,
       bestTrophyWeightGrams: 0,
       bestTrophyWeightKg: null,
+      topTrophies: [],
       caughtAt: 'Останні 30 днів',
       verified: false,
       localPlayer: true,
+      realTrophy: true,
       level: state.playerProfile?.level ?? 1,
       xp: state.playerProfile?.xp ?? 0,
       totalFishCaught: state.playerProfile?.fishCaughtTotal ?? state.stats?.totalFishCaught ?? 0,
     };
     current.trophyCount += 1;
     current.trophies = current.trophyCount;
+    current.topTrophies.push(trophy);
     current.bestTrophyWeightGrams = Math.max(current.bestTrophyWeightGrams, Number(trophy.weightGrams ?? 0));
     current.bestTrophyWeightKg = current.bestTrophyWeightGrams
       ? Number((current.bestTrophyWeightGrams / 1000).toFixed(3))
@@ -110,10 +107,17 @@ export function getLocalMonthlyTrophyRecords(state) {
     groups.set(fishId, current);
   }
 
-  return [...groups.values()].sort((a, b) => (
-    (b.trophyCount ?? 0) - (a.trophyCount ?? 0)
-    || (b.bestTrophyWeightGrams ?? 0) - (a.bestTrophyWeightGrams ?? 0)
-  ));
+  return [...groups.values()]
+    .map((record) => ({
+      ...record,
+      topTrophies: record.topTrophies
+        .sort((a, b) => Number(b.weightGrams ?? 0) - Number(a.weightGrams ?? 0))
+        .slice(0, 10),
+    }))
+    .sort((a, b) => (
+      (b.trophyCount ?? 0) - (a.trophyCount ?? 0)
+      || (b.bestTrophyWeightGrams ?? 0) - (a.bestTrophyWeightGrams ?? 0)
+    ));
 }
 
 export function getCurrentPlayerIdentity(state) {
@@ -129,6 +133,30 @@ export function getCurrentPlayerIdentity(state) {
     avatarType: profile.avatarType ?? 'preset',
     customAvatarDataUrl: profile.customAvatarDataUrl ?? null,
   };
+}
+
+export function isRealTrophyLeaderboardRecord(record) {
+  return Boolean(
+    record?.fishId
+    && (
+      record.realTrophy === true
+      || record.isTrophy === true
+      || record.trophyTier
+      || record.tier
+      || record.trophyStars
+      || String(record.key ?? '').startsWith('trophyTier')
+      || isRealTrophyEntry(record)
+    )
+  );
+}
+
+export function filterRealTrophyLeaderboardRecords(records = []) {
+  return records
+    .filter(isRealTrophyLeaderboardRecord)
+    .sort((a, b) => (
+      Number(b.bestTrophyWeightGrams ?? b.weightGrams ?? 0) - Number(a.bestTrophyWeightGrams ?? a.weightGrams ?? 0)
+      || Number(b.trophyCount ?? b.trophies ?? 0) - Number(a.trophyCount ?? a.trophies ?? 0)
+    ));
 }
 
 function richestBiggestFish(state, playerState) {

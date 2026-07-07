@@ -5,6 +5,13 @@ Date: 2026-07-07
 
 This audit is inspection-only. No project features, assets, folders, Git history, or external chats were deleted or rewritten.
 
+Follow-up cleanup on 2026-07-07 in `codex/trophy-guide-market-cleanup`:
+
+- Removed the clean obsolete worktrees `D:\first-tackle-cloud-market-pass`, `D:\first-tackle-mvp11`, and `D:\first-tackle\.worktrees\ios-cloud-profile-fixes` after deleting their local `node_modules` and `dist` folders.
+- Ran `git worktree prune` and `git gc --prune=now`; the shared Git directory dropped from about 465.75 MB to 352.10 MB.
+- Removed tracked `_source-assets/deploy-excluded` files from the active repo; active `public/assets` runtime files were kept.
+- No Git history rewrite or force-push was performed.
+
 ## 1. Workspace Folder Audit
 
 | Path | Git repo | Branch | Latest commit | Dirty | Untracked | Upstream / unpushed | Size | Appears to be | Recommendation |
