@@ -574,11 +574,6 @@ export function tackleMarkup(state) {
   const equipped = state.tackle?.equipped ?? {};
   const owned = state.tackle?.owned ?? {};
   return `
-    <section class="active-tackle">
-      <p class="section-label">${t('activeTackle')}</p>
-      <strong>${t('activeTackleComponents')}</strong>
-      <p>${t('activeTackleComponentsDesc')}</p>
-    </section>
     <div class="tackle-grid">
       ${Object.entries(tackleComponents).map(([slot, options]) => `
         <section class="tackle-slot">
@@ -590,7 +585,7 @@ export function tackleMarkup(state) {
           <small>${componentShortDescription(equipped[slot])}</small>
           ${renderItemBonusChips(equipped[slot], { limit: 2 })}
           <div class="tackle-options">
-            ${options.filter((id) => owned[id] && !(requiredTackleSlots.includes(slot) && id === 'none')).map((id) => `
+            ${options.filter((id) => owned[id] && !((requiredTackleSlots.includes(slot) || slot === 'float') && id === 'none')).map((id) => `
               <button class="${equipped[slot] === id ? 'is-selected' : ''}" data-action="tackle:equip:${slot}:${id}" type="button">
                 ${tackleComponentVisualMarkup(id)}
                 <span>
@@ -1029,15 +1024,35 @@ function marketPricesMarkup(state) {
 export function leaderboardMarkup(state) {
   const leaderboardState = state.ui?.leaderboards ?? {};
   const type = normalizeLeaderboardType(leaderboardState.type ?? 'biggest-fish');
-  const rawRecords = leaderboardState.records?.length ? leaderboardState.records : getLocalLeaderboard(type, state);
+  const source = leaderboardState.source ?? 'local-fallback';
+  const shouldUseLocalFallback = source === 'local-fallback';
+  const rawRecords = leaderboardState.records?.length
+    ? leaderboardState.records
+    : shouldUseLocalFallback
+      ? getLocalLeaderboard(type, state)
+      : [];
   const filteredRecords = filterLeaderboardRecords(rawRecords, type, state);
-  const displayRecords = filteredRecords.length ? filteredRecords : getLocalLeaderboard(type, state);
+  const displayRecords = filteredRecords.length
+    ? filteredRecords
+    : shouldUseLocalFallback
+      ? getLocalLeaderboard(type, state)
+      : [];
   const records = normalizeLeaderboardRecords(displayRecords, type, state);
   const busy = Boolean(leaderboardState.busy);
-  const source = leaderboardState.source ?? 'local-fallback';
   const fallbackMessage = leaderboardState.message
     ? ` ${escapeHtml(leaderboardState.message)}`
     : '';
+  const isServerSource = source === 'server' || source === 'server-empty' || String(source).startsWith('server');
+  const statusTitle = shouldUseLocalFallback
+    ? '\u041b\u043e\u043a\u0430\u043b\u044c\u043d\u0430 \u0442\u0430\u0431\u043b\u0438\u0446\u044f'
+    : source === 'server-empty'
+      ? '\u0413\u043b\u043e\u0431\u0430\u043b\u044c\u043d\u0430 \u0442\u0430\u0431\u043b\u0438\u0446\u044f \u043f\u043e\u0440\u043e\u0436\u043d\u044f'
+      : '\u0413\u043b\u043e\u0431\u0430\u043b\u044c\u043d\u0430 \u0442\u0430\u0431\u043b\u0438\u0446\u044f';
+  const statusNote = busy
+    ? '\u041e\u043d\u043e\u0432\u043b\u044e\u0454\u043c\u043e \u0441\u043f\u0438\u0441\u043e\u043a...'
+    : isServerSource
+      ? '\u0414\u0430\u043d\u0456 \u0437 \u0445\u043c\u0430\u0440\u043d\u0438\u0445 \u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043d\u044c \u0433\u0440\u0430\u0432\u0446\u0456\u0432.'
+      : `\u0421\u0435\u0440\u0432\u0435\u0440 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0438\u0439. \u041f\u043e\u043a\u0430\u0437\u0443\u0454\u043c\u043e \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u0456 \u0440\u0435\u043a\u043e\u0440\u0434\u0438.${fallbackMessage}`;
   const tabs = [
     ['biggest-fish', 'Найбільша риба'],
     ['monthly-trophies', 'Трофеї за 30 днів'],
@@ -1052,8 +1067,8 @@ export function leaderboardMarkup(state) {
       </div>
       <div class="leaderboard-status">
         <div>
-          <strong>${source === 'server' ? 'Серверна таблиця' : 'Локальна таблиця'}</strong>
-          <small>${busy ? 'Оновлюємо список...' : source === 'server' ? 'Дані з останніх хмарних збережень.' : `Сервер недоступний або ще порожній, показуємо локальний результат.${fallbackMessage}`}</small>
+          <strong>${statusTitle}</strong>
+          <small>${statusNote}</small>
         </div>
         <button data-action="leaderboard:refresh" type="button"${busy ? ' disabled' : ''}>Оновити таблицю лідерів</button>
       </div>

@@ -142,6 +142,7 @@ export function createHud(root, handlers) {
         email: data.get('email'),
         password: data.get('password'),
         displayName: data.get('displayName') || linkedProfileName,
+        rememberMe: data.get('rememberMe') === 'on',
       });
       return;
     }
@@ -412,7 +413,7 @@ export function createHud(root, handlers) {
               ${panelToggleIcon(collapsedPanels.tackle)}
             </button>
           </div>
-          <div class="panel-collapsible">
+          <div class="panel-collapsible" data-scroll-preserve="tackle-panel">
             ${tackleMarkup(state)}
           </div>
         </section>
@@ -955,7 +956,14 @@ function shouldPreserveScroll(action) {
     || action.startsWith('sell:')
     || action.startsWith('market:tab:')
     || action.startsWith('panel:toggle:marketSpecies:')
-    || action.startsWith('guide:toggle:');
+    || action.startsWith('guide:toggle:')
+    || action.startsWith('tackle:equip:')
+    || action.startsWith('bait:')
+    || action.startsWith('depth:')
+    || action.startsWith('spot:')
+    || action.startsWith('zone:')
+    || action.startsWith('biteHints:')
+    || action === 'panel:toggle:fishingControls';
 }
 
   function setupLocationTransition(root, state, handlers) {

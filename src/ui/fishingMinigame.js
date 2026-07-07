@@ -80,7 +80,7 @@ export function fishingMinigameMarkup(state) {
                 ${panelToggleIcon(collapsedPanels.fishingControls)}
               </button>
             </div>
-            <div class="fishing-minigame__controls-body">
+            <div class="fishing-minigame__controls-body" data-scroll-preserve="fishing-controls">
             <section class="fishing-panel fishing-panel__quick-nav">
               <button data-action="panel:toggle:tackle" type="button">${t('tackle')}</button>
               <button data-action="panel:toggle:keepnet" type="button">${t('keepnet')}</button>
@@ -323,7 +323,7 @@ function bobberStyle(minigame) {
 }
 
 function canCast(minigame) {
-  return Boolean(minigame.selectedBait && minigame.selectedSpot && ['setup', 'result'].includes(minigame.phase));
+  return Boolean(minigame.selectedSpot && ['setup', 'result'].includes(minigame.phase));
 }
 
 function getZoneScale(zone) {
