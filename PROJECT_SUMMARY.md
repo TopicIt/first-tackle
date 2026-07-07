@@ -6,6 +6,71 @@ Updated: 2026-07-07
 
 First Tackle is a local-first browser fishing game with optional account/cloud save support. The frontend remains responsible for rendering, offline play, fishing UI, and local save continuity. The available backend source lives in `D:\first-tackle-api` and currently supports auth, profile, cloud saves, and now read-only leaderboard endpoints aggregated from latest cloud saves.
 
+## Trophy, Guide, Market, And Cleanup Pass
+
+Completed on branch `codex/trophy-guide-market-cleanup`.
+
+Feature commits:
+
+- `2cb8897` (`feat: clean trophy guide market and assets`)
+- `2642a78` (`feat: refine trophies market and guide`)
+
+Main merge commit: `80aea69` (`merge: trophy guide market cleanup`).
+
+Deployment status: main push and live URL check pending after this summary commit.
+
+Completed work:
+
+- Cleaned trophy history normalization so monthly trophy boards use only real trophy/star-threshold catches, ignore ordinary fish, filter to the last 30 in-game days, and cap visible trophy rows to 10 per species group.
+- Added a save-debug-only action to clear local fish/trophy/journal/guide/leaderboard history and related local/session storage keys while preserving the current save shell.
+- Added rare-species trophy eligibility at 5+ population, kept common species at 10+, and raised Mining Lake eel population to make eel trophies reachable.
+- Rebuilt the fish guide's fish/water view as a mobile-first dashboard with `Популяція риб` first and `Місця закиду` below, including stable species colors, population bars, and a spot suitability matrix.
+- Cleaned broken market/category/quantity/status symbols and labels.
+- Removed clean obsolete worktrees `D:\first-tackle-cloud-market-pass`, `D:\first-tackle-mvp11`, and `D:\first-tackle\.worktrees\ios-cloud-profile-fixes`.
+- Ran `git worktree prune` and `git gc --prune=now`; no Git history rewrite or force-push was performed.
+- Removed tracked `_source-assets/deploy-excluded` source/raw files; active `public/assets` files were kept.
+
+Changed files/modules:
+
+- `src/game/fishInventory.js`, `src/game/leaderboards.js`: trophy normalization, filtering, local monthly trophy board rows, and local fish-history clearing.
+- `src/game/waterFishDistribution.js`, `src/game/bitePatterns.js`: rare trophy threshold and added cast spots so every waterbody has at least three spots.
+- `src/ui/panels.js`, `style.css`: redesigned guide dashboard/matrix, market label cleanup, and trophy board display filtering.
+- `src/main.js`, `src/ui/hud.js`: guide water selection, debug clear action, and trophy leaderboard fallback behavior.
+- `src/i18n/translations.js`: labels for the new cast spots.
+- `docs/CLEANUP_AUDIT.md`, `_source-assets/deploy-excluded/*`: recorded cleanup follow-up and removed deploy-excluded source files.
+
+Verification:
+
+- `npm.cmd run build` passed before merge and again on `main` after merge.
+- No `npm test` or check script is defined in `package.json`.
+- `git diff --check` passed; only standard Windows LF-to-CRLF warnings were reported.
+- Module smoke verified ordinary old trophy records are filtered out, last-30-day trophy filtering works, monthly trophy rows are real trophies only, and eel uses the rare 5+ trophy threshold at Mining Lake.
+- Module smoke verified all waterbodies now have at least three cast spots.
+- Mobile browser smoke at `390x844` verified the guide renders `Популяція риб` before `Місця закиду`, has no detected guide text overflow, and the spot matrix scrolls horizontally.
+
+Measured sizes after cleanup:
+
+- Active worktree `D:\first-tackle-main-merge`: 214.61 MB, down from 220.92 MB before tracked source-asset cleanup.
+- Shared Git directory `D:\first-tackle\.git`: 352.24 MB, down from about 465.75 MB before `git gc`.
+- `node_modules`: 79.12 MB.
+- `dist`: 41.79 MB.
+- `public/assets`: 40.59 MB.
+- `_source-assets`: 51.96 MB, down from 58.27 MB after removing tracked deploy-excluded files.
+
+Known remaining issues:
+
+- Vite still warns that the main JS chunk is larger than 500 kB.
+- Remote/backend monthly trophy rows without explicit trophy markers are treated as old incompatible data and the frontend falls back to local trophy rows.
+- The original `D:\first-tackle` worktree remains dirty and was not deleted or reset.
+- Real-device iPhone Safari testing is still recommended for the redesigned guide and debug clear action.
+
+Recommended next tasks:
+
+- Split/lazy-load guide, leaderboard, profile/cloud save, transitions, and 3D code to reduce the main JS chunk.
+- Review the dirty original `D:\first-tackle` worktree before deciding whether to archive or delete it.
+- Add server-authoritative trophy/catch records so leaderboard trophy data is verified and consistently marked.
+- Continue asset optimization by converting large active images/videos only after visual QA.
+
 ## MVP 1.1 Leaderboard, Guide, Progression, And Mobile Polish
 
 Completed on branch `codex/mvp11-leaderboard-guide-progression`.
