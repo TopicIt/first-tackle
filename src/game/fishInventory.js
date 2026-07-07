@@ -577,7 +577,9 @@ export function isRealTrophyEntry(entry) {
     && (
       entry.trophyTier
       || entry.tier
+      || entry.trophy === true
       || entry.isTrophy === true
+      || Number(entry.stars ?? 0) > 0
       || String(entry.key ?? '').startsWith('trophyTier')
       || ['trophy', 'very_rare', 'legendary'].includes(entry.catchCategory)
     )

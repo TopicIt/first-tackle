@@ -84,13 +84,13 @@ import {
 import { getLanguage, t, toggleLanguage } from './i18n/i18n.js';
 import { assetPath } from './utils/assetPath.js';
 import { getWorldMapAsset } from './utils/worldMapAsset.js';
-import { ApiError, loadCloudSession, saveCloudSession } from './api/client.js';
+import { ApiError, clearCloudSession, loadCloudSession, saveCloudSession } from './api/client.js';
 import { getProfile, login, logout, register, updateProfileOnServer } from './api/authApi.js';
 import { loadSave as loadCloudSave, syncSave as syncCloudSave } from './api/saveApi.js';
 import { fetchLeaderboard } from './api/gameApi.js';
 import { primeCatalogCache } from './api/catalogApi.js';
 import { syncPlayerStateFromGameState } from './game/playerState.js';
-import { filterRealTrophyLeaderboardRecords, getLocalLeaderboard } from './game/leaderboards.js';
+import { filterLeaderboardRecords, getLocalLeaderboard } from './game/leaderboards.js';
 
 const canvas = document.querySelector('#game');
 const hudRoot = document.querySelector('#hud');
@@ -145,11 +145,12 @@ const CLOUD_AUTOSAVE_DELAY_MS = 45000;
 const CLOUD_AUTOSAVE_MIN_INTERVAL_MS = 90000;
 const MOBILE_CLOUD_AUTOSAVE_DELAY_MS = 120000;
 const MOBILE_CLOUD_AUTOSAVE_MIN_INTERVAL_MS = 180000;
+const FULL_RESET_TOMBSTONE_KEY = 'first-tackle-reset-tombstone-v1';
 
 queueCatalogWarmup();
 
 const hud = createHud(hudRoot, {
-  onAction(actionId) {
+  async onAction(actionId) {
     dismissStartupTitle();
     audio.activate();
 
@@ -376,7 +377,7 @@ const hud = createHud(hudRoot, {
       if (!window.confirm(t('resetProgressConfirm'))) {
         return;
       }
-      resetToFreshState();
+      await resetToFreshState();
       renderHud();
       return;
     }
@@ -573,9 +574,11 @@ const hud = createHud(hudRoot, {
     if (actionId.startsWith('leaderboard:profile:')) {
       const index = Number(actionId.replace('leaderboard:profile:', ''));
       const type = gameState.ui?.leaderboards?.type ?? 'biggest-fish';
-      const records = gameState.ui?.leaderboards?.records?.length
+      const rawRecords = gameState.ui?.leaderboards?.records?.length
         ? gameState.ui.leaderboards.records
         : getLocalLeaderboard(type, gameState);
+      const filteredRecords = filterLeaderboardRecords(rawRecords, type, gameState);
+      const records = filteredRecords.length ? filteredRecords : getLocalLeaderboard(type, gameState);
       const record = records?.[index];
       gameState.ui.publicProfile = record ? { record } : null;
       gameState.audioQueue.push('ui_click');
@@ -1041,13 +1044,13 @@ const hud = createHud(hudRoot, {
     }
     renderHud();
   },
-  onReset() {
+  async onReset() {
     dismissStartupTitle();
     audio.activate();
     if (!window.confirm(t('resetProgressConfirm'))) {
       return;
     }
-    resetToFreshState();
+    await resetToFreshState();
     renderHud();
   },
   onDismissStartupTitle() {
@@ -1211,13 +1214,11 @@ async function loadLeaderboardRecords(type = 'biggest-fish') {
 
   const response = await fetchLeaderboard(normalizedType);
   const serverRecords = response?.result?.records ?? response?.result?.items ?? response?.result?.rows ?? [];
-  const trophyRecords = normalizedType === 'monthly-trophies'
-    ? filterRealTrophyLeaderboardRecords(serverRecords)
-    : serverRecords;
-  const records = normalizedType === 'monthly-trophies' && trophyRecords.length === 0
+  const filteredServerRecords = filterLeaderboardRecords(serverRecords, normalizedType, gameState);
+  const records = filteredServerRecords.length === 0
     ? localRecords
-    : trophyRecords;
-  const forcedLocalTrophyFallback = normalizedType === 'monthly-trophies' && trophyRecords.length === 0 && serverRecords.length > 0;
+    : filteredServerRecords;
+  const forcedLocalFallback = filteredServerRecords.length === 0 && serverRecords.length > 0;
   if (response?.fallback && import.meta.env?.DEV) {
     console.warn('Leaderboard backend unavailable; using local-only fallback.', response.error ?? null);
   }
@@ -1226,15 +1227,15 @@ async function loadLeaderboardRecords(type = 'biggest-fish') {
     type: normalizedType,
     busy: false,
     records,
-    source: response?.fallback || forcedLocalTrophyFallback
+    source: response?.fallback || forcedLocalFallback
       ? 'local-fallback'
       : String(response?.result?.source ?? 'server').startsWith('server')
         ? 'server'
         : response?.result?.source ?? 'server',
     message: response?.fallback
       ? response?.result?.message ?? response?.error?.message ?? 'Leaderboard server unavailable; showing local records.'
-      : forcedLocalTrophyFallback
-        ? '\u0421\u0435\u0440\u0432\u0435\u0440 \u043f\u043e\u0432\u0435\u0440\u043d\u0443\u0432 \u0441\u0442\u0430\u0440\u0456 \u0437\u0430\u043f\u0438\u0441\u0438 \u0431\u0435\u0437 \u0442\u0440\u043e\u0444\u0435\u0439\u043d\u043e\u0457 \u043f\u043e\u0437\u043d\u0430\u0447\u043a\u0438; \u043f\u043e\u043a\u0430\u0437\u0430\u043d\u043e \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u0456 \u0442\u0440\u043e\u0444\u0435\u0457.'
+      : forcedLocalFallback
+        ? '\u0421\u0435\u0440\u0432\u0435\u0440 \u043f\u043e\u0432\u0435\u0440\u043d\u0443\u0432 \u0441\u0442\u0430\u0440\u0456 \u0430\u0431\u043e \u043d\u0435\u043f\u043e\u0432\u043d\u0456 \u0437\u0430\u043f\u0438\u0441\u0438; \u043f\u043e\u043a\u0430\u0437\u0430\u043d\u043e \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u0456 \u0440\u0435\u043a\u043e\u0440\u0434\u0438.'
         : '',
   };
   renderHud();
@@ -1554,15 +1555,97 @@ function ensureRuntimeState(state) {
   syncProfileDerivedStats(state);
 }
 
-function resetToFreshState() {
+async function resetToFreshState() {
+  const resetAt = new Date().toISOString();
+  const cloudSessionBeforeReset = loadCloudSession();
+  clearCloudAutosaveQueue();
   resetGame();
+  clearResetStorageKeys({ keepCloudSession: Boolean(cloudSessionBeforeReset?.accessToken) });
+  writeResetTombstone(resetAt);
   gameState = createInitialState();
   ensureRuntimeState(gameState);
   resetLaunchUiState(gameState);
   player.restore(gameState.player);
   audio.syncSettings(gameState.settings.audio);
+  lastHudSnapshot = '';
+  lastAutosaveSignature = '';
+  lastCloudAutosaveSignature = '';
+  saveGame(gameState);
+  if (cloudSessionBeforeReset?.accessToken) {
+    saveCloudSession({
+      ...cloudSessionBeforeReset,
+      lastMessage: '\u041f\u0440\u043e\u0433\u0440\u0435\u0441 \u0441\u043a\u0438\u043d\u0443\u0442\u043e; \u043e\u043d\u043e\u0432\u043b\u044e\u0454\u043c\u043e \u0445\u043c\u0430\u0440\u043d\u0438\u0439 \u0441\u0435\u0439\u0432.',
+    });
+    try {
+      const result = await syncCurrentSaveToCloud();
+      saveCloudSession({
+        ...cloudSessionBeforeReset,
+        saveMetadata: result.metadata,
+        lastMessage: '\u0425\u043c\u0430\u0440\u043d\u0438\u0439 \u0441\u0435\u0439\u0432 \u0441\u043a\u0438\u043d\u0443\u0442\u043e.',
+      });
+      lastCloudAutosaveSignature = getCloudSaveSignature();
+    } catch (error) {
+      console.warn('Could not overwrite cloud save during reset.', error);
+    }
+  }
+  clearCloudSession();
+  writeResetTombstone(resetAt);
   pushLog(gameState, 'logFreshMorning');
   startBootFlow();
+}
+
+function clearResetStorageKeys({ keepCloudSession = false } = {}) {
+  const preserveKeys = new Set([
+    'first-tackle-language',
+    'first-tackle-view-mode',
+    'first-tackle-debug-layout',
+    'first-tackle-mobile-debug',
+    'first-tackle-debug-save',
+    'first-tackle-save-debug',
+    FULL_RESET_TOMBSTONE_KEY,
+  ]);
+  if (keepCloudSession) {
+    preserveKeys.add('first-tackle-cloud-session-v1');
+  }
+  for (const storage of [localStorage, sessionStorage]) {
+    try {
+      for (const key of Object.keys(storage)) {
+        if (key.startsWith('first-tackle-') && !preserveKeys.has(key)) {
+          storage.removeItem(key);
+        }
+      }
+    } catch {
+      // Storage can be unavailable in private or restricted browser contexts.
+    }
+  }
+}
+
+function writeResetTombstone(resetAt = new Date().toISOString()) {
+  try {
+    localStorage.setItem(FULL_RESET_TOMBSTONE_KEY, JSON.stringify({ resetAt }));
+  } catch {
+    // Reset still works without tombstone persistence.
+  }
+}
+
+function readResetTombstoneTime() {
+  try {
+    const raw = localStorage.getItem(FULL_RESET_TOMBSTONE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    const timestamp = Date.parse(parsed?.resetAt ?? '');
+    return Number.isFinite(timestamp) ? timestamp : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function isCloudSaveOlderThanReset(metadata) {
+  const resetAt = readResetTombstoneTime();
+  if (!resetAt) {
+    return false;
+  }
+  const cloudUpdatedAt = Date.parse(metadata?.serverUpdatedAt ?? metadata?.clientUpdatedAt ?? metadata?.updatedAt ?? '');
+  return Number.isFinite(cloudUpdatedAt) && cloudUpdatedAt < resetAt;
 }
 
 function clearLocalFishHistoryForTesting() {
@@ -1577,7 +1660,7 @@ function clearLocalFishHistoryForTesting() {
 
 function clearFishHistoryStorageKeys() {
   const shouldRemoveKey = (key) => (
-    /^first-tackle-(fish|trophy|guide|leaderboard)/i.test(key)
+    /^first-tackle-(fish|trophy|guide|leaderboard|catch|journal)/i.test(key)
     || /^first-tackle-save-v\d+-backup-/i.test(key)
     || /^first-tackle-mobile-transition-seen-v/i.test(key)
   );
@@ -1779,6 +1862,17 @@ async function downloadCloudSave() {
       return;
     }
 
+    if (isCloudSaveOlderThanReset(result.metadata)) {
+      saveCloudSession({
+        ...(loadCloudSession() ?? {}),
+        saveMetadata: result.metadata,
+        lastMessage: '\u0425\u043c\u0430\u0440\u043d\u0438\u0439 \u0441\u0435\u0439\u0432 \u0441\u0442\u0430\u0440\u0456\u0448\u0438\u0439 \u0437\u0430 \u043e\u0441\u0442\u0430\u043d\u043d\u0454 \u0441\u043a\u0438\u0434\u0430\u043d\u043d\u044f; \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u0438\u0439 \u0441\u0442\u0430\u043d \u0437\u0430\u043b\u0438\u0448\u0435\u043d\u043e.',
+      });
+      setCloudBusy(false, '\u0425\u043c\u0430\u0440\u043d\u0438\u0439 \u0441\u0435\u0439\u0432 \u0441\u0442\u0430\u0440\u0456\u0448\u0438\u0439 \u0437\u0430 \u043e\u0441\u0442\u0430\u043d\u043d\u0454 \u0441\u043a\u0438\u0434\u0430\u043d\u043d\u044f.');
+      renderHud();
+      return;
+    }
+
     const revisionText = result.metadata?.revision ? `Ревізія ${result.metadata.revision}. ` : '';
     if (!window.confirm(`${revisionText}Завантажити сейв із сервера і перезаписати локальне збереження?`)) {
       setCloudBusy(false, 'Завантаження із сервера скасовано.');
@@ -1823,6 +1917,16 @@ async function loadLatestCloudSaveAfterAuth(profile) {
   const metadata = result?.metadata ?? null;
   if (!metadata?.exists || !result?.payload) {
     const message = 'Хмарного збереження ще немає. Локальний прогрес залишено.';
+    saveCloudSession({
+      ...(loadCloudSession() ?? {}),
+      profile,
+      saveMetadata: metadata,
+      lastMessage: message,
+    });
+    return message;
+  }
+  if (isCloudSaveOlderThanReset(metadata)) {
+    const message = '\u0425\u043c\u0430\u0440\u043d\u0438\u0439 \u0441\u0435\u0439\u0432 \u0441\u0442\u0430\u0440\u0456\u0448\u0438\u0439 \u0437\u0430 \u043e\u0441\u0442\u0430\u043d\u043d\u0454 \u0441\u043a\u0438\u0434\u0430\u043d\u043d\u044f. \u041b\u043e\u043a\u0430\u043b\u044c\u043d\u0438\u0439 \u0441\u0442\u0430\u043d \u0437\u0430\u043b\u0438\u0448\u0435\u043d\u043e.';
     saveCloudSession({
       ...(loadCloudSession() ?? {}),
       profile,

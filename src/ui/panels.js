@@ -22,7 +22,7 @@ import { assetPath } from '../utils/assetPath.js';
 import { getWorldMapAsset } from '../utils/worldMapAsset.js';
 import { loadCloudSession } from '../api/client.js';
 import { getActiveItemModifiers } from '../game/itemEffects.js';
-import { filterRealTrophyLeaderboardRecords, getLocalLeaderboard, normalizeLeaderboardType } from '../game/leaderboards.js';
+import { filterLeaderboardRecords, getLocalLeaderboard, normalizeLeaderboardType } from '../game/leaderboards.js';
 import { getPlayerState } from '../game/playerState.js';
 import { getFishingLocation } from '../game/locations.js';
 import {
@@ -617,7 +617,7 @@ export function guideMarkup(state) {
       `).join('')}
     </div>
     <div class="guide-body">
-      ${tab === 'waters' || tab === 'fish' ? guideWaterDashboardMarkup(state) : guideAccordionMarkup(tab, state)}
+      ${tab === 'fish' ? fishGuideAccordionMarkup(state) : tab === 'waters' ? guideWaterDashboardMarkup(state) : guideAccordionMarkup(tab, state)}
     </div>
   `;
 }
@@ -1030,10 +1030,8 @@ export function leaderboardMarkup(state) {
   const leaderboardState = state.ui?.leaderboards ?? {};
   const type = normalizeLeaderboardType(leaderboardState.type ?? 'biggest-fish');
   const rawRecords = leaderboardState.records?.length ? leaderboardState.records : getLocalLeaderboard(type, state);
-  const trophyRecords = type === 'monthly-trophies' ? filterRealTrophyLeaderboardRecords(rawRecords) : rawRecords;
-  const displayRecords = type === 'monthly-trophies'
-    ? (trophyRecords.length ? trophyRecords : getLocalLeaderboard(type, state))
-    : rawRecords;
+  const filteredRecords = filterLeaderboardRecords(rawRecords, type, state);
+  const displayRecords = filteredRecords.length ? filteredRecords : getLocalLeaderboard(type, state);
   const records = normalizeLeaderboardRecords(displayRecords, type, state);
   const busy = Boolean(leaderboardState.busy);
   const source = leaderboardState.source ?? 'local-fallback';
@@ -1108,6 +1106,9 @@ function leaderboardRecordMarkup(record, index, options = {}) {
   const title = escapeHtml(record.displayName ?? record.playerName ?? 'Гість');
   const location = readableLocationName(record.locationId, record.locationName);
   const bait = readableBaitName(record.baitId, record.baitName);
+  const depth = readableDepthName(record.depth, record.depthName);
+  const castSpot = readableCastSpotName(record.catchSpotId, record.castSpotName);
+  const tackle = readableTackleName(record.tackleSummary ?? record.tackleId ?? record.method, record.tackleName);
   const date = readableDateText(record.caughtAt ?? record.caughtAtDay);
   const sourceLabel = record.verified || record.serverBacked || String(record.source ?? '').startsWith('server') ? 'сервер' : 'локально';
   const trophyCount = Number(record.trophyCount ?? record.trophies ?? 0);
@@ -1116,9 +1117,10 @@ function leaderboardRecordMarkup(record, index, options = {}) {
     : `${fishName ? `${fishName} · ` : ''}${formatKg(record.weightKg ?? Number(record.weightGrams ?? 0) / 1000)} кг · ${location}`;
   const meta = [
     bait,
-    record.depth ? t(`depth${toPascalCase(record.depth)}`) : '',
+    depth,
+    castSpot,
     date,
-    record.tackleSummary && !isTechnicalLabel(record.tackleSummary) ? record.tackleSummary : '',
+    tackle,
     record.level ? `рівень ${record.level}` : '',
     record.totalFishCaught ? `${record.totalFishCaught} риб` : '',
     sourceLabel,
@@ -1131,8 +1133,8 @@ function leaderboardRecordMarkup(record, index, options = {}) {
         <img src="${leaderboardAvatarSrc(record)}" onerror="this.src='${assetPath(profileAvatars[0])}'" alt="" />
       </button>
       <div class="leaderboard-record__body">
-        <strong>${title}</strong>
-        <span>${detail}</span>
+        <button class="leaderboard-record__profile-link" data-action="leaderboard:profile:${index}" type="button">${title}</button>
+        <button class="leaderboard-record__profile-link leaderboard-record__profile-link--detail" data-action="leaderboard:profile:${index}" type="button">${detail}</button>
         <small>${escapeHtml(meta)}</small>
       </div>
     </article>
@@ -1154,7 +1156,10 @@ function normalizeLeaderboardRecords(records, type, state) {
     playerName: record.playerName ?? record.displayName ?? state.playerProfile?.name ?? 'Гість',
     fishId: record.fishId ?? record.fishName ?? null,
     weightKg: record.weightKg ?? (record.weightGrams ? Number((record.weightGrams / 1000).toFixed(3)) : null),
+    weightGrams: record.weightGrams ?? (record.weightKg ? Math.round(Number(record.weightKg) * 1000) : null),
     trophyCount: record.trophyCount ?? record.trophies ?? 0,
+    topTrophies: Array.isArray(record.topTrophies) ? record.topTrophies.slice(0, 10) : [],
+    recentCatches: Array.isArray(record.recentCatches) ? record.recentCatches.slice(0, 5) : [],
     avatar: record.avatar ?? (record.localPlayer ? localIdentity.avatar : profileAvatars[0]),
     avatarId: record.avatarId ?? (record.localPlayer ? localIdentity.avatarId : profileAvatars[0]),
     avatarType: record.avatarType ?? (record.localPlayer ? localIdentity.avatarType : 'preset'),
@@ -1191,12 +1196,13 @@ function groupLeaderboardRecordsByFish(records) {
 }
 
 function publicProfileModalMarkup(state) {
-  const record = state.ui?.publicProfileRecord;
+  const record = state.ui?.publicProfile?.record ?? state.ui?.publicProfileRecord;
   if (!record) {
     return '';
   }
 
   const safeRecord = normalizeLeaderboardRecords([record], 'public-profile', state)[0];
+  const notableCatches = publicProfileNotableCatches(safeRecord);
   return `
     <section class="public-profile-modal" role="dialog" aria-modal="true" aria-label="Публічний профіль">
       <button class="public-profile-modal__backdrop" data-action="leaderboard:profile:close" type="button" aria-label="${t('close')}"></button>
@@ -1208,11 +1214,35 @@ function publicProfileModalMarkup(state) {
           <div><dt>Рівень</dt><dd>${safeRecord.level ?? 1}</dd></div>
           <div><dt>Усього риб</dt><dd>${safeRecord.totalFishCaught ?? 0}</dd></div>
           <div><dt>Трофеї</dt><dd>${safeRecord.trophyCount ?? safeRecord.trophies ?? 0}</dd></div>
-          <div><dt>Найбільша риба</dt><dd>${safeRecord.fishId ? `${t(fishData.find((fish) => fish.id === safeRecord.fishId)?.nameKey ?? safeRecord.fishId)} · ${formatKg(safeRecord.weightKg ?? 0)} кг` : 'Немає даних'}</dd></div>
+          <div><dt>Найбільша риба</dt><dd>${safeRecord.fishId ? `${t(fishData.find((fish) => fish.id === safeRecord.fishId)?.nameKey ?? safeRecord.fishId)} · ${formatKg(safeRecord.weightKg ?? Number(safeRecord.weightGrams ?? 0) / 1000)} кг` : 'Немає даних'}</dd></div>
         </dl>
+        <div class="public-profile-card__catches">
+          <strong>Помітні улови</strong>
+          ${notableCatches.length
+            ? `<ul>${notableCatches.map((entry) => `<li>${entry}</li>`).join('')}</ul>`
+            : '<span>Немає даних про останні улови.</span>'}
+        </div>
       </article>
     </section>
   `;
+}
+
+function publicProfileNotableCatches(record) {
+  const fromTrophies = (record.topTrophies ?? []).map((entry) => {
+    const fishId = entry.fishId ?? record.fishId;
+    return `${t(fishData.find((fish) => fish.id === fishId)?.nameKey ?? fishId)} · ${formatKg(Number(entry.weightGrams ?? 0) / 1000)} кг`;
+  });
+  const fromRecent = (record.recentCatches ?? []).map((entry) => {
+    const fishId = entry.fishId ?? record.fishId;
+    return `${t(fishData.find((fish) => fish.id === fishId)?.nameKey ?? fishId)} · ${formatKg(entry.weightKg ?? Number(entry.weightGrams ?? 0) / 1000)} кг`;
+  });
+  if (fromTrophies.length || fromRecent.length) {
+    return [...fromTrophies, ...fromRecent].slice(0, 5);
+  }
+  if (record.fishId && (record.weightKg || record.weightGrams)) {
+    return [`${t(fishData.find((fish) => fish.id === record.fishId)?.nameKey ?? record.fishId)} · ${formatKg(record.weightKg ?? Number(record.weightGrams ?? 0) / 1000)} кг`];
+  }
+  return [];
 }
 
 function leaderboardAvatarSrc(record) {
@@ -1230,9 +1260,51 @@ function readableLocationName(locationId, fallback) {
 
 function readableBaitName(baitId, fallback) {
   if (baitId) {
+    const baitLabels = {
+      live_bait: 'Живець',
+      small_worms: t('itemSmallWorms'),
+      worms: t('itemWorms'),
+      nightcrawler: t('itemNightcrawler'),
+      larvae: t('itemLarvae'),
+    };
+    if (baitLabels[baitId]) {
+      return baitLabels[baitId];
+    }
     return getItemDisplayName(baitId, getLanguage());
   }
   return isTechnicalLabel(fallback) ? 'Без наживки' : escapeHtml(fallback ?? 'Без наживки');
+}
+
+function readableDepthName(depthId, fallback) {
+  if (depthId) {
+    return t(`depth${toPascalCase(depthId)}`);
+  }
+  return isTechnicalLabel(fallback) ? '' : escapeHtml(fallback ?? '');
+}
+
+function readableCastSpotName(castSpotId, fallback) {
+  if (castSpotId) {
+    return t(getCastSpot(castSpotId).labelKey);
+  }
+  return isTechnicalLabel(fallback) ? '' : escapeHtml(fallback ?? '');
+}
+
+function readableTackleName(tackleId, fallback) {
+  if (tackleId && !isTechnicalLabel(tackleId)) {
+    return escapeHtml(tackleId);
+  }
+  const labels = {
+    handline: 'Ручна снасть',
+    stickRod: 'Палиця-вудка',
+    liveBait: 'Живцева снасть',
+    simple_stick_rod: 'Палиця-вудка',
+    properRod: t('componentProperRod'),
+    betterLine: t('itemBetterLine'),
+  };
+  if (tackleId && labels[tackleId]) {
+    return labels[tackleId];
+  }
+  return isTechnicalLabel(fallback) ? '' : escapeHtml(fallback ?? '');
 }
 
 function readableDateText(value) {
@@ -1377,7 +1449,13 @@ function guideWaterDashboardMarkup(state) {
         <img src="${assetPath(waterImages[water.id] ?? '/assets/locations/pond_location_concept.png')}" loading="lazy" decoding="async" onerror="this.src='${assetPath('/assets/locations/pond_location_concept.png')}'" alt="" />
         <div>
           <strong>${t(water.nameKey)}</strong>
-          <span>${t(water.bestTimeKey)} · ${t(water.tackleKey)}</span>
+          <p>${t(water.descriptionKey)}</p>
+          <dl class="guide-water-facts">
+            <div><dt>${t('bestTime')}</dt><dd>${t(water.bestTimeKey)}</dd></div>
+            <div><dt>${t('preferredBait')}</dt><dd>${t(water.baitKey)}</dd></div>
+            <div><dt>${t('tackle')}</dt><dd>${t(water.tackleKey)}</dd></div>
+          </dl>
+          ${waterSpotChipsMarkup(water.id)}
         </div>
       </div>
       ${guidePopulationBlockMarkup(water.id)}
@@ -1397,6 +1475,21 @@ function currentGuideWaterId(state) {
     state.travel?.selectedWater,
   ];
   return candidates.find((waterId) => waterGuide.some((water) => water.id === waterId)) ?? 'canal';
+}
+
+function waterSpotChipsMarkup(waterId) {
+  const spots = castSpots.filter((spot) => (spot.waterId ?? 'canal') === waterId);
+  if (!spots.length) {
+    return '';
+  }
+  return `
+    <div class="guide-water-spots">
+      <span>${t('castSpots')}</span>
+      <div>
+        ${spots.map((spot) => `<i>${spotIconLabel(spot)} ${t(spot.labelKey)}</i>`).join('')}
+      </div>
+    </div>
+  `;
 }
 
 function guidePopulationBlockMarkup(waterId) {
