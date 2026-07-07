@@ -188,9 +188,20 @@ export function isRecordWithinRecentDays(record, state = null, days = LEADERBOAR
     return caughtAtDay >= Math.max(1, currentDay - (days - 1));
   }
 
-  const caughtAt = parseRecordDate(record?.caughtAt ?? record?.createdAt ?? record?.updatedAt ?? record?.serverUpdatedAt);
+  const caughtAt = parseRecordDate(
+    record?.serverUpdatedAt
+    ?? record?.clientUpdatedAt
+    ?? record?.updatedAt
+    ?? record?.createdAt
+    ?? record?.metadata?.serverUpdatedAt
+    ?? record?.caughtAt,
+  );
   if (caughtAt) {
     return Date.now() - caughtAt.getTime() <= days * 24 * 60 * 60 * 1000;
+  }
+
+  if (isServerBackedRecord(record)) {
+    return true;
   }
 
   return Boolean(record?.localPlayer);
@@ -200,8 +211,19 @@ function parseRecordDate(value) {
   if (!value || typeof value !== 'string') {
     return null;
   }
+  if (/^\d{1,2}:\d{2}(?::\d{2})?$/.test(value.trim())) {
+    return null;
+  }
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp) ? new Date(timestamp) : null;
+}
+
+function isServerBackedRecord(record) {
+  return Boolean(
+    record?.serverBacked
+    || record?.serverRevision
+    || String(record?.source ?? '').startsWith('server')
+  );
 }
 
 function richestBiggestFish(state, playerState) {

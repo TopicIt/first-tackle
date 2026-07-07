@@ -22,6 +22,7 @@ import { getWaterSizeRange } from './waterFishDistribution.js';
 import { classifyCatchSize, rollFishWeight } from './fishSizeProfiles.js';
 
 const ambientLogKeys = ['logAmbientBird', 'logAmbientRings', 'logAmbientDrift'];
+const NO_BAIT_NOTICE_COOLDOWN_MS = 1400;
 
 export function createFishingMinigameState(method) {
   return {
@@ -195,7 +196,7 @@ export function castLine(state, nowMs) {
   }
 
   if (!minigame.selectedBait) {
-    minigame.statusKey = 'fishingSelectBaitFirst';
+    notifyNoBait(state, minigame);
     return;
   }
 
@@ -209,7 +210,7 @@ export function castLine(state, nowMs) {
   }
 
   if (!hasBaitAvailable(state, minigame.selectedBait)) {
-    minigame.statusKey = 'logNeedBait';
+    notifyNoBait(state, minigame);
     return;
   }
 
@@ -688,7 +689,7 @@ export function getFishingContextAction(state) {
   }
 
   if (canContextCast(minigame)) {
-    return { labelKey: 'cast', enabled: Boolean(minigame.selectedBait && minigame.selectedSpot), variant: 'cast' };
+    return { labelKey: 'cast', enabled: Boolean(minigame.selectedSpot), variant: 'cast' };
   }
 
   if (minigame.phase === 'strike_window') {
@@ -759,6 +760,18 @@ function advancePatternStep(state, minigame, nowMs) {
 
 function canContextCast(minigame) {
   return ['setup', 'result'].includes(minigame.phase);
+}
+
+function notifyNoBait(state, minigame) {
+  minigame.statusKey = 'fishingNoBaitAvailable';
+  const now = globalThis.performance?.now?.() ?? Date.now();
+  const lastNoticeAt = Number(minigame.noBaitNoticeAt ?? 0);
+  if (lastNoticeAt > 0 && now - lastNoticeAt < NO_BAIT_NOTICE_COOLDOWN_MS) {
+    return;
+  }
+  minigame.noBaitNoticeAt = now;
+  pushFeedback(state, 'feedbackNoBait', {}, 'bait');
+  pushLog(state, 'logNeedBait');
 }
 
 function hasUsableRod(state) {

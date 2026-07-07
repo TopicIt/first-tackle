@@ -103,8 +103,16 @@ export function ensureTackleState(state) {
     state.tackle.owned.old_dull_hook = true;
     state.tackle.owned.small_stone = true;
   }
-  if (state.progress?.starterTackleDrawerCompleted) {
+  const shouldHaveStarterFloat = Boolean(
+    state.progress?.starterTackleDrawerCompleted
+    || state.tutorialState?.completed
+    || state.tutorialState?.skipped
+    || state.progress?.firstTackleReady
+  );
+  if (shouldHaveStarterFloat) {
     state.tackle.owned.goose_feather_float = true;
+  }
+  if (state.progress?.starterTackleDrawerCompleted) {
     state.tackle.owned.simple_stick_rod = true;
   }
   if (state.inventory?.stickRod > 0) {
@@ -136,6 +144,9 @@ export function ensureTackleState(state) {
   }
   if (state.purchased?.properRod) {
     state.tackle.owned.proper_rod = true;
+  }
+  if (shouldHaveStarterFloat && (!state.tackle.equipped.float || state.tackle.equipped.float === 'none')) {
+    state.tackle.equipped.float = 'goose_feather_float';
   }
   repairEquippedComponents(state);
   state.tackle.activeRig = null;

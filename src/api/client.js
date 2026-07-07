@@ -16,15 +16,18 @@ export function getApiAccessToken() {
 
 export function loadCloudSession() {
   try {
-    return JSON.parse(localStorage.getItem(CLOUD_SESSION_KEY) ?? 'null');
+    const raw = localStorage.getItem(CLOUD_SESSION_KEY)
+      ?? sessionStorage.getItem(CLOUD_SESSION_KEY);
+    return JSON.parse(raw ?? 'null');
   } catch {
     return null;
   }
 }
 
 export function saveCloudSession(session) {
+  const existingSession = loadCloudSession() ?? {};
   const nextSession = {
-    ...(loadCloudSession() ?? {}),
+    ...existingSession,
     ...(session ?? {}),
     updatedAt: new Date().toISOString(),
   };
@@ -33,7 +36,10 @@ export function saveCloudSession(session) {
     return null;
   }
   try {
-    localStorage.setItem(CLOUD_SESSION_KEY, JSON.stringify(nextSession));
+    const storage = nextSession.rememberMe === false ? sessionStorage : localStorage;
+    const otherStorage = nextSession.rememberMe === false ? localStorage : sessionStorage;
+    storage.setItem(CLOUD_SESSION_KEY, JSON.stringify(nextSession));
+    otherStorage.removeItem(CLOUD_SESSION_KEY);
     setApiAccessToken(nextSession.accessToken);
     return nextSession;
   } catch {
@@ -53,6 +59,7 @@ export function updateCloudSessionProfile(profile) {
 export function clearCloudSession() {
   try {
     localStorage.removeItem(CLOUD_SESSION_KEY);
+    sessionStorage.removeItem(CLOUD_SESSION_KEY);
   } catch {
     // Storage can be unavailable in private or restricted browser contexts.
   }

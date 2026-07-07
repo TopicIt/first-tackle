@@ -85,7 +85,7 @@ import { getLanguage, t, toggleLanguage } from './i18n/i18n.js';
 import { assetPath } from './utils/assetPath.js';
 import { getWorldMapAsset } from './utils/worldMapAsset.js';
 import { ApiError, clearCloudSession, loadCloudSession, saveCloudSession } from './api/client.js';
-import { getProfile, login, logout, register, updateProfileOnServer } from './api/authApi.js';
+import { getProfile, login, logout, refreshAuth, register, updateProfileOnServer } from './api/authApi.js';
 import { loadSave as loadCloudSave, syncSave as syncCloudSave } from './api/saveApi.js';
 import { fetchLeaderboard } from './api/gameApi.js';
 import { primeCatalogCache } from './api/catalogApi.js';
@@ -139,6 +139,7 @@ let cloudAutosaveTimer = null;
 let cloudAutosaveInFlight = false;
 let cloudAutosavePending = false;
 let lastCloudAutosaveStartedAt = 0;
+let pendingCloudSaveDownload = null;
 
 const CLOUD_SAVE_HINT_DISMISSED_KEY = 'first-tackle-cloud-save-hint-dismissed-v1';
 const CLOUD_AUTOSAVE_DELAY_MS = 45000;
@@ -574,11 +575,19 @@ const hud = createHud(hudRoot, {
     if (actionId.startsWith('leaderboard:profile:')) {
       const index = Number(actionId.replace('leaderboard:profile:', ''));
       const type = gameState.ui?.leaderboards?.type ?? 'biggest-fish';
+      const source = gameState.ui?.leaderboards?.source ?? 'local-fallback';
+      const shouldUseLocalFallback = source === 'local-fallback';
       const rawRecords = gameState.ui?.leaderboards?.records?.length
         ? gameState.ui.leaderboards.records
-        : getLocalLeaderboard(type, gameState);
+        : shouldUseLocalFallback
+          ? getLocalLeaderboard(type, gameState)
+          : [];
       const filteredRecords = filterLeaderboardRecords(rawRecords, type, gameState);
-      const records = filteredRecords.length ? filteredRecords : getLocalLeaderboard(type, gameState);
+      const records = filteredRecords.length
+        ? filteredRecords
+        : shouldUseLocalFallback
+          ? getLocalLeaderboard(type, gameState)
+          : [];
       const record = records?.[index];
       gameState.ui.publicProfile = record ? { record } : null;
       gameState.audioQueue.push('ui_click');
@@ -1096,6 +1105,7 @@ const hud = createHud(hudRoot, {
 });
 
 startBootFlow();
+reconnectCloudSession();
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden' && cloudAutosaveTimer) {
     queueCloudAutosave({ immediate: true });
@@ -1133,10 +1143,7 @@ function normalizePanelStateForViewport(state) {
   state.ui.collapsedPanels = {
     ...(state.ui.collapsedPanels ?? {}),
   };
-  const profileSetupIncomplete = !state.playerProfile?.setupComplete || !state.progress?.profileSetupComplete;
-  if (profileSetupIncomplete) {
-    state.ui.collapsedPanels.profile = false;
-  }
+  state.ui.collapsedPanels.profile ??= true;
 
   const resolvedViewMode = applyViewModeToDocument(state);
   if (resolvedViewMode !== 'mobile') {
@@ -1146,10 +1153,6 @@ function normalizePanelStateForViewport(state) {
   state.ui.collapsedPanels.status = false;
 
   for (const panelId of ['profile', 'inventory', 'keepnet', 'tackle', 'guide', 'journal', 'quests', 'achievements', 'leaderboard', 'mapViewer', 'settings']) {
-    if (panelId === 'profile' && profileSetupIncomplete) {
-      state.ui.collapsedPanels.profile = false;
-      continue;
-    }
     state.ui.collapsedPanels[panelId] = true;
   }
 }
@@ -1181,6 +1184,10 @@ function resetLaunchUiState(state) {
   state.ui.editingProfile = false;
   state.ui.cloudSaveHintDismissed = isCloudSaveHintDismissed();
   state.ui.marketBuyCategory ??= 'tackle';
+  state.ui.collapsedPanels = {
+    ...(state.ui.collapsedPanels ?? {}),
+    profile: true,
+  };
   state.ui.leaderboards = {
     type: state.ui.leaderboards?.type ?? 'biggest-fish',
     records: state.ui.leaderboards?.records ?? [],
@@ -1215,10 +1222,16 @@ async function loadLeaderboardRecords(type = 'biggest-fish') {
   const response = await fetchLeaderboard(normalizedType);
   const serverRecords = response?.result?.records ?? response?.result?.items ?? response?.result?.rows ?? [];
   const filteredServerRecords = filterLeaderboardRecords(serverRecords, normalizedType, gameState);
-  const records = filteredServerRecords.length === 0
-    ? localRecords
-    : filteredServerRecords;
-  const forcedLocalFallback = filteredServerRecords.length === 0 && serverRecords.length > 0;
+  const useLocalFallback = Boolean(response?.fallback);
+  const records = useLocalFallback ? localRecords : filteredServerRecords;
+  const serverSource = String(response?.result?.source ?? 'server');
+  const source = useLocalFallback
+    ? 'local-fallback'
+    : filteredServerRecords.length === 0
+      ? 'server-empty'
+      : serverSource.startsWith('server')
+        ? 'server'
+        : serverSource;
   if (response?.fallback && import.meta.env?.DEV) {
     console.warn('Leaderboard backend unavailable; using local-only fallback.', response.error ?? null);
   }
@@ -1227,15 +1240,11 @@ async function loadLeaderboardRecords(type = 'biggest-fish') {
     type: normalizedType,
     busy: false,
     records,
-    source: response?.fallback || forcedLocalFallback
-      ? 'local-fallback'
-      : String(response?.result?.source ?? 'server').startsWith('server')
-        ? 'server'
-        : response?.result?.source ?? 'server',
+    source,
     message: response?.fallback
       ? response?.result?.message ?? response?.error?.message ?? 'Leaderboard server unavailable; showing local records.'
-      : forcedLocalFallback
-        ? '\u0421\u0435\u0440\u0432\u0435\u0440 \u043f\u043e\u0432\u0435\u0440\u043d\u0443\u0432 \u0441\u0442\u0430\u0440\u0456 \u0430\u0431\u043e \u043d\u0435\u043f\u043e\u0432\u043d\u0456 \u0437\u0430\u043f\u0438\u0441\u0438; \u043f\u043e\u043a\u0430\u0437\u0430\u043d\u043e \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u0456 \u0440\u0435\u043a\u043e\u0440\u0434\u0438.'
+      : filteredServerRecords.length === 0 && serverRecords.length > 0
+        ? '\u0413\u043b\u043e\u0431\u0430\u043b\u044c\u043d\u0430 \u0442\u0430\u0431\u043b\u0438\u0446\u044f \u043e\u0442\u0440\u0438\u043c\u0430\u043d\u0430, \u0430\u043b\u0435 \u0441\u0442\u0430\u0440\u0456 \u0430\u0431\u043e \u043d\u0435\u043f\u043e\u0432\u043d\u0456 \u0440\u044f\u0434\u043a\u0438 \u043f\u0440\u0438\u0445\u043e\u0432\u0430\u043d\u043e.'
         : '',
   };
   renderHud();
@@ -1270,9 +1279,25 @@ async function refreshLeaderboardAndMaybeSync() {
       saveMetadata: result.metadata,
       lastMessage: 'Таблицю лідерів оновлено',
     });
+    pendingCloudSaveDownload = null;
+    gameState.ui.cloudSave = {
+      ...(gameState.ui.cloudSave ?? {}),
+      conflict: null,
+    };
     lastCloudAutosaveSignature = getCloudSaveSignature();
     setCloudBusy(false, 'Таблицю лідерів оновлено');
   } catch (error) {
+    if (error instanceof ApiError && error.status === 409) {
+      const metadata = conflictMetadataFromError(error);
+      saveCloudSession({
+        ...(loadCloudSession() ?? {}),
+        saveMetadata: metadata,
+      });
+      gameState.ui.cloudSave = {
+        ...(gameState.ui.cloudSave ?? {}),
+        conflict: { metadata, canDownload: false },
+      };
+    }
     setCloudBusy(false, cloudErrorMessage(error));
   }
 
@@ -1784,6 +1809,54 @@ function exportCurrentSave() {
   pushLog(gameState, 'logExportedSave');
 }
 
+async function reconnectCloudSession() {
+  const session = loadCloudSession();
+  if (!session?.accessToken && !session?.refreshToken) {
+    return;
+  }
+
+  try {
+    let profile = null;
+    try {
+      profile = await getProfile();
+    } catch (error) {
+      if (!(error instanceof ApiError) || error.status !== 401 || !session.refreshToken) {
+        throw error;
+      }
+      await refreshAuth(session.refreshToken);
+      profile = await getProfile();
+    }
+
+    let saveMetadata = session.saveMetadata ?? null;
+    try {
+      const cloudSave = await loadCloudSave();
+      saveMetadata = cloudSave?.metadata ?? saveMetadata;
+    } catch {
+      // Reconnect updates account state only; it never imports cloud progress on startup.
+    }
+
+    saveCloudSession({
+      ...(loadCloudSession() ?? session),
+      profile,
+      saveMetadata,
+      lastMessage: session.lastMessage ?? '\u0425\u043c\u0430\u0440\u043d\u0438\u0439 \u0430\u043a\u0430\u0443\u043d\u0442 \u043f\u0456\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u043e.',
+    });
+    renderHud();
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      logout();
+      clearCloudAutosaveQueue();
+      gameState.ui.cloudSave = {
+        ...(gameState.ui.cloudSave ?? {}),
+        message: '\u0421\u0435\u0441\u0456\u044f \u0437\u0430\u043a\u0456\u043d\u0447\u0438\u043b\u0430\u0441\u044f. \u0423\u0432\u0456\u0439\u0434\u0438 \u0449\u0435 \u0440\u0430\u0437.',
+      };
+      renderHud();
+    } else if (import.meta.env?.DEV) {
+      console.warn('Cloud session reconnect failed.', error);
+    }
+  }
+}
+
 async function handleCloudAuth(payload) {
   setCloudBusy(true, payload.mode === 'register' ? 'Реєструємо акаунт...' : 'Входимо...');
   renderHud();
@@ -1797,6 +1870,7 @@ async function handleCloudAuth(payload) {
     } else {
       await login(String(payload.email ?? '').trim(), String(payload.password ?? ''));
     }
+    saveCloudSession({ rememberMe: payload.rememberMe !== false });
     const profile = await getProfile();
     saveCloudSession({ profile });
     const message = await loadLatestCloudSaveAfterAuth(profile);
@@ -1811,6 +1885,7 @@ async function handleCloudAction(actionId) {
   if (actionId === 'cloud:logout') {
     logout();
     clearCloudAutosaveQueue();
+    pendingCloudSaveDownload = null;
     lastCloudAutosaveSignature = '';
     setCloudBusy(false, 'Ви вийшли з хмарного акаунта.');
     renderHud();
@@ -1824,23 +1899,61 @@ async function handleCloudAction(actionId) {
 
   if (actionId === 'cloud:download') {
     await downloadCloudSave();
+    return;
+  }
+
+  if (actionId === 'cloud:conflict:download') {
+    await applyPendingCloudSave();
+    return;
+  }
+
+  if (actionId === 'cloud:conflict:upload') {
+    await uploadLocalSaveToCloud({ force: true });
+    return;
+  }
+
+  if (actionId === 'cloud:conflict:local') {
+    pendingCloudSaveDownload = null;
+    gameState.ui.cloudSave = {
+      ...(gameState.ui.cloudSave ?? {}),
+      conflict: null,
+      message: '\u041b\u043e\u043a\u0430\u043b\u044c\u043d\u0438\u0439 \u043f\u0440\u043e\u0433\u0440\u0435\u0441 \u0437\u0430\u043b\u0438\u0448\u0435\u043d\u043e. \u0425\u043c\u0430\u0440\u0443 \u043c\u043e\u0436\u043d\u0430 \u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0438\u0441\u0430\u0442\u0438 \u043f\u0456\u0437\u043d\u0456\u0448\u0435.',
+    };
+    renderHud();
+    return;
   }
 }
 
-async function uploadLocalSaveToCloud() {
+async function uploadLocalSaveToCloud({ force = false } = {}) {
   setCloudBusy(true, 'Зберігаємо прогрес...');
   renderHud();
   try {
-    const result = await syncCurrentSaveToCloud();
+    const result = await syncCurrentSaveToCloud({ force });
     saveCloudSession({
       ...(loadCloudSession() ?? {}),
       saveMetadata: result.metadata,
       lastMessage: 'Збережено',
     });
+    pendingCloudSaveDownload = null;
+    gameState.ui.cloudSave = {
+      ...(gameState.ui.cloudSave ?? {}),
+      conflict: null,
+    };
     lastCloudAutosaveSignature = getCloudSaveSignature();
     setCloudBusy(false, 'Збережено');
     pushFeedback(gameState, 'Збережено', {}, 'item');
   } catch (error) {
+    if (error instanceof ApiError && error.status === 409) {
+      const metadata = conflictMetadataFromError(error);
+      saveCloudSession({
+        ...(loadCloudSession() ?? {}),
+        saveMetadata: metadata,
+      });
+      gameState.ui.cloudSave = {
+        ...(gameState.ui.cloudSave ?? {}),
+        conflict: { metadata, canDownload: false },
+      };
+    }
     setCloudBusy(false, cloudErrorMessage(error));
   }
   renderHud();
@@ -1900,6 +2013,53 @@ async function downloadCloudSave() {
   renderHud();
 }
 
+async function applyPendingCloudSave() {
+  if (!pendingCloudSaveDownload?.payload) {
+    await downloadCloudSave();
+    return;
+  }
+
+  setCloudBusy(true, '\u0417\u0430\u0432\u0430\u043d\u0442\u0430\u0436\u0443\u0454\u043c\u043e \u0445\u043c\u0430\u0440\u043d\u0435 \u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043d\u043d\u044f...');
+  renderHud();
+  try {
+    const { payload, metadata, profile } = pendingCloudSaveDownload;
+    backupLocalSave('before-cloud-conflict-load');
+    gameState = importSave(JSON.stringify(payload));
+    ensureRuntimeState(gameState);
+    player.restore(gameState.player);
+    audio.syncSettings(gameState.settings.audio);
+    pendingCloudSaveDownload = null;
+    gameState.ui.cloudSave = {
+      ...(gameState.ui.cloudSave ?? {}),
+      conflict: null,
+    };
+    saveCloudSession({
+      ...(loadCloudSession() ?? {}),
+      profile,
+      saveMetadata: metadata,
+      lastMessage: '\u0425\u043c\u0430\u0440\u043d\u0435 \u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043d\u043d\u044f \u0437\u0430\u0432\u0430\u043d\u0442\u0430\u0436\u0435\u043d\u043e',
+    });
+    lastCloudAutosaveSignature = getCloudSaveSignature();
+    setCloudBusy(false, '\u0425\u043c\u0430\u0440\u043d\u0435 \u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043d\u043d\u044f \u0437\u0430\u0432\u0430\u043d\u0442\u0430\u0436\u0435\u043d\u043e');
+    pushFeedback(gameState, '\u0425\u043c\u0430\u0440\u043d\u0435 \u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043d\u043d\u044f \u0437\u0430\u0432\u0430\u043d\u0442\u0430\u0436\u0435\u043d\u043e', {}, 'item');
+    pushLog(gameState, 'logLoaded');
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 409) {
+      const metadata = conflictMetadataFromError(error);
+      saveCloudSession({
+        ...(loadCloudSession() ?? {}),
+        saveMetadata: metadata,
+      });
+      gameState.ui.cloudSave = {
+        ...(gameState.ui.cloudSave ?? {}),
+        conflict: { metadata, canDownload: false },
+      };
+    }
+    setCloudBusy(false, cloudErrorMessage(error));
+  }
+  renderHud();
+}
+
 async function loadLatestCloudSaveAfterAuth(profile) {
   let result = null;
   try {
@@ -1936,6 +2096,24 @@ async function loadLatestCloudSaveAfterAuth(profile) {
     return message;
   }
 
+  pendingCloudSaveDownload = {
+    payload: result.payload,
+    metadata,
+    profile,
+  };
+  gameState.ui.cloudSave = {
+    ...(gameState.ui.cloudSave ?? {}),
+    conflict: { metadata, canDownload: true },
+  };
+  const conflictMessage = '\u0425\u043c\u0430\u0440\u0430 \u043c\u0430\u0454 \u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043d\u043d\u044f. \u041e\u0431\u0435\u0440\u0456\u0442\u044c: \u0437\u0430\u0432\u0430\u043d\u0442\u0430\u0436\u0438\u0442\u0438 \u0445\u043c\u0430\u0440\u0443, \u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0438\u0441\u0430\u0442\u0438 \u0457\u0457 \u0447\u0438 \u043f\u0440\u043e\u0434\u043e\u0432\u0436\u0438\u0442\u0438 \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u043e.';
+  saveCloudSession({
+    ...(loadCloudSession() ?? {}),
+    profile,
+    saveMetadata: metadata,
+    lastMessage: conflictMessage,
+  });
+  return conflictMessage;
+
   const serverRevision = Number(metadata.revision ?? 0);
   const localRevision = Number(getPlayerState(gameState).revision ?? 0);
   const shouldApplyCloudSave = !gameState.playerProfile?.setupComplete || serverRevision > localRevision;
@@ -1970,7 +2148,7 @@ async function loadLatestCloudSaveAfterAuth(profile) {
   return 'Останнє збереження завантажено';
 }
 
-async function syncCurrentSaveToCloud() {
+async function syncCurrentSaveToCloud({ force = false } = {}) {
   syncPlayerToState();
   saveGame(gameState);
   const exported = JSON.parse(exportSave(gameState));
@@ -1980,9 +2158,22 @@ async function syncCurrentSaveToCloud() {
   return syncCloudSave({
     saveVersion: payload.version ?? gameState.version ?? exported.version ?? 1,
     revision: Number.isFinite(currentRevision) ? currentRevision : 0,
+    force,
     clientUpdatedAt: new Date().toISOString(),
     payload,
   });
+}
+
+function conflictMetadataFromError(error) {
+  const detail = error instanceof ApiError && typeof error.details === 'object'
+    ? error.details?.detail ?? error.details
+    : {};
+  return {
+    exists: true,
+    revision: Number(detail?.serverRevision ?? detail?.revision ?? 0) || 0,
+    serverUpdatedAt: detail?.serverUpdatedAt ?? detail?.updatedAt ?? null,
+    clientRevision: Number(detail?.clientRevision ?? 0) || 0,
+  };
 }
 
 function setCloudBusy(busy, message = '') {

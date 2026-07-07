@@ -10,7 +10,7 @@ export function cloudSavePanelMarkup(state) {
       <p class="section-label">Хмарне збереження</p>
       <p class="cloud-save-panel__note">Гість зберігає прогрес на цьому пристрої. Після входу хмара синхронізує прогрес і лишає локальний кеш резервом.</p>
       ${model.loggedIn
-        ? loggedInMarkup(model.profile, model.metadata, model.message, model.busy)
+        ? loggedInMarkup(model.profile, model.metadata, model.message, model.busy, model.conflict)
         : loggedOutMarkup(model.message, model.busy)}
       ${isSaveDebugEnabled() ? `<small class="cloud-save-panel__endpoint">${FIRST_TACKLE_API_BASE_URL}</small>` : ''}
     </section>
@@ -64,7 +64,7 @@ export function cloudSaveMenuMarkup(state) {
       </summary>
       <div class="cloud-save-shortcut__body">
         ${model.loggedIn
-          ? loggedInActionsMarkup(model.profile, model.metadata, model.message, model.busy)
+          ? loggedInActionsMarkup(model.profile, model.metadata, model.message, model.busy, model.conflict)
           : loggedOutMarkup(model.message, model.busy, {
               compact: true,
               displayName: state.playerProfile?.name,
@@ -92,7 +92,7 @@ export function cloudSaveStartupMarkup(state) {
       </summary>
       <div class="cloud-save-shortcut__body">
         ${model.loggedIn
-          ? loggedInActionsMarkup(model.profile, model.metadata, model.message, model.busy)
+          ? loggedInActionsMarkup(model.profile, model.metadata, model.message, model.busy, model.conflict)
           : loggedOutMarkup(model.message, model.busy, {
               compact: true,
               displayName: playerName,
@@ -130,6 +130,7 @@ function getCloudSaveModel(state) {
   const cloudState = state.ui?.cloudSave ?? {};
   const message = cloudState.message ?? session?.lastMessage ?? '';
   const busy = Boolean(cloudState.busy);
+  const conflict = cloudState.conflict ?? null;
   const loggedIn = Boolean(session?.accessToken);
   const account = profile?.email || profile?.displayName || 'акаунт активний';
   const playerState = getPlayerState(state);
@@ -141,6 +142,7 @@ function getCloudSaveModel(state) {
     playerState,
     message,
     busy,
+    conflict,
     loggedIn,
     account,
     lastSave: formatServerTime(metadata?.serverUpdatedAt),
@@ -166,6 +168,10 @@ function loggedOutMarkup(message, isBusy, options = {}) {
         <span>Пароль</span>
         <input name="password" type="password" autocomplete="current-password" minlength="8" required />
       </label>
+      <label class="cloud-save-form__remember">
+        <input name="rememberMe" type="checkbox" checked />
+        <span>Запамʼятати мене</span>
+      </label>
       ${displayNameFromProfile ? `
         <input name="displayName" type="hidden" value="${escapeHtml(displayNameValue)}" data-cloud-profile-name />
       ` : `
@@ -185,7 +191,7 @@ function loggedOutMarkup(message, isBusy, options = {}) {
   `;
 }
 
-function loggedInMarkup(profile, metadata, message, isBusy) {
+function loggedInMarkup(profile, metadata, message, isBusy, conflict = null) {
   return `
     <div class="cloud-save-panel__account">
       <strong>${escapeHtml(profile?.displayName ?? 'Гравець')}</strong>
@@ -196,14 +202,25 @@ function loggedInMarkup(profile, metadata, message, isBusy) {
       <div><dt>Оновлено</dt><dd>${formatServerTime(metadata?.serverUpdatedAt)}</dd></div>
       <div><dt>Автозбереження</dt><dd>увімкнено</dd></div>
     </dl>
-    ${loggedInActionsMarkup(profile, metadata, message, isBusy)}
+    ${loggedInActionsMarkup(profile, metadata, message, isBusy, conflict)}
   `;
 }
 
-function loggedInActionsMarkup(profile, metadata, message, isBusy) {
+function loggedInActionsMarkup(profile, metadata, message, isBusy, conflict = null) {
   void profile;
   void metadata;
   return `
+    ${conflict ? `
+      <div class="cloud-save-conflict">
+        <strong>Є хмарне збереження</strong>
+        <span>Обери, що зробити з поточним прогресом.</span>
+        <div class="settings-action-row settings-action-row--stack">
+          <button data-action="cloud:conflict:download" type="button"${isBusy ? ' disabled' : ''}>Завантажити хмарне збереження</button>
+          <button data-action="cloud:conflict:upload" type="button"${isBusy ? ' disabled' : ''}>Перезаписати хмару поточним прогресом</button>
+          <button data-action="cloud:conflict:local" type="button"${isBusy ? ' disabled' : ''}>Продовжити локально</button>
+        </div>
+      </div>
+    ` : ''}
     <div class="settings-action-row settings-action-row--stack cloud-save-shortcut__actions">
       <button data-action="cloud:upload" type="button"${isBusy ? ' disabled' : ''}>Зберегти зараз</button>
       <button data-action="cloud:download" type="button"${isBusy ? ' disabled' : ''}>Завантажити останнє збереження</button>
