@@ -17,7 +17,7 @@ Feature commits:
 
 Main merge commit: `80aea69` (`merge: trophy guide market cleanup`).
 
-Deployment status: main push and live URL check pending after this summary commit.
+Deployment status: GitHub Pages workflow run `28846060919` completed successfully for summary commit `5b55ccf`; live URL returned HTTP 200. The later docs-only status correction commit was pushed with `[skip ci]`.
 
 Completed work:
 
