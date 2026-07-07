@@ -11,6 +11,7 @@ import { canCatchTrophyInWater } from './waterFishDistribution.js';
 
 const trackedStatuses = ['fresh', 'cleaned', 'salted', 'drying', 'ready_taranka', 'taranka', 'smoked', 'live_bait'];
 const liveBaitSpecies = ['gudgeon', 'crucian', 'plotytsia', 'loach', 'bleak'];
+const trophyHistoryLimit = 80;
 
 export function createFishEntry(catchResult, caughtAtDay, context = {}) {
   return {
@@ -48,6 +49,7 @@ export function ensureFishState(state) {
     migrateLegacyFishInventory(state);
   }
   state.fishBasket = state.fishBasket.map((entry) => normalizeFishEntry(entry, state.day));
+  state.trophies = normalizeTrophyHistory(state, state.trophies);
   state.catchJournal = mergeCatchJournals(state.catchJournal, buildJournalFromEntries(state.fishBasket));
   syncStatsFromJournal(state);
   if (state.stats.totalFishCaught > 0) {
@@ -84,6 +86,50 @@ export function addCaughtFish(state, catchResult, context = {}) {
 export function getFishEntries(state, status) {
   ensureFishState(state);
   return state.fishBasket.filter((entry) => entry.status === status);
+}
+
+export function clearFishHistoryState(state) {
+  state.fishBasket = [];
+  state.catchJournal = {};
+  state.trophies = [];
+  state.achievements ??= {};
+  state.achievements.trophyBySpecies = {};
+  state.achievements.claimedTrophyRewards = {};
+  state.achievements.completedSpeciesStars = {};
+  state.achievements.unlockedStars = [];
+  state.stats ??= {};
+  state.stats.totalFishCaught = 0;
+  state.stats.biggestFishWeight = 0;
+  state.stats.biggestFishSpecies = null;
+  state.stats.biggestFishCaughtAtDay = null;
+  state.stats.biggestFishCaughtAtTime = null;
+  state.stats.biggestFishWaterId = null;
+  state.stats.biggestFishBait = null;
+  state.stats.biggestFishDepth = null;
+  state.stats.biggestFishCatchSpotId = null;
+  state.progress ??= {};
+  state.progress.firstCatchDone = false;
+  for (const fishId of fishIds) {
+    if (state.inventory && fishId in state.inventory) {
+      state.inventory[fishId] = 0;
+    }
+  }
+  for (const itemId of ['cleanedFish', 'saltedFish', 'dryingFish', 'taranka', 'smokedFish']) {
+    if (state.inventory && itemId in state.inventory) {
+      state.inventory[itemId] = 0;
+    }
+  }
+  state.ui ??= {};
+  state.ui.expandedGuideCards = {};
+  state.ui.expandedLeaderboardSpecies = {};
+  state.ui.leaderboards = {
+    type: state.ui.leaderboards?.type ?? 'biggest-fish',
+    records: [],
+    source: 'local-fallback',
+    busy: false,
+    message: '',
+  };
+  syncProfileDerivedStats(state);
 }
 
 export function countFishByStatus(state, status) {
@@ -490,19 +536,15 @@ function updateCatchJournal(state, entry) {
     syncCompletedSpeciesStars(state, entry.fishId);
   }
 
+  if (entry.trophyTier) {
+    state.trophies.unshift(createTrophyRecord(entry, trophyKeyForTier(entry.trophyTier)));
+  }
+
   for (const trophyKey of trophies) {
-    state.trophies.unshift({
-      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      key: trophyKey,
-      fishId: entry.fishId,
-      weightGrams: entry.weightGrams,
-      caughtAtDay: entry.caughtAtDay,
-      tier: entry.trophyTier,
-    });
     pushFeedback(state, trophyKey, { fishKey: fish.nameKey }, 'trophy');
   }
 
-  state.trophies = state.trophies.slice(0, 24);
+  state.trophies = normalizeTrophyHistory(state, state.trophies);
 }
 
 export function classifyTrophyCatch(entry, fish = getFishData(entry?.fishId)) {
@@ -526,6 +568,121 @@ export function trophyKeyForTier(tier) {
     very_rare: 'trophyTierVeryRare',
     rarest: 'trophyTierRarest',
   }[tier] ?? 'trophyLargeFish';
+}
+
+export function isRealTrophyEntry(entry) {
+  return Boolean(
+    entry?.fishId
+    && Number(entry.weightGrams ?? 0) > 0
+    && (
+      entry.trophyTier
+      || entry.tier
+      || entry.isTrophy === true
+      || String(entry.key ?? '').startsWith('trophyTier')
+      || ['trophy', 'very_rare', 'legendary'].includes(entry.catchCategory)
+    )
+  );
+}
+
+export function getRealTrophyHistory(state, { days = null, limit = null } = {}) {
+  ensureFishState(state);
+  const currentDay = Number(state.day ?? 1);
+  const sinceDay = days ? Math.max(1, currentDay - (days - 1)) : null;
+  const records = normalizeTrophyHistory(state, state.trophies)
+    .filter((entry) => sinceDay == null || Number(entry.caughtAtDay ?? currentDay) >= sinceDay)
+    .sort((a, b) => (
+      Number(b.weightGrams ?? 0) - Number(a.weightGrams ?? 0)
+      || Number(b.caughtAtDay ?? 0) - Number(a.caughtAtDay ?? 0)
+    ));
+  return limit ? records.slice(0, limit) : records;
+}
+
+export function normalizeTrophyHistory(state, rawTrophies = []) {
+  const records = new Map();
+  for (const trophy of Array.isArray(rawTrophies) ? rawTrophies : []) {
+    if (!isRealTrophyEntry(trophy)) {
+      continue;
+    }
+    const normalized = normalizeTrophyRecord(trophy, state.day);
+    records.set(trophyRecordKey(normalized), normalized);
+  }
+
+  for (const entry of state.fishBasket ?? []) {
+    if (!isRealTrophyEntry(entry)) {
+      continue;
+    }
+    const normalized = createTrophyRecord(entry, trophyKeyForTier(entry.trophyTier ?? entry.tier));
+    records.set(trophyRecordKey(normalized), normalized);
+  }
+
+  return [...records.values()]
+    .sort((a, b) => (
+      Number(b.caughtAtDay ?? 0) - Number(a.caughtAtDay ?? 0)
+      || Number(b.weightGrams ?? 0) - Number(a.weightGrams ?? 0)
+    ))
+    .slice(0, trophyHistoryLimit);
+}
+
+function createTrophyRecord(entry, key) {
+  return normalizeTrophyRecord({
+    id: entry.id,
+    key,
+    fishId: entry.fishId,
+    weightGrams: entry.weightGrams,
+    caughtAtDay: entry.caughtAtDay,
+    caughtAtTime: entry.caughtAtTime ?? null,
+    waterId: entry.waterId ?? null,
+    bait: entry.bait ?? null,
+    depth: entry.depth ?? null,
+    catchSpotId: entry.catchSpotId ?? null,
+    tier: entry.trophyTier ?? entry.tier ?? null,
+    trophyTier: entry.trophyTier ?? entry.tier ?? null,
+    catchCategory: entry.catchCategory ?? null,
+    isTrophy: true,
+  });
+}
+
+function normalizeTrophyRecord(trophy, fallbackDay = 1) {
+  const tier = trophy.trophyTier
+    ?? trophy.tier
+    ?? tierFromTrophyKey(trophy.key)
+    ?? trophyTierForCategory(trophy.catchCategory)
+    ?? null;
+  const key = String(trophy.key ?? trophyKeyForTier(tier));
+  return {
+    id: trophy.id ?? `${trophy.fishId}-${trophy.weightGrams}-${trophy.caughtAtDay ?? fallbackDay}-${tier ?? 'trophy'}`,
+    key,
+    fishId: trophy.fishId,
+    weightGrams: Number(trophy.weightGrams ?? 0),
+    caughtAtDay: Number(trophy.caughtAtDay ?? fallbackDay),
+    caughtAtTime: trophy.caughtAtTime ?? null,
+    waterId: trophy.waterId ?? null,
+    bait: trophy.bait ?? null,
+    depth: trophy.depth ?? null,
+    catchSpotId: trophy.catchSpotId ?? null,
+    tier,
+    trophyTier: tier,
+    catchCategory: trophy.catchCategory ?? null,
+    isTrophy: true,
+  };
+}
+
+function tierFromTrophyKey(key) {
+  return {
+    trophyTierNormal: 'normal',
+    trophyTierVeryRare: 'very_rare',
+    trophyTierRarest: 'rarest',
+  }[key] ?? null;
+}
+
+function trophyRecordKey(trophy) {
+  return [
+    trophy.id,
+    trophy.fishId,
+    trophy.tier,
+    trophy.weightGrams,
+    trophy.caughtAtDay,
+  ].filter((value) => value != null).join(':');
 }
 
 function awardTrophyReward(state, entry, wasCaught) {

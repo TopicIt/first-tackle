@@ -585,6 +585,7 @@ export function createHud(root, handlers) {
                   <span>${t('importSave')}</span>
                 </label>
                 <button data-action="load" type="button">${t('load')}</button>
+                <button class="danger" data-action="debug:clearFishHistory" type="button">Очистити рибу/трофеї</button>
               </div>
             </section>
             ` : ''}

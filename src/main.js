@@ -3,7 +3,7 @@ import '../style.css';
 import { DEFAULT_AVATAR, GAME_TITLE, createInitialState, pushFeedback, pushLog } from './game/state.js';
 import { createWorld } from './game/world.js';
 import { createPlayerController } from './game/player.js';
-import { ensureFishState } from './game/fishInventory.js';
+import { clearFishHistoryState, ensureFishState } from './game/fishInventory.js';
 import {
   castAgain,
   castLine,
@@ -47,6 +47,7 @@ import { selectProfileStar, syncCompletedSpeciesStars } from './game/achievement
 import { arriveAtWater } from './game/travel.js';
 import { claimQuestReward, ensureQuestState, syncQuestProgress, unlockAllLocationsForDebug } from './game/quests.js';
 import { completeCafeOrder, ensureCafeOrders } from './game/cafeOrders.js';
+import { waterGuide } from './game/guideData.js';
 import {
   completeTutorialStep,
   advanceTutorialForAction,
@@ -89,7 +90,7 @@ import { loadSave as loadCloudSave, syncSave as syncCloudSave } from './api/save
 import { fetchLeaderboard } from './api/gameApi.js';
 import { primeCatalogCache } from './api/catalogApi.js';
 import { syncPlayerStateFromGameState } from './game/playerState.js';
-import { getLocalLeaderboard } from './game/leaderboards.js';
+import { filterRealTrophyLeaderboardRecords, getLocalLeaderboard } from './game/leaderboards.js';
 
 const canvas = document.querySelector('#game');
 const hudRoot = document.querySelector('#hud');
@@ -380,6 +381,15 @@ const hud = createHud(hudRoot, {
       return;
     }
 
+    if (actionId === 'debug:clearFishHistory') {
+      if (!window.confirm('Очистити локальну історію риби, трофеїв, довідника і таблиці лідерів?')) {
+        return;
+      }
+      clearLocalFishHistoryForTesting();
+      renderHud();
+      return;
+    }
+
     if (actionId === 'cloud:open') {
       openCloudSaveSettings();
       renderHud();
@@ -575,6 +585,16 @@ const hud = createHud(hudRoot, {
 
     if (actionId.startsWith('guide:tab:')) {
       gameState.ui.guideTab = actionId.replace('guide:tab:', '');
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+      return;
+    }
+
+    if (actionId.startsWith('guide:water:')) {
+      const waterId = actionId.replace('guide:water:', '');
+      if (waterGuide.some((entry) => entry.id === waterId)) {
+        gameState.ui.guideWaterId = waterId;
+      }
       gameState.audioQueue.push('ui_click');
       renderHud();
       return;
@@ -1179,15 +1199,25 @@ function hasOpenMenuOverlay(state) {
 async function loadLeaderboardRecords(type = 'biggest-fish') {
   gameState.ui ??= {};
   const normalizedType = type === 'trophies' ? 'monthly-trophies' : type;
+  const localRecords = getLocalLeaderboard(normalizedType, gameState);
   gameState.ui.leaderboards = {
     ...(gameState.ui.leaderboards ?? {}),
     type: normalizedType,
     busy: true,
+    records: normalizedType === 'monthly-trophies' ? localRecords : gameState.ui.leaderboards?.records ?? [],
+    source: normalizedType === 'monthly-trophies' ? 'local-fallback' : gameState.ui.leaderboards?.source ?? 'local-fallback',
   };
   renderHud();
 
   const response = await fetchLeaderboard(normalizedType);
-  const records = response?.result?.records ?? response?.result?.items ?? response?.result?.rows ?? [];
+  const serverRecords = response?.result?.records ?? response?.result?.items ?? response?.result?.rows ?? [];
+  const trophyRecords = normalizedType === 'monthly-trophies'
+    ? filterRealTrophyLeaderboardRecords(serverRecords)
+    : serverRecords;
+  const records = normalizedType === 'monthly-trophies' && trophyRecords.length === 0
+    ? localRecords
+    : trophyRecords;
+  const forcedLocalTrophyFallback = normalizedType === 'monthly-trophies' && trophyRecords.length === 0 && serverRecords.length > 0;
   if (response?.fallback && import.meta.env?.DEV) {
     console.warn('Leaderboard backend unavailable; using local-only fallback.', response.error ?? null);
   }
@@ -1196,14 +1226,16 @@ async function loadLeaderboardRecords(type = 'biggest-fish') {
     type: normalizedType,
     busy: false,
     records,
-    source: response?.fallback
+    source: response?.fallback || forcedLocalTrophyFallback
       ? 'local-fallback'
       : String(response?.result?.source ?? 'server').startsWith('server')
         ? 'server'
         : response?.result?.source ?? 'server',
     message: response?.fallback
       ? response?.result?.message ?? response?.error?.message ?? 'Leaderboard server unavailable; showing local records.'
-      : '',
+      : forcedLocalTrophyFallback
+        ? '\u0421\u0435\u0440\u0432\u0435\u0440 \u043f\u043e\u0432\u0435\u0440\u043d\u0443\u0432 \u0441\u0442\u0430\u0440\u0456 \u0437\u0430\u043f\u0438\u0441\u0438 \u0431\u0435\u0437 \u0442\u0440\u043e\u0444\u0435\u0439\u043d\u043e\u0457 \u043f\u043e\u0437\u043d\u0430\u0447\u043a\u0438; \u043f\u043e\u043a\u0430\u0437\u0430\u043d\u043e \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u0456 \u0442\u0440\u043e\u0444\u0435\u0457.'
+        : '',
   };
   renderHud();
 }
@@ -1225,7 +1257,7 @@ async function refreshLeaderboardAndMaybeSync() {
   gameState.ui.leaderboards = {
     ...(gameState.ui.leaderboards ?? {}),
     busy: true,
-    message: 'Синхронізуємо профіль і сейв перед оновленням таблиці.',
+    message: '\u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0456\u0437\u0443\u0454\u043c\u043e \u043f\u0440\u043e\u0444\u0456\u043b\u044c \u0456 \u0441\u0435\u0439\u0432 \u043f\u0435\u0440\u0435\u0434 \u043e\u043d\u043e\u0432\u043b\u0435\u043d\u043d\u044f\u043c \u0442\u0430\u0431\u043b\u0438\u0446\u0456.',
   };
   renderHud();
 
@@ -1531,6 +1563,35 @@ function resetToFreshState() {
   audio.syncSettings(gameState.settings.audio);
   pushLog(gameState, 'logFreshMorning');
   startBootFlow();
+}
+
+function clearLocalFishHistoryForTesting() {
+  clearFishHistoryState(gameState);
+  clearFishHistoryStorageKeys();
+  lastHudSnapshot = '';
+  lastAutosaveSignature = '';
+  lastCloudAutosaveSignature = '';
+  saveGame(gameState);
+  pushLog(gameState, 'Локальну історію риби й трофеїв очищено.');
+}
+
+function clearFishHistoryStorageKeys() {
+  const shouldRemoveKey = (key) => (
+    /^first-tackle-(fish|trophy|guide|leaderboard)/i.test(key)
+    || /^first-tackle-save-v\d+-backup-/i.test(key)
+    || /^first-tackle-mobile-transition-seen-v/i.test(key)
+  );
+  for (const storage of [localStorage, sessionStorage]) {
+    try {
+      for (const key of Object.keys(storage)) {
+        if (shouldRemoveKey(key)) {
+          storage.removeItem(key);
+        }
+      }
+    } catch {
+      // Some browser modes can block storage iteration.
+    }
+  }
 }
 
 function startBootFlow() {
