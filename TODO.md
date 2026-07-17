@@ -4,8 +4,9 @@ Updated: 2026-07-17
 
 ## Backend / Online Leaderboard
 
+- Run the deployed real-gameplay catch acceptance test for branch `codex/real-gameplay-leaderboard-broken-rod-fix`: catch via minigame, verify `/api/catches/sync` ack, production `catch_records`, live leaderboard row, sale survival, and dedupe.
 - Remove the dead legacy cloud-save helper copies from the frontend modules now that the active runtime has been switched to the catch-history-aware sync path.
-- Monitor live pending-catch uploads after login/manual sync/autosave to confirm no production edge cases leave catches stuck in the local queue.
+- Monitor live pending-catch uploads after login/manual sync/autosave to confirm the new acknowledged catch-sync endpoint leaves no catches stuck in the local queue.
 - Monitor the deployed persistent catch-record ingestion and retry logs for malformed legacy catch payloads.
 - Add a Railway database backup/PITR plan before the next destructive or data-transforming migration; the current plan did not expose snapshots.
 - Continue from persistent catch records toward server-verified catch/event records instead of client-recovered records.

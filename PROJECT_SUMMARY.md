@@ -6,6 +6,38 @@ Updated: 2026-07-17
 
 First Tackle is a local-first browser fishing game with optional account/cloud save support. The frontend remains responsible for rendering, offline play, fishing UI, and local save continuity. The backend source lives in `D:\first-tackle-api` and supports auth, profile, cloud saves, and leaderboard endpoints backed by persistent catch records for catch/trophy boards.
 
+## Real Gameplay Leaderboard And Broken Rod Fix
+
+Completed locally on frontend branch `codex/real-gameplay-leaderboard-broken-rod-fix` and backend branch `codex/real-gameplay-leaderboard-broken-rod-fix`.
+
+Feature commits:
+
+- Frontend `27b59fd` (`fix: sync gameplay catches and broken rod state`)
+- Backend `502bdca` (`fix: acknowledge catch record sync`)
+
+Root causes and fixes:
+
+- Normal gameplay catches were saved into `catchHistory`, but the frontend treated any successful `/save/sync` response as proof that pending catch records were also persisted. Backend catch enrichment is intentionally best-effort, so a malformed/failed record sync could be logged while the frontend cleared `catchSync.pendingIds`. The frontend now sends pending historical catches through authenticated `/api/catches/sync` after the save and removes pending IDs only when the backend returns `syncedCatchIds`.
+- Cloud-save payloads still omit client pending IDs, but the local autosave signature now includes pending IDs separately so failed catch-record sync does not become invisible to later autosave/manual sync attempts.
+- Gameplay catch entries now include a stable `catchId` plus full ISO `caughtAt` timestamp, in-game day/time, water, bait, depth, method, and cast spot before they are queued.
+- Backend catch ingestion now shares the same normalizer for cloud-save backfill and explicit catch sync, accepts real gameplay payloads, dedupes by stable `catchId`, supports kg/gram weight shapes, and maps old `perch` records to the game fish id `okun`.
+- Leaderboard UI maps `perch` to `Окунь`, removes the normal-row `server/local` debug label, and shows the persistent source subtitle as `Історичні улови гравців із серверної таблиці.` when `server-catch-records` is active.
+- Starter rod breakage now persists in `tackle.broken.simple_stick_rod`. Save migration no longer restores a deliberately broken starter rod from old tutorial/starter flags. Broken rods disable minigame open/cast/context actions and do not consume bait or advance time. Grandma's rod-stick action repairs the broken rod atomically, adds/equips a usable starter rod, and logs `Нове вудилище готове.`
+
+Local verification:
+
+- Frontend `npm.cmd run test:focused` passed, including catch queue ack behavior, no-clear-on-empty-ack, sale-survival history, and broken-rod block/replacement smoke.
+- Frontend `npm.cmd run build` passed. Output: CSS `170.81 kB`, JS `1,020.15 kB` gzip `273.02 kB`; the existing Vite >500 kB warning remains.
+- Backend `.venv\Scripts\python.exe -m unittest discover -s tests -v` passed, including explicit gameplay-shaped catch sync, dedupe, `perch` -> `okun` normalization, sale-survival history, reset deactivation, UTF-8/current-name behavior, and optional catch-sync failure isolation. The isolation tests intentionally log stack traces for mocked/missing catch-record failures.
+- Backend `.venv\Scripts\python.exe -m compileall app` passed.
+- Production deployment and the required live real-gameplay catch acceptance test are still pending for this branch at the time of this local summary update.
+
+Remaining risks:
+
+- The live production acceptance test must still catch a fish through the deployed minigame, verify the new catch ID in `catch_records`, confirm the live leaderboard row, sell/remove the fish, and confirm dedupe/sale survival.
+- Physical iPhone Safari remains the only trustworthy final check for WebKit keyboard/layout behavior.
+- Persistent records are still client-submitted catch history rather than fully server-authoritative anti-cheat catch events.
+
 ## Profile, Persistent Leaderboard, Save Sync, And Balance Pass
 
 Completed on frontend branch `codex/profile-persistent-leaderboard-save-balance-pass` and backend branch `codex/profile-persistent-leaderboard-save-balance-pass`.
