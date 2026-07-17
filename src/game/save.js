@@ -1,5 +1,6 @@
 import {
   LEGACY_SAVE_KEYS,
+  LAST_SAVE_TIMESTAMP_KEY,
   SAVE_KEY,
   SAVE_VERSION,
   createInitialMarketState,
@@ -16,6 +17,7 @@ import { migratePlayerState, playerStatePatchForSave } from './playerState.js';
 export function saveGame(state) {
   const serializableState = cleanForSave(state);
   localStorage.setItem(SAVE_KEY, JSON.stringify(serializableState));
+  localStorage.setItem(LAST_SAVE_TIMESTAMP_KEY, serializableState.updatedAt);
 }
 
 export function loadGame() {
@@ -59,11 +61,20 @@ export function backupLocalSave(label = 'manual') {
 }
 
 export function exportSave(state) {
+  return exportSaveWithOptions(state);
+}
+
+export function exportCloudSave(state) {
+  return exportSaveWithOptions(state, { forCloud: true });
+}
+
+function exportSaveWithOptions(state, options = {}) {
+  const serializableState = cleanForSave(state, options);
   return JSON.stringify({
     game: 'first-tackle',
     version: SAVE_VERSION,
     exportedAt: new Date().toISOString(),
-    save: cleanForSave(state),
+    save: serializableState,
   }, null, 2);
 }
 
@@ -75,12 +86,15 @@ export function importSave(rawText) {
   return merged;
 }
 
-function cleanForSave(state) {
+function cleanForSave(state, { forCloud = false } = {}) {
+  const updatedAt = new Date().toISOString();
   const playerState = playerStatePatchForSave(state);
   return {
     ...state,
     version: SAVE_VERSION,
+    updatedAt,
     playerState,
+    catchSync: normalizeCatchSyncForSave(state.catchSync, { forCloud }),
     audioQueue: [],
     feedback: [],
     ui: {
@@ -213,10 +227,6 @@ function mergeState(base, saved) {
         ...base.settings.performance,
         ...(saved.settings?.performance ?? {}),
       },
-      graphics: {
-        ...base.settings.graphics,
-        ...(saved.settings?.graphics ?? {}),
-      },
       animationLimits: {
         ...base.settings.animationLimits,
         ...(saved.settings?.animationLimits ?? {}),
@@ -278,11 +288,18 @@ function mergeState(base, saved) {
       ...(saved.time ?? {}),
     },
     day: saved.day ?? base.day,
+    updatedAt: saved.updatedAt ?? base.updatedAt ?? null,
     player: {
       ...base.player,
       ...(saved.player ?? {}),
     },
     fishBasket: Array.isArray(saved.fishBasket) ? saved.fishBasket : base.fishBasket,
+    catchHistory: Array.isArray(saved.catchHistory) ? saved.catchHistory : base.catchHistory,
+    catchSync: {
+      ...base.catchSync,
+      ...(saved.catchSync ?? {}),
+      pendingIds: Array.isArray(saved.catchSync?.pendingIds) ? saved.catchSync.pendingIds : base.catchSync.pendingIds,
+    },
     progress: {
       ...base.progress,
       ...(saved.progress ?? {}),
@@ -428,6 +445,18 @@ function isFreshBrokenZeroMoneySave(base, saved) {
   }
 
   return true;
+}
+
+function normalizeCatchSyncForSave(catchSync, { forCloud = false } = {}) {
+  const pendingIds = Array.isArray(catchSync?.pendingIds)
+    ? catchSync.pendingIds.filter(Boolean).map((id) => String(id))
+    : [];
+  return {
+    pendingIds: forCloud ? [] : [...new Set(pendingIds)],
+    lastSyncedAt: catchSync?.lastSyncedAt ?? null,
+    lastErrorAt: forCloud ? null : (catchSync?.lastErrorAt ?? null),
+    lastErrorMessage: forCloud ? '' : (catchSync?.lastErrorMessage ?? ''),
+  };
 }
 
 function mergeMarketState(savedMarket, day) {

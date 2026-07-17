@@ -14,6 +14,10 @@ globalThis.sessionStorage = {
 
 const { PROFILE_NAME_MAX_LENGTH, validateProfileName } = await import('../src/game/profile.js');
 const { apiConfig, apiRequest, saveCloudSession, setApiAccessToken } = await import('../src/api/client.js');
+const { createInitialState } = await import('../src/game/state.js');
+const { ensureFishState, getPendingCatchSyncCount } = await import('../src/game/fishInventory.js');
+const { addFishToStorage, sellFish } = await import('../src/game/gameAuthority.js');
+const { exportCloudSave } = await import('../src/game/save.js');
 
 assert.deepEqual(validateProfileName('  Івасик Телесик  '), {
   ok: true,
@@ -58,6 +62,42 @@ assert.equal(result.metadata.revision, 3);
 assert.equal(requests.length, 3);
 assert.equal(requests[2].options.headers.Authorization, 'Bearer fresh-token');
 assert.equal(apiConfig.accessToken, 'fresh-token');
+
+const state = createInitialState();
+state.playerProfile.setupComplete = true;
+ensureFishState(state);
+const storedCatch = addFishToStorage({
+  state,
+  catchResult: {
+    id: 'carp',
+    weightGrams: 1450,
+    value: 220,
+  },
+  context: {
+    waterId: 'greada',
+    bait: 'corn',
+    method: 'stickRod',
+    catchSpotId: 'reed-pocket',
+    caughtAtTime: '08:15',
+  },
+});
+const catchEntry = storedCatch.result.entry;
+
+assert.ok(catchEntry.catchId);
+assert.equal(getPendingCatchSyncCount(state), 1);
+assert.equal(state.catchHistory.length, 1);
+assert.equal(state.catchHistory[0].catchId, catchEntry.catchId);
+assert.equal(state.fishBasket.length, 1);
+
+sellFish({ state, saleType: 'all' });
+assert.equal(state.fishBasket.length, 0);
+assert.equal(state.catchHistory.length, 1);
+assert.equal(getPendingCatchSyncCount(state), 1);
+
+const exportedCloudSave = JSON.parse(exportCloudSave(state)).save;
+assert.equal(exportedCloudSave.catchHistory.length, 1);
+assert.equal(exportedCloudSave.catchHistory[0].catchId, catchEntry.catchId);
+assert.deepEqual(exportedCloudSave.catchSync.pendingIds, []);
 
 console.log('Focused profile/cloud smoke passed.');
 

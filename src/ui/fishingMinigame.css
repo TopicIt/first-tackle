@@ -383,8 +383,6 @@
 
 .cast-spot-layer,
 .fishing-ambience,
-.fishing-stage__prototype-3d,
-.fishing-figure,
 .fishing-line-overlay {
   position: absolute;
   inset: 0;
@@ -489,31 +487,6 @@
   opacity: 0.34;
 }
 
-.fishing-figure {
-  z-index: 3;
-  transform-style: preserve-3d;
-}
-
-.fishing-stage__prototype-3d {
-  z-index: 6;
-}
-
-.fishing-stage__prototype-3d-canvas {
-  position: absolute;
-  left: 2%;
-  bottom: 4%;
-  width: min(48vw, 360px);
-  height: min(62vh, 470px);
-  max-width: 52%;
-  max-height: 72%;
-  display: block;
-  overflow: visible;
-  border: 1px dashed rgb(255 244 193 / 34%);
-  border-radius: 20px;
-  background: radial-gradient(circle at 45% 55%, rgb(255 255 255 / 8%), rgb(12 20 22 / 0%) 62%);
-  filter: drop-shadow(0 18px 28px rgb(0 0 0 / 28%));
-}
-
 .fishing-line-overlay {
   z-index: 5;
   overflow: visible;
@@ -556,178 +529,9 @@
   opacity: 0.22;
 }
 
-.fishing-figure__shadow,
-.fishing-figure__body,
-.fishing-figure__head,
-.fishing-figure__hat,
-.fishing-figure__arm,
-.fishing-figure__rod,
-.fishing-figure__line {
-  position: absolute;
-  display: block;
-}
-
-.fishing-figure__shadow {
-  left: 5%;
-  bottom: 5%;
-  width: 150px;
-  height: 34px;
-  border-radius: 50%;
-  background: rgb(0 0 0 / 32%);
-  filter: blur(8px);
-}
-
-.fishing-figure__body {
-  left: 9%;
-  bottom: 9%;
-  width: 42px;
-  height: 118px;
-  border-radius: 24px 24px 12px 12px;
-  background: linear-gradient(115deg, #1b2728, #46534c);
-  box-shadow: inset -10px 0 18px rgb(255 255 255 / 8%);
-  transform: rotateX(8deg) rotateZ(-3deg);
-  animation: fisherIdle 5s ease-in-out infinite;
-}
-
-.fishing-figure__head {
-  left: 8.6%;
-  bottom: calc(9% + 112px);
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #d5b487, #7b563d);
-  box-shadow: 0 10px 20px rgb(0 0 0 / 22%);
-  animation: fisherIdle 5s ease-in-out infinite;
-}
-
-.fishing-figure__hat {
-  left: 7.9%;
-  bottom: calc(9% + 141px);
-  width: 50px;
-  height: 15px;
-  border-radius: 50%;
-  background: linear-gradient(180deg, #e5bf61, #9a6b2d);
-  box-shadow: 0 5px 12px rgb(0 0 0 / 24%);
-  transform: rotateZ(-6deg);
-  animation: fisherIdle 5s ease-in-out infinite, hatSettle 46s ease-in-out infinite;
-}
-
-.fishing-figure__hat::before {
-  content: '';
-  position: absolute;
-  left: 14px;
-  top: -13px;
-  width: 24px;
-  height: 18px;
-  border-radius: 14px 14px 7px 7px;
-  background: linear-gradient(145deg, #f1d077, #b87d33);
-}
-
-.fishing-figure__hat::after {
-  content: '';
-  position: absolute;
-  left: 9px;
-  top: -1px;
-  width: 34px;
-  height: 4px;
-  border-radius: 999px;
-  background: rgb(111 68 28 / 62%);
-}
-
-.fishing-figure__arm {
-  left: calc(9% + 30px);
-  bottom: calc(9% + 70px);
-  width: 72px;
-  height: 12px;
-  border-radius: 999px;
-  background: #2f3c39;
-  transform: rotate(-18deg);
-  transform-origin: left center;
-}
-
-.fishing-figure__rod {
-  left: calc(9% + 80px);
-  bottom: calc(9% + 92px);
-  width: 260px;
-  height: 5px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #3a2515, #dcc17b);
-  transform: rotate(-26deg);
-  transform-origin: left center;
-}
-
-.fishing-figure__line {
-  left: calc(9% + 316px);
-  bottom: calc(9% + 202px);
-  width: 2px;
-  height: calc(var(--bobber-y, 52%) - 8%);
-  background: linear-gradient(rgb(255 255 255 / 50%), rgb(255 255 255 / 12%));
-  transform: rotate(18deg);
-  transform-origin: top center;
-}
-
-.fishing-figure--cast .fishing-figure__rod {
-  animation: rodCast 0.85s ease-out;
-}
-
-.fishing-figure--handline .fishing-figure__rod {
-  display: none;
-}
-
-.fishing-figure--handline .fishing-figure__line {
-  left: calc(9% + 94px);
-  bottom: calc(9% + 83px);
-  height: calc(var(--bobber-y, 52%) + 16%);
-  transform: rotate(9deg);
-}
-
-.fishing-figure--handline .fishing-figure__arm {
-  transform: rotate(-4deg);
-}
-
-.fishing-figure--strike_window .fishing-figure__rod,
-.fishing-figure--animating .fishing-figure__rod {
-  animation: rodBreathe 1.4s ease-in-out infinite;
-}
-
-.fishing-figure--waiting .fishing-figure__body,
-.fishing-figure--animating .fishing-figure__body,
-.fishing-figure--strike_window .fishing-figure__body {
-  animation: fisherWaterIdle 4.2s ease-in-out infinite;
-}
-
-.fishing-figure--waiting .fishing-figure__arm,
-.fishing-figure--animating .fishing-figure__arm {
-  animation: armRodMicro 3.2s ease-in-out infinite;
-}
-
-.fishing-figure--strike_window .fishing-figure__arm {
-  animation: armStrikeReady 0.62s ease-in-out infinite alternate;
-}
-
-.fishing-figure--waiting .fishing-figure__line,
-.fishing-figure--animating .fishing-figure__line {
-  animation: lineMicroSway 3.4s ease-in-out infinite;
-}
-
-.fishing-figure--handline.fishing-figure--waiting .fishing-figure__arm,
-.fishing-figure--handline.fishing-figure--animating .fishing-figure__arm {
-  animation: handlineArmMicro 3s ease-in-out infinite;
-}
-
-.fishing-figure--handline.fishing-figure--waiting .fishing-figure__line,
-.fishing-figure--handline.fishing-figure--animating .fishing-figure__line {
-  animation: handlineLineMicroSway 3.2s ease-in-out infinite;
-}
-
-.fishing-figure--result .fishing-figure__rod {
-  animation: rodBend 0.7s ease-out;
-}
-
 .bird,
 .dragonfly,
-.surface-ring,
-.reed {
+.surface-ring {
   position: absolute;
   display: block;
 }
@@ -811,32 +615,6 @@
   animation-delay: -3.5s;
 }
 
-.reed {
-  bottom: 7%;
-  width: 5px;
-  height: 96px;
-  border-radius: 999px;
-  background: linear-gradient(#7b8f4c, #2c4f32);
-  transform-origin: bottom center;
-  animation: reedSway 4.8s ease-in-out infinite;
-}
-
-.reed--one {
-  right: 12%;
-}
-
-.reed--two {
-  right: 15%;
-  height: 122px;
-  animation-delay: -1.8s;
-}
-
-.reed--three {
-  right: 9%;
-  height: 82px;
-  animation-delay: -3s;
-}
-
 .fishing-stage__waterline {
   position: absolute;
   left: 0;
@@ -903,8 +681,7 @@
   box-shadow: none;
 }
 
-.fishing-stage__bobber--float-goose_feather_float .fishing-stage__bobber-top::before,
-.fishing-stage__bobber--float-goose_feather_float .fishing-stage__bobber-top::after {
+.fishing-stage__bobber--float-goose_feather_float .fishing-stage__bobber-top::before {
   content: '';
   position: absolute;
   top: 4px;
@@ -918,12 +695,6 @@
   right: 3px;
   transform: rotate(-12deg);
   transform-origin: right bottom;
-}
-
-.fishing-stage__bobber--float-goose_feather_float .fishing-stage__bobber-top::after {
-  left: 3px;
-  transform: rotate(12deg) scaleX(-1);
-  transform-origin: left bottom;
 }
 
 .fishing-stage__bobber--float-goose_feather_float .fishing-stage__bobber-bottom {
@@ -1377,11 +1148,6 @@
   100% { opacity: 0; transform: scale(3.2); }
 }
 
-@keyframes reedSway {
-  0%, 100% { transform: rotate(-3deg); }
-  50% { transform: rotate(5deg); }
-}
-
 @keyframes bobberCast {
   from {
     transform: translate(-180%, 140%) rotate(-28deg) scale(var(--bobber-scale, 1));
@@ -1453,16 +1219,10 @@
   .fishing-stage__rings::after,
   .fishing-line-overlay__line,
   .fishing-panel__actions .strike,
-  .fishing-figure__body,
-  .fishing-figure__head,
-  .fishing-figure__arm,
-  .fishing-figure__rod,
-  .fishing-figure__line,
   .bird,
   .dragonfly,
   .dragonfly--rare,
-  .surface-ring,
-  .reed {
+  .surface-ring {
     animation-duration: 1ms;
     animation-iteration-count: 1;
   }
@@ -1557,15 +1317,6 @@
     border: 0;
     border-radius: 0;
     background: transparent;
-  }
-
-  .fishing-stage__prototype-3d-canvas {
-    left: 12%;
-    bottom: 8%;
-    width: min(52vw, 280px);
-    height: min(52vh, 390px);
-    max-width: 56%;
-    max-height: 60%;
   }
 
   .fishing-minigame__controls {
@@ -1851,15 +1602,6 @@
   background: transparent;
 }
 
-:root[data-view-mode="mobile"] .fishing-stage__prototype-3d-canvas {
-  left: 12%;
-  bottom: 8%;
-  width: min(52vw, 280px);
-  height: min(52vh, 390px);
-  max-width: 56%;
-  max-height: 60%;
-}
-
 :root[data-view-mode="mobile"] .fishing-minigame__controls {
   position: absolute;
   left: 8px;
@@ -2021,30 +1763,11 @@
   }
 }
 
-/* Emergency pre-demo: hide oversized 3D fisherman prototype overlay */
-.fishing-prototype3d,
-.fishing-prototype-3d,
-.fishing-prototype,
-.fishing-3d-prototype,
-.fishing-scene canvas[class*='prototype'],
-[class*='prototype3d'],
-[class*='prototype-3d'] {
-  display: none !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
 :root.low-power-mode .bird,
 :root.low-power-mode .dragonfly,
 :root.low-power-mode .surface-ring,
 :root.low-power-mode .fishing-stage__rings,
-:root.low-power-mode .fishing-stage__bobber--idle,
-:root.low-power-mode .reed,
-:root.low-power-mode .fishing-figure__hat,
-:root.low-power-mode .fishing-figure__body,
-:root.low-power-mode .fishing-figure__head,
-:root.low-power-mode .fishing-figure__arm,
-:root.low-power-mode .fishing-figure__rod {
+:root.low-power-mode .fishing-stage__bobber--idle {
   animation: none !important;
 }
 
