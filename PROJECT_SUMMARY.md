@@ -14,6 +14,7 @@ Feature commits:
 
 - Frontend `dab9246` (`feat: improve profile saves leaderboards and balance`)
 - Backend `92cbcff` (`feat: persist catch leaderboard records`)
+- Backend production-safety follow-up `00b2eb8` (`fix: fallback when catch records are unavailable`)
 
 Main merge commits:
 
@@ -27,6 +28,7 @@ Backend storage architecture:
 - Cloud-save sync now upserts catch records from recoverable `fishBasket`/trophy entries without deleting historical records when the keepnet changes.
 - Explicit reset tombstones deactivate that account's active catch records.
 - Leaderboard catch/trophy endpoints backfill safely from current cloud saves and read active persistent records. Score boards still aggregate latest saves.
+- If production has not applied the migration yet, leaderboard endpoints fall back to latest cloud-save aggregation instead of returning HTTP 500.
 
 Frontend implementation:
 
@@ -45,14 +47,14 @@ Verification:
 - Frontend `npm.cmd run build` passed on the feature branch and after merge; Vite still warns about the large main chunk.
 - Frontend focused smoke passed for crucian/live-bait blocking, predator live-bait preservation, distinct non-Canal/non-Sluice cast-spot vectors, one-hour rest crossing midnight, and Grandma House replacement stick availability.
 - Headless Chrome mobile check at `390x844` verified Profile, Settings, and Leaderboard panels render around `364px` client width with `max-width: none`; a coordinate key event verified the profile name input stays focused and visible while typing.
-- Backend `python -m compileall app` passed on feature branch and after merge.
+- Backend `python -m compileall app` passed on feature branch, after merge, and after fallback hotfix.
 - Backend SQLite service smoke passed: repeated save sync dedupes catch records, selling/removing fish from keepnet preserves the persistent record, leaderboard reads the record, and reset tombstone deactivates records.
 - `git diff --check` passed in both repositories; only standard Windows LF-to-CRLF warnings were reported.
 
 Remaining risks:
 
 - Real iPhone Safari testing is still recommended for keyboard retention and safe-area panel layout.
-- Production database must run Alembic migration `0002_persistent_catch_records` before persistent leaderboard reads are expected from Railway.
+- Production database must run Alembic migration `0002_persistent_catch_records` before Railway returns `server-catch-records`; until then production catch boards fall back to `server-cloud-save`.
 - Existing historical catches that are no longer present in recoverable cloud saves cannot be fabricated or backfilled.
 - Catch records are persistent but still not anti-cheat verified until catch resolution becomes server-authoritative.
 - The main JS bundle remains over Vite's 500 kB warning threshold.
