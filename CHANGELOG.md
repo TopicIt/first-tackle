@@ -2,6 +2,12 @@
 
 ## 2026-07-17
 
+- Wired the real gameplay catch path into cloud synchronization by promoting the catch-history-aware sync/autoload/autosave implementations to the active runtime path.
+- Added a gameplay smoke that catches through `addFishToStorage()`, verifies pending catch queue/history state, sells the fish, and confirms the historical catch survives keepnet sale.
+- Fixed same-session persistent leaderboard rows so first-save/current-name data is available immediately after sync instead of briefly falling back to the account email prefix.
+- Replaced raw leaderboard fallback labels such as `cloud save catch`, `server catch record`, and `day 1` with readable Ukrainian rendering and formatted timestamps.
+- Added backend UTF-8/current-name tests so valid Ukrainian profile names survive save sync and leaderboard responses, while corrupted question-mark placeholders fall back safely.
+- Removed the remaining gameplay fisherman/prototype path, deleted `public/assets/models/fisher_boy_base.glb`, and finished the feather-float single-layer cleanup.
 - Fixed profile rename editing so input, deletion, selection, cursor movement, and mobile keyboard composition keep the editor open until explicit Save or Cancel.
 - Profile renames now persist through the account API and immediately refresh leaderboard/public-profile names without requiring a new catch.
 - Fixed the mobile cloud/status blocks that could collapse Ukrainian text into a one-character-wide column.

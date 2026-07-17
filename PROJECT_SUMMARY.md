@@ -447,3 +447,79 @@ Remaining risks:
 - Physical iPhone Safari and predictive-text/IME behavior still require real-device testing; Chromium mobile emulation cannot fully reproduce WebKit keyboard lifecycle behavior.
 - Persistent records are recovered from client cloud saves and are not anti-cheat/server-authoritative catch events.
 - Railway database snapshots/PITR require a plan or operational backup solution before future destructive migrations.
+
+## Live Catch Sync, Manual Sync, And Scene Cleanup
+
+Completed on branch `codex/live-catch-sync-manual-sync-scene-cleanup`.
+
+Safety commits:
+
+- Frontend: `4ab4e5a` (`chore: safety snapshot for live catch sync pass`)
+- Backend: `e08cdc6` (`chore: safety snapshot for live catch sync pass`)
+
+Feature commits:
+
+- Frontend: `0299109` (`fix: wire live catch sync and leaderboard labels`)
+- Backend: `8f0ff98` (`fix: keep catch sync rows current after save`)
+
+Main merge commits:
+
+- Frontend: `1be3cdb` (`merge: live catch sync manual sync scene cleanup`)
+- Backend: `422f948` (`merge: live catch sync manual sync scene cleanup`)
+
+Root causes and fixes:
+
+- The preserved branch already stored `catchHistory` and a pending catch queue, but the active cloud-save/manual-sync/autoload functions were still the older implementations. The catch-history-aware logic existed under legacy names, so normal gameplay catches could remain local without the intended pending-catch upload behavior or post-sync leaderboard refresh. The active runtime now uses the catch-history-aware sync, autosave, manual-sync, and login comparison code paths.
+- First-save leaderboard rows in the same backend session could still fall back to the email prefix because `sync_save()` created `GameSave(user_id=...)` without attaching the relationship back onto `user.game_save`. Persistent records were correct, but same-session leaderboard reads could miss payload-backed name/level data. The backend now creates the save through `user=user` and sets `user.game_save = game_save`, so current names and payload metadata are available immediately after sync.
+- Raw leaderboard fallback labels came from server-side placeholder strings such as `cloud save catch`, `server catch record`, and `day N`, plus the frontend was rendering some fallback fields directly. Backend rows now return cleaner nullable values/current-name overlays, and the frontend maps remaining fallback values to readable Ukrainian labels and formatted timestamps.
+- Corrupted placeholder names made of question marks are now treated as invalid fallbacks. Leaderboard rows prefer the current profile name, then valid payload names, and only then the account email prefix. Backend tests now cover UTF-8 Ukrainian names end to end.
+- The doubled feather float came from duplicate feather styling layers. The fishing bobber CSS now renders the feather float with a single visible feather layer.
+- Static decorative bottom grass and the gameplay fisherman model were both part of an older prototype rendering path. The cleanup removed the prototype module, model loading, startup hooks, stage markup, legacy rod-tip DOM lookup, and the unused `public/assets/models/fisher_boy_base.glb` asset. Functional cast-spot vegetation logic remains intact.
+
+Pending catch synchronization design:
+
+- Normal gameplay catch resolution goes through `addFishToStorage()` into `addCaughtFish()`, which assigns a stable `catchId`, appends the entry to `catchHistory`, and queues that ID in `catchSync.pendingIds`.
+- Selling fish only mutates the keepnet; it does not remove `catchHistory` or pending catch IDs.
+- Cloud export includes `catchHistory` but strips pending IDs from the outgoing payload metadata so repeated uploads do not fabricate client-side pending state on load.
+- Pending catches synchronize after manual sync, login/silent reconnect autosync, and cloud autosave. A successful sync marks the synced IDs complete and refreshes the visible leaderboard. Catch-record sync stays best-effort on the backend so leaderboard failure does not roll back the primary save.
+- Backend persistent records still dedupe by stable `catchId` or deterministic fallback key, and reset tombstone/reset flows continue to deactivate records for that account.
+
+Manual login and synchronization behavior:
+
+- Logged-out cloud actions now expose `Увійти та синхронізувати поточний прогрес`.
+- Logged-in cloud actions now expose `Синхронізувати зараз`.
+- Login compares local progress, cloud revision/timestamps, reset tombstones, and pending catches before choosing cloud-ahead, local-ahead, equal, or explicit conflict flow.
+- Current local progress and pending catches are preserved across logout/login, token refresh, and silent reconnect.
+
+Leaderboard/public profile result:
+
+- Production-oriented row shaping now resolves the current public player name by stable user/profile relation instead of treating the catch-record snapshot as the only source of truth.
+- Existing persistent rows therefore pick up renames without requiring a new catch.
+- Public leaderboard profiles continue to use the shared profile layout with the corrected labels and mobile shell from the earlier profile work.
+
+Scene and asset cleanup:
+
+- Removed `public/assets/models/fisher_boy_base.glb` (`8,838,244` bytes) because the gameplay fisherman model is no longer loaded or rendered.
+- Removed `src/ui/fishingPrototype3d.js` and the remaining prototype/fisherman line-anchor path in the fishing minigame.
+- `rg` verification after the cleanup found no remaining `fisher_boy_base`, `fishingPrototype3d`, `prototype3d`, or `fisherman3d` references in `src`, `public`, `dist`, or `scripts`.
+
+Measured size changes:
+
+- `public/assets`: `35,249,431` bytes before -> `26,411,187` bytes after.
+- `dist`: `36,525,195` bytes before -> `27,598,962` bytes after.
+- Main JS chunk: `1,094.01 kB` before -> `1,016.21 kB` after.
+- Main CSS chunk: `174.55 kB` before -> `170.81 kB` after.
+
+Verification:
+
+- Frontend `npm.cmd run test:focused` passed after switching the smoke path to real gameplay authority helpers. The smoke now catches a fish through `addFishToStorage()`, confirms a stable `catchId`, verifies pending catch queue state, sells the fish, and confirms `catchHistory` survives the sale.
+- Frontend `npm.cmd run build` passed. Final output: `dist/index.html` `0.75 kB`, CSS `170.81 kB`, JS `1,016.21 kB` (gzip `272.08 kB`). The existing Vite >500 kB warning remains.
+- Backend `.venv\Scripts\python.exe -m unittest discover -s tests -v` passed, including UTF-8/current-name fallback coverage plus repeated-sync dedupe and keepnet-sale survival.
+- Backend `.venv\Scripts\python.exe -m compileall app` passed.
+- `git diff --check` passed in both repos aside from the existing LF->CRLF warnings from the Windows worktrees.
+
+Remaining risks:
+
+- Real iPhone Safari verification is still needed for physical keyboard/predictive-text behavior and for final mobile layout confirmation under WebKit.
+- The old stale cloud-save helper implementations still exist as dead code in the frontend modules; the active runtime now points at the correct implementations, but a follow-up cleanup pass would make the module structure easier to maintain.
+- Leaderboard records remain recovered from client save data rather than from a fully server-authoritative catch-event pipeline.

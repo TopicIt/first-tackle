@@ -4,6 +4,8 @@ Updated: 2026-07-17
 
 ## Backend / Online Leaderboard
 
+- Remove the dead legacy cloud-save helper copies from the frontend modules now that the active runtime has been switched to the catch-history-aware sync path.
+- Monitor live pending-catch uploads after login/manual sync/autosave to confirm no production edge cases leave catches stuck in the local queue.
 - Monitor the deployed persistent catch-record ingestion and retry logs for malformed legacy catch payloads.
 - Add a Railway database backup/PITR plan before the next destructive or data-transforming migration; the current plan did not expose snapshots.
 - Continue from persistent catch records toward server-verified catch/event records instead of client-recovered records.
@@ -58,6 +60,7 @@ Example leaderboard response shape:
 
 ## Follow-Up Checks
 
+- Run a real production smoke for catch -> sync -> leaderboard -> sale survival on a physical mobile browser, especially after silent reconnect.
 - Run mobile device profiling after deploy to confirm lower temperature and battery draw.
 - Run profile rename, cloud-save text layout, and public profile smoke on a physical iPhone Safari device.
 - Add automated bait-consumption unit tests once the game logic has a test harness.
