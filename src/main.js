@@ -863,14 +863,16 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'minigame:context') {
       runLockedFishingAction(() => {
-        renderAfterAuthorityAction(runFishingContextAction(gameState, performance.now()));
+        const pendingBefore = getPendingCatchSyncCount(gameState);
+        renderAfterAuthorityAction(runFishingContextAction(gameState, performance.now()), pendingBefore);
       });
       return;
     }
 
     if (actionId === 'minigame:strike') {
       runLockedFishingAction(() => {
-        renderAfterAuthorityAction(strikeLine(gameState, performance.now()));
+        const pendingBefore = getPendingCatchSyncCount(gameState);
+        renderAfterAuthorityAction(strikeLine(gameState, performance.now()), pendingBefore);
       });
       return;
     }
@@ -3230,8 +3232,7 @@ function runLockedFishingAction(action) {
   return true;
 }
 
-function renderAfterAuthorityAction(actionResult) {
-  const pendingBefore = getPendingCatchSyncCount(gameState);
+function renderAfterAuthorityAction(actionResult, pendingBefore = getPendingCatchSyncCount(gameState)) {
   Promise.resolve(actionResult)
     .catch((error) => {
       console.warn('Game authority action fell back or failed.', error);
