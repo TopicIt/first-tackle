@@ -43,8 +43,10 @@ export function ensureFishState(state) {
   state.catchSync ??= {};
   state.catchSync.pendingIds = normalizePendingCatchIds(state.catchSync.pendingIds);
   state.catchSync.lastSyncedAt ??= null;
+  state.catchSync.lastAttemptAt ??= null;
   state.catchSync.lastErrorAt ??= null;
   state.catchSync.lastErrorMessage ??= '';
+  state.catchSync.lastAckCount ??= 0;
   state.catchJournal ??= {};
   state.trophies ??= [];
   state.achievements ??= {};
@@ -107,8 +109,10 @@ export function clearFishHistoryState(state) {
   state.catchSync = {
     pendingIds: [],
     lastSyncedAt: null,
+    lastAttemptAt: null,
     lastErrorAt: null,
     lastErrorMessage: '',
+    lastAckCount: 0,
   };
   state.catchJournal = {};
   state.trophies = [];
@@ -346,13 +350,16 @@ export function markCatchSyncSuccess(state, catchIds = [], syncedAt = new Date()
   if (syncedIds.size > 0) {
     state.catchSync.pendingIds = state.catchSync.pendingIds.filter((id) => !syncedIds.has(id));
   }
+  state.catchSync.lastAttemptAt = syncedAt;
   state.catchSync.lastSyncedAt = syncedAt;
   state.catchSync.lastErrorAt = null;
   state.catchSync.lastErrorMessage = '';
+  state.catchSync.lastAckCount = syncedIds.size;
 }
 
 export function markCatchSyncFailure(state, message, failedAt = new Date().toISOString()) {
   ensureFishState(state);
+  state.catchSync.lastAttemptAt = failedAt;
   state.catchSync.lastErrorAt = failedAt;
   state.catchSync.lastErrorMessage = String(message ?? '').trim();
 }

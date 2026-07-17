@@ -107,8 +107,10 @@ export function createInitialState() {
     catchSync: {
       pendingIds: [],
       lastSyncedAt: null,
+      lastAttemptAt: null,
       lastErrorAt: null,
       lastErrorMessage: '',
+      lastAckCount: 0,
     },
     progress: {
       firstTackleReady: false,

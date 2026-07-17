@@ -459,6 +459,7 @@ function profileCloudSaveMarkup(state) {
       : t('cloudSaveOffline');
   const account = profile?.email || profile?.displayName || t('cloudSaveConnected');
   const lastCloudSave = formatCloudSaveTime(metadata?.serverUpdatedAt);
+  const catchSyncStatus = profileCatchSyncStatusMarkup(state, loggedIn);
 
   return `
     <section class="profile-cloud-save${loggedIn ? ' is-connected' : ''}${busy ? ' is-syncing' : ''}" aria-label="${t('cloudSave')}">
@@ -470,9 +471,11 @@ function profileCloudSaveMarkup(state) {
         <div><dt>${t('cloudSaveAccount')}</dt><dd>${loggedIn ? escapeHtml(account) : t('cloudSaveOfflineHint')}</dd></div>
         <div><dt>${t('cloudSaveLastSave')}</dt><dd>${escapeHtml(lastCloudSave)}</dd></div>
       </dl>
+      ${catchSyncStatus}
       <div class="profile-cloud-save__actions">
         ${loggedIn ? `
           <button data-action="cloud:upload" type="button"${busy ? ' disabled' : ''}>Синхронізувати зараз</button>
+          <button data-action="cloud:sync-catches" type="button"${busy ? ' disabled' : ''}>Синхронізувати улови зараз</button>
           <button data-action="cloud:download" type="button"${busy ? ' disabled' : ''}>Завантажити останнє збереження</button>
           <button data-action="cloud:logout" type="button"${busy ? ' disabled' : ''}>${t('cloudSaveLogoutShort')}</button>
         ` : `
@@ -481,6 +484,24 @@ function profileCloudSaveMarkup(state) {
       </div>
       ${message ? `<small>${escapeHtml(message)}</small>` : ''}
     </section>
+  `;
+}
+
+function profileCatchSyncStatusMarkup(state, loggedIn) {
+  const pendingCount = Array.isArray(state.catchSync?.pendingIds) ? state.catchSync.pendingIds.length : 0;
+  const lastSyncedAt = state.catchSync?.lastSyncedAt ? formatCloudSaveTime(state.catchSync.lastSyncedAt) : 'немає';
+  const errorMessage = String(state.catchSync?.lastErrorMessage ?? '').trim();
+  const status = pendingCount > 0
+    ? `Очікують синхронізації: ${pendingCount}`
+    : 'Улови синхронізовано';
+  const connectionNote = loggedIn ? '' : 'Увійдіть, щоб синхронізувати улови.';
+  return `
+    <div class="profile-cloud-save__catch-sync">
+      <strong>${escapeHtml(status)}</strong>
+      <span>Остання синхронізація уловів: ${escapeHtml(lastSyncedAt)}</span>
+      ${errorMessage ? `<small>Помилка синхронізації: ${escapeHtml(errorMessage)}</small>` : ''}
+      ${connectionNote ? `<small>${escapeHtml(connectionNote)}</small>` : ''}
+    </div>
   `;
 }
 
