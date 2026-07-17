@@ -232,6 +232,13 @@ export function restSeveralHours(state) {
   queueSound(state, 'ui_click');
 }
 
+export function restOneHour(state) {
+  advanceTime(state, 60);
+  pushFeedback(state, 'logRestedOneHour', {}, 'item');
+  pushLog(state, 'logRestedOneHour');
+  queueSound(state, 'ui_click');
+}
+
 export function collectTaranka(state) {
   const ready = countFishByStatus(state, 'ready_taranka');
   if (ready === 0) {

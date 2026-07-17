@@ -229,6 +229,12 @@ function mergeState(base, saved) {
         ...base.settings.intro,
         ...(saved.settings?.intro ?? {}),
       },
+      cloudSave: {
+        ...base.settings.cloudSave,
+        ...(saved.settings?.cloudSave ?? {}),
+        autoLoadNewest: saved.settings?.cloudSave?.autoLoadNewest !== false,
+        autoSyncAfterLogin: saved.settings?.cloudSave?.autoSyncAfterLogin !== false,
+      },
       viewMode: saved.settings?.viewMode ?? base.settings.viewMode,
     },
     purchased: {

@@ -152,7 +152,7 @@ export const castSpots = [
     scale: 0.86,
     allowedMethods: ['stickRod', 'betterLine'],
     waterId: 'fire_ponds',
-    weights: getWaterFishWeights('fire_ponds', { crucian: 1.2, roach: 1.05, rudd: 1.45, carp: 0.95, grass_carp: 1.1, silver_carp: 0.8 }),
+    weights: getWaterFishWeights('fire_ponds', { crucian: 1.05, roach: 0.9, rudd: 1.85, carp: 0.62, grass_carp: 1.45, silver_carp: 0.55 }),
   },
   {
     id: 'fire_pond_middle',
@@ -163,7 +163,7 @@ export const castSpots = [
     scale: 0.92,
     allowedMethods: ['stickRod'],
     waterId: 'fire_ponds',
-    weights: getWaterFishWeights('fire_ponds', { crucian: 1.35, roach: 1.18, rudd: 1.15, carp: 1.18, grass_carp: 0.9, silver_carp: 1.05 }),
+    weights: getWaterFishWeights('fire_ponds', { crucian: 0.92, roach: 1.22, rudd: 0.76, carp: 1.45, grass_carp: 0.82, silver_carp: 1.62 }),
   },
   {
     id: 'fire_pond_lily_edge',
@@ -174,7 +174,7 @@ export const castSpots = [
     scale: 1.0,
     allowedMethods: ['handline', 'stickRod'],
     waterId: 'fire_ponds',
-    weights: getWaterFishWeights('fire_ponds', { crucian: 1.28, roach: 1.05, rudd: 1.3, carp: 0.82, grass_carp: 0.75, silver_carp: 0.72 }),
+    weights: getWaterFishWeights('fire_ponds', { crucian: 1.7, roach: 1.28, rudd: 1.25, carp: 0.72, grass_carp: 0.55, silver_carp: 0.48 }),
   },
   {
     id: 'greada_mud',
@@ -185,7 +185,7 @@ export const castSpots = [
     scale: 0.88,
     allowedMethods: ['handline', 'stickRod', 'betterLine'],
     waterId: 'greada',
-    weights: getWaterFishWeights('greada', { canadian_catfish: 1.35, crucian: 0.9, lynok: 1.05, loach: 1.2, rotan: 0.75 }),
+    weights: getWaterFishWeights('greada', { canadian_catfish: 1.8, crucian: 0.62, lynok: 0.78, loach: 1.45, rotan: 0.52 }),
   },
   {
     id: 'greada_weeds',
@@ -196,7 +196,7 @@ export const castSpots = [
     scale: 1.02,
     allowedMethods: ['handline', 'stickRod'],
     waterId: 'greada',
-    weights: getWaterFishWeights('greada', { crucian: 1.1, rotan: 1.25, lynok: 0.85, loach: 1.2, canadian_catfish: 0.8 }),
+    weights: getWaterFishWeights('greada', { crucian: 1.42, rotan: 1.7, lynok: 0.62, loach: 1.22, canadian_catfish: 0.5 }),
   },
   {
     id: 'greada_middle_left',
@@ -207,7 +207,7 @@ export const castSpots = [
     scale: 0.88,
     allowedMethods: ['handline', 'stickRod', 'betterLine'],
     waterId: 'greada',
-    weights: getWaterFishWeights('greada', { canadian_catfish: 1.18, crucian: 1.05, lynok: 1.0, loach: 0.95, rotan: 0.62 }),
+    weights: getWaterFishWeights('greada', { canadian_catfish: 1.18, crucian: 1.15, lynok: 1.28, loach: 0.82, rotan: 0.58 }),
   },
   {
     id: 'greada_middle',
@@ -218,7 +218,7 @@ export const castSpots = [
     scale: 0.84,
     allowedMethods: ['stickRod', 'betterLine'],
     waterId: 'greada',
-    weights: getWaterFishWeights('greada', { canadian_catfish: 1.28, crucian: 1.0, lynok: 1.1, loach: 0.85, rotan: 0.55 }),
+    weights: getWaterFishWeights('greada', { canadian_catfish: 1.45, crucian: 0.82, lynok: 1.55, loach: 0.62, rotan: 0.42 }),
   },
   {
     id: 'lake_tur_lilies',
@@ -229,7 +229,7 @@ export const castSpots = [
     scale: 0.84,
     allowedMethods: ['stickRod', 'betterLine'],
     waterId: 'lake_tur',
-    weights: getWaterFishWeights('lake_tur', { rudd: 1.35, okun: 1.15, lynok: 1.15, pike: 1.05, canadian_catfish: 1.05, som: 0.7, bream: 0.85 }),
+    weights: getWaterFishWeights('lake_tur', { crucian: 0.9, bleak: 1.12, rudd: 1.75, loach: 1.2, okun: 1.1, lynok: 1.32, pike: 1.2, sudak: 0.58, som: 0.45, canadian_catfish: 0.72, gudgeon: 1.2, white_bream: 0.72, bream: 0.62, plotytsia: 1.28 }),
   },
   {
     id: 'lake_tur_dropoff',
@@ -240,7 +240,7 @@ export const castSpots = [
     scale: 0.84,
     allowedMethods: ['stickRod', 'betterLine'],
     waterId: 'lake_tur',
-    weights: getWaterFishWeights('lake_tur', { okun: 1.2, sudak: 1.35, pike: 1.15, canadian_catfish: 1.25, som: 1.08, bream: 1.15, white_bream: 1.1, plotytsia: 0.8 }),
+    weights: getWaterFishWeights('lake_tur', { crucian: 0.65, bleak: 0.72, rudd: 0.75, loach: 0.75, okun: 1.35, lynok: 0.92, pike: 1.08, sudak: 1.72, som: 1.22, canadian_catfish: 1.38, gudgeon: 0.8, white_bream: 1.28, bream: 1.42, plotytsia: 0.82 }),
   },
   {
     id: 'lake_tur_reed_channel',
@@ -251,7 +251,7 @@ export const castSpots = [
     scale: 0.78,
     allowedMethods: ['betterLine'],
     waterId: 'lake_tur',
-    weights: getWaterFishWeights('lake_tur', { rudd: 1.18, loach: 0.85, pike: 1.45, okun: 1.05, lynok: 1.0, sudak: 1.05, som: 1.2, canadian_catfish: 1.15, gudgeon: 0.8, white_bream: 0.95, bream: 0.9, plotytsia: 1.0 }),
+    weights: getWaterFishWeights('lake_tur', { crucian: 0.58, bleak: 0.7, rudd: 1.22, loach: 0.95, pike: 1.9, okun: 1.18, lynok: 1.05, sudak: 1.18, som: 1.55, canadian_catfish: 1.22, gudgeon: 0.62, white_bream: 0.82, bream: 0.78, plotytsia: 0.9 }),
   },
   {
     id: 'mining_lake_shelf',
@@ -262,7 +262,7 @@ export const castSpots = [
     scale: 0.82,
     allowedMethods: ['stickRod', 'betterLine'],
     waterId: 'mining_lake',
-    weights: getWaterFishWeights('mining_lake', { okun: 1.35, crucian: 0.88, lynok: 1.05, canadian_catfish: 1.05, white_bream: 1.1, bream: 1.05, plotytsia: 1.2, eel: 0.55 }),
+    weights: getWaterFishWeights('mining_lake', { okun: 1.42, crucian: 0.86, lynok: 0.98, canadian_catfish: 0.9, white_bream: 1.34, bream: 1.32, plotytsia: 1.18, eel: 0.45 }),
   },
   {
     id: 'mining_lake_shadow',
@@ -273,7 +273,7 @@ export const castSpots = [
     scale: 0.74,
     allowedMethods: ['betterLine'],
     waterId: 'mining_lake',
-    weights: getWaterFishWeights('mining_lake', { okun: 1.25, crucian: 0.75, lynok: 1.15, canadian_catfish: 1.2, white_bream: 0.95, bream: 1.15, plotytsia: 0.9, eel: 1.5 }),
+    weights: getWaterFishWeights('mining_lake', { okun: 0.92, crucian: 0.5, lynok: 1.28, canadian_catfish: 1.35, white_bream: 0.72, bream: 0.88, plotytsia: 0.62, eel: 2.05 }),
   },
   {
     id: 'mining_lake_stones',
@@ -284,7 +284,7 @@ export const castSpots = [
     scale: 0.96,
     allowedMethods: ['handline', 'stickRod'],
     waterId: 'mining_lake',
-    weights: getWaterFishWeights('mining_lake', { okun: 1.3, crucian: 0.95, lynok: 1.0, canadian_catfish: 0.82, white_bream: 0.9, bream: 0.75, plotytsia: 1.22, eel: 0.62 }),
+    weights: getWaterFishWeights('mining_lake', { okun: 1.58, crucian: 1.2, lynok: 0.8, canadian_catfish: 0.62, white_bream: 0.82, bream: 0.65, plotytsia: 1.55, eel: 0.52 }),
   },
 ];
 
