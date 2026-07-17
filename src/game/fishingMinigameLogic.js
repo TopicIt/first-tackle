@@ -6,7 +6,7 @@ import {
   syncInventoryFromFishBasket,
 } from './fishInventory.js';
 import { addFishToStorage, removeFishFromStorage, resolveCatch } from './gameAuthority.js';
-import { countItem, hasItem } from './inventory.js';
+import { countItem, hasItem, removeItem } from './inventory.js';
 import { normalizeWaterId } from './locations.js';
 import { markFirstCrucianCatchRewardSeen, queueFirstCrucianCatchReward } from './locationTransitions.js';
 import { getActiveItemModifiers } from './itemEffects.js';
