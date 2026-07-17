@@ -7,7 +7,7 @@ import { getFishSaleValue, getFreshnessInfo, getMarketPriceInfo } from '../game/
 import { castSpots, getCastSpot } from '../game/bitePatterns.js';
 import { getQuestRows } from '../game/quests.js';
 import { getCafeOrderRows } from '../game/cafeOrders.js';
-import { getLevelProgress, profileAvatars } from '../game/profile.js';
+import { getLevelProgress, PROFILE_NAME_MAX_LENGTH, profileAvatars } from '../game/profile.js';
 import { componentDescriptions, componentLabels, requiredTackleSlots, tackleComponents } from '../game/tackle.js';
 import { resolveFishCatchCardImage } from '../game/fishCardImages.js';
 import { countItem, itemLabels } from '../game/inventory.js';
@@ -246,6 +246,9 @@ export function inventoryMarkup(state) {
 
 export function profileMarkup(state) {
   const profile = state.playerProfile ?? {};
+  const profileNameDraft = state.ui?.profileNameDraft ?? profile.name ?? '';
+  const profileNameError = state.ui?.profileNameError ?? '';
+  const profileNameSaving = Boolean(state.ui?.profileNameSaving);
   const playerState = getPlayerState(state);
   const keepnetSummary = getKeepnetSummary(state);
   const totalTrophies = (state.trophies ?? []).filter((entry) => entry.tier).length;
@@ -289,7 +292,8 @@ export function profileMarkup(state) {
     </div>
     ${state.ui?.editingProfile ? `
       <form class="profile-form profile-form--inline" data-profile-form>
-        <input data-profile-name-input name="name" type="text" autocomplete="name" value="${escapeHtml(profile.name ?? '')}" placeholder="${t('defaultPlayerName')}" />
+        <input data-profile-name-input name="name" type="text" autocomplete="name" maxlength="${PROFILE_NAME_MAX_LENGTH}" value="${escapeHtml(profileNameDraft)}" placeholder="${t('defaultPlayerName')}" aria-invalid="${profileNameError ? 'true' : 'false'}" aria-describedby="profile-name-error"${profileNameSaving ? ' disabled' : ''} />
+        <p class="profile-form__error${profileNameError ? ' is-visible' : ''}" id="profile-name-error" role="alert">${escapeHtml(profileNameError)}</p>
         <details class="avatar-selector">
           <summary>${t('changeAvatar')}</summary>
           <div class="avatar-grid avatar-grid--small">
@@ -301,8 +305,8 @@ export function profileMarkup(state) {
           <input data-profile-photo-input type="file" accept="image/*" />
         </label>
         <div class="profile-form__actions">
-          <button type="submit">${t('saveProfile')}</button>
-          <button data-action="profile:cancelEdit" type="button">${t('close')}</button>
+          <button type="submit"${profileNameSaving ? ' disabled' : ''}>${t('saveProfile')}</button>
+          <button data-action="profile:cancelEdit" type="button"${profileNameSaving ? ' disabled' : ''}>${t('cancel')}</button>
         </div>
       </form>
     ` : `<button class="profile-edit-button" data-action="profile:edit" type="button">${t('editProfile')}</button>`}

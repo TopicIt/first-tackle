@@ -21,7 +21,7 @@ import { getLanguage, t } from '../i18n/i18n.js';
 import { buildInfo } from '../buildInfo.js';
 import { DEFAULT_AVATAR, GAME_TITLE } from '../game/state.js';
 import { getAuthorityMode } from '../game/gameAuthority.js';
-import { profileAvatars, tutorialSteps } from '../game/profile.js';
+import { PROFILE_NAME_MAX_LENGTH, profileAvatars, tutorialSteps } from '../game/profile.js';
 import { getQuestRows } from '../game/quests.js';
 import { getSelectedProfileStar } from '../game/achievementStars.js';
 import { assetPath } from '../utils/assetPath.js';
@@ -43,6 +43,12 @@ export function createHud(root, handlers) {
     const profileName = event.target.closest('[data-profile-name-input]');
     if (profileName) {
       handlers.onProfileNameDraft?.(profileName.value);
+      profileName.setAttribute('aria-invalid', 'false');
+      const error = profileName.closest('[data-profile-form]')?.querySelector('.profile-form__error');
+      if (error) {
+        error.textContent = '';
+        error.classList.remove('is-visible');
+      }
     }
   });
 
@@ -244,6 +250,11 @@ export function createHud(root, handlers) {
 
   return {
     render(state, context) {
+      const activeProfileInput = document.activeElement?.matches?.('[data-profile-name-input]')
+        && root.contains(document.activeElement);
+      if (activeProfileInput && !state.ui?.profileNameSaving && !state.ui?.profileNameError) {
+        return;
+      }
       const visibleFeedback = (state.feedback ?? []).filter((feedback) => !shownFeedbackIds.has(feedback.id));
       const renderState = { ...state, feedback: visibleFeedback };
       const collapsedPanels = state.ui?.collapsedPanels ?? {};
@@ -773,6 +784,8 @@ function startupOverlayMarkup(state) {
 
   if (step === 'profile') {
     const selectedAvatar = state.playerProfile?.avatar ?? DEFAULT_AVATAR;
+    const profileNameDraft = state.ui?.profileNameDraft ?? state.playerProfile?.name ?? '';
+    const profileNameError = state.ui?.profileNameError ?? '';
     return `
       <section class="startup-flow" aria-label="${t('profile')}">
         <div class="startup-flow__panel startup-flow__panel--profile">
@@ -780,7 +793,8 @@ function startupOverlayMarkup(state) {
           <h1>${GAME_TITLE}</h1>
           <form class="profile-form profile-form--startup" data-profile-form>
             <img class="profile-form__selected" src="${assetPath(selectedAvatar)}" onerror="this.src='${assetPath(DEFAULT_AVATAR)}'" alt="" />
-            <input data-profile-name-input name="name" type="text" autocomplete="name" value="${escapeHtml(state.playerProfile?.name ?? '')}" placeholder="${t('defaultPlayerName')}" />
+            <input data-profile-name-input name="name" type="text" autocomplete="name" maxlength="${PROFILE_NAME_MAX_LENGTH}" value="${escapeHtml(profileNameDraft)}" placeholder="${t('defaultPlayerName')}" aria-invalid="${profileNameError ? 'true' : 'false'}" aria-describedby="startup-profile-name-error" />
+            <p class="profile-form__error${profileNameError ? ' is-visible' : ''}" id="startup-profile-name-error" role="alert">${escapeHtml(profileNameError)}</p>
             <div class="avatar-grid">
               ${profileAvatars.map((avatar) => avatarButtonMarkup(avatar, selectedAvatar)).join('')}
             </div>

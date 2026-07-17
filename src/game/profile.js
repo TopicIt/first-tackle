@@ -2,6 +2,8 @@ import { DEFAULT_AVATAR, DEFAULT_PLAYER_NAME, pushFeedback, pushLog, queueSound 
 import { completeStarterTackleDrawer } from './starterTackleDrawer.js';
 import { ensureAchievementStarState } from './achievementStars.js';
 
+export const PROFILE_NAME_MAX_LENGTH = 40;
+
 export const profileAvatars = [
   '/assets/profile/Grandson-1.png',
   '/assets/profile/Grandson-2.png',
@@ -126,6 +128,17 @@ export function updateProfile(state, profile) {
   state.progress.profileSetupComplete = true;
   pushLog(state, 'logProfileSaved');
   queueSound(state, 'ui_click');
+}
+
+export function validateProfileName(name) {
+  const value = String(name ?? '').trim();
+  if (!value) {
+    return { ok: false, value: '', error: 'profileNameRequired' };
+  }
+  if (value.length > PROFILE_NAME_MAX_LENGTH) {
+    return { ok: false, value, error: 'profileNameTooLong' };
+  }
+  return { ok: true, value, error: null };
 }
 
 export function selectAvatar(state, avatar) {

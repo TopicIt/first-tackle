@@ -4,9 +4,8 @@ Updated: 2026-07-17
 
 ## Backend / Online Leaderboard
 
-- Deploy the updated `D:\first-tackle-api` backend to Railway.
-- Verify `GET /api/leaderboard/biggest-fish` returns `200` from production.
-- Run Alembic migration `0002_persistent_catch_records` in production.
+- Monitor the deployed persistent catch-record ingestion and retry logs for malformed legacy catch payloads.
+- Add a Railway database backup/PITR plan before the next destructive or data-transforming migration; the current plan did not expose snapshots.
 - Continue from persistent catch records toward server-verified catch/event records instead of client-recovered records.
 - Add submission or integration path from server-authoritative catch resolution into leaderboard records.
 - Keep frontend local fallback visible whenever server endpoints are unavailable.
@@ -60,5 +59,6 @@ Example leaderboard response shape:
 ## Follow-Up Checks
 
 - Run mobile device profiling after deploy to confirm lower temperature and battery draw.
+- Run profile rename, cloud-save text layout, and public profile smoke on a physical iPhone Safari device.
 - Add automated bait-consumption unit tests once the game logic has a test harness.
 - Confirm guide text renders correctly in Ukrainian on narrow iPhone widths.

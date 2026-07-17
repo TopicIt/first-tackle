@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test:focused": "node scripts/smoke-profile-cloud.mjs",
     "optimize:assets": "node scripts/optimize-assets.mjs",
     "preview": "vite preview"
   },

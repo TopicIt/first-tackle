@@ -1577,6 +1577,18 @@ button:disabled {
   gap: 8px;
 }
 
+.profile-form__error {
+  display: none;
+  margin: 0;
+  color: #ffd4c8;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.profile-form__error.is-visible {
+  display: block;
+}
+
 .avatar-selector {
   display: grid;
   gap: 8px;
@@ -4947,6 +4959,8 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet {
 .mobile-menu .cloud-save-shortcut--menu,
 :root[data-view-mode="mobile"] .mobile-menu .cloud-save-shortcut--menu {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   box-sizing: border-box;
   display: block;
   padding: 12px;
@@ -4954,6 +4968,14 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet {
   background: rgb(255 252 238 / 0.76);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+}
+
+.mobile-menu__sheet > *,
+:root[data-view-mode="mobile"] .mobile-menu__sheet > * {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .mobile-menu .cloud-save-shortcut__summary,
@@ -4984,9 +5006,22 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet {
 :root[data-view-mode="mobile"] .mobile-menu .cloud-save-shortcut small {
   display: block;
   max-width: 100%;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
+  writing-mode: horizontal-tb;
   white-space: normal;
   text-align: left;
+}
+
+.mobile-menu__service,
+.mobile-menu__service button,
+:root[data-view-mode="mobile"] .mobile-menu__service,
+:root[data-view-mode="mobile"] .mobile-menu__service button {
+  min-width: 0;
+  max-width: 100%;
+  word-break: normal;
+  overflow-wrap: break-word;
+  writing-mode: horizontal-tb;
 }
 
 .mobile-menu .cloud-save-form label,

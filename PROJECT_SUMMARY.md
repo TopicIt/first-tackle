@@ -403,3 +403,47 @@ Recommended next tasks:
 
 - Add real server-authoritative catch/trophy events for verified leaderboards.
 - Split/lazy-load guide, leaderboard, profile/cloud, settings, and transition systems to reduce the main JS chunk.
+
+## Profile Rename And Production Catch Migration
+
+Completed on branch `codex/profile-name-leaderboard-migration-fix`.
+
+Frontend feature commit: `e00a04a` (`fix: stabilize profile rename and cloud save ux`).
+
+Backend feature commits: `6a51932` (`fix: preserve cloud saves during catch sync failures`) and `a7094bc` (`fix: isolate optional catch synchronization`).
+
+Backend main merge commit: `de8a137` (`merge: profile rename leaderboard migration fix`).
+
+Frontend main merge commit: pending final merge in this delivery.
+
+Root causes and fixes:
+
+- The profile editor wrote each keystroke into persisted profile state, triggering the HUD/root render path and replacing the controlled input. The editor now owns a separate draft, suppresses whole-HUD rendering while the input is active, validates only on explicit Save, and has an explicit Cancel action. A failed server rename leaves the draft and editor open.
+- Profile rename saves through `PATCH /profile/me`; leaderboard responses overlay the current profile name through the stable user relation, so existing catch records are not rewritten and immediately display the new name. Frontend leaderboard/public-profile caches are invalidated and refreshed after success.
+- Mobile cloud/status content inherited unconstrained flex sizing plus aggressive wrapping, allowing a child to collapse to a one-character column. Menu/profile descendants now have stable full-width/min-width constraints and normal horizontal word wrapping.
+- Production `/save/sync` HTTP 500 was confirmed from Railway logs as PostgreSQL `UndefinedTable: relation "catch_records" does not exist`, raised by `sync_catch_records_from_save` inside the same transaction as the cloud save. Catch enrichment now runs after the primary save commit in its own best-effort transaction and catches/logs any enrichment exception without rolling back the save.
+- Authenticated API calls now refresh an expired access token once and retry the original request. Raw browser network errors are mapped to useful Ukrainian cloud-save messages.
+
+Production migration:
+
+- Before: Alembic revision `0001_initial_schema`; `catch_records` absent; leaderboard fallback source `server-cloud-save`.
+- Command: `python -m alembic upgrade head` against the Railway production `DATABASE_URL`.
+- After: Alembic revision `0002_persistent_catch_records (head)`.
+- Verified `catch_records`, indexes `ix_catch_records_catch_id`, `ix_catch_records_fish_id`, `ix_catch_records_user_id`, unique `(user_id, catch_key)` constraint/index `uq_catch_records_user_catch_key`, and cascading user foreign key.
+- Railway did not expose a database snapshot/backup on the current plan. Recovery was based on PostgreSQL transactional DDL plus the migration downgrade, which only removes the new table/indexes; the database was not reset, recreated, or wiped.
+
+Verification:
+
+- Frontend `npm.cmd run test:focused` and `npm.cmd run build` passed. Vite still reports the existing main-chunk warning (about 1.1 MB minified).
+- Backend four-test focused suite and `.venv\Scripts\python.exe -m compileall app` passed, including missing-table and arbitrary catch-sync failure isolation.
+- At an exact browser CSS viewport of `390x844`, registration and profile-edit fields retained focus/cursor through Ukrainian typing, Backspace, full deletion/retyping, spaces, and apostrophe input. Save applied the draft; Cancel restored the persisted name.
+- The mobile Profile shell measured 366 px on a 390 px viewport. Cloud/status text measured full horizontal width with normal wrapping; the cloud block remained inside the 339 px content shell.
+- Railway deployment for backend merge `de8a137` became Active and `/health` returned HTTP 200.
+- Production smoke verified initial and repeated `/save/sync`, one-record dedupe, token refresh, forced overwrite, latest cloud load, Unicode rename persistence, immediate renamed leaderboard rows, keepnet-removal survival, and reset deactivation.
+- Production biggest-fish and trophy endpoints both returned source `server-catch-records`.
+
+Remaining risks:
+
+- Physical iPhone Safari and predictive-text/IME behavior still require real-device testing; Chromium mobile emulation cannot fully reproduce WebKit keyboard lifecycle behavior.
+- Persistent records are recovered from client cloud saves and are not anti-cheat/server-authoritative catch events.
+- Railway database snapshots/PITR require a plan or operational backup solution before future destructive migrations.

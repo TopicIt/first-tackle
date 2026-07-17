@@ -2,6 +2,12 @@
 
 ## 2026-07-17
 
+- Fixed profile rename editing so input, deletion, selection, cursor movement, and mobile keyboard composition keep the editor open until explicit Save or Cancel.
+- Profile renames now persist through the account API and immediately refresh leaderboard/public-profile names without requiring a new catch.
+- Fixed the mobile cloud/status blocks that could collapse Ukrainian text into a one-character-wide column.
+- Applied production migration `0002_persistent_catch_records`; biggest-fish and trophy endpoints now use `server-catch-records`.
+- Isolated catch-record enrichment from the primary cloud-save transaction so optional record-sync failures cannot turn a committed save into HTTP 500.
+- Added one-time access-token refresh/retry for authenticated API requests and readable Ukrainian network/save errors.
 - Added persistent backend catch records and migrated catch/trophy leaderboards away from current keepnet-derived rows.
 - Fixed profile-name typing so registration/editing inputs keep focus while typing.
 - Improved mobile panel sizing for Profile, Settings, Leaderboard, and public profile views.
