@@ -75,6 +75,7 @@ export function createInitialTackleState() {
       float: 'none',
       rod: 'none',
     },
+    broken: {},
     migratedLegacyRig: false,
   };
 }
@@ -96,7 +97,11 @@ export function ensureTackleState(state) {
     ...createInitialTackleState().equipped,
     ...(state.tackle.equipped ?? {}),
   };
+  state.tackle.broken = {
+    ...(state.tackle.broken ?? {}),
+  };
   migrateOldRigSelectionOnce(state);
+  const starterRodBroken = isTackleComponentBroken(state, 'simple_stick_rod');
 
   if (state.inventory?.primitiveTackle > 0) {
     state.tackle.owned.grandma_thread = true;
@@ -112,10 +117,10 @@ export function ensureTackleState(state) {
   if (shouldHaveStarterFloat) {
     state.tackle.owned.goose_feather_float = true;
   }
-  if (state.progress?.starterTackleDrawerCompleted) {
+  if (state.progress?.starterTackleDrawerCompleted && !starterRodBroken) {
     state.tackle.owned.simple_stick_rod = true;
   }
-  if (state.inventory?.stickRod > 0) {
+  if (state.inventory?.stickRod > 0 && !starterRodBroken) {
     state.tackle.owned.simple_stick_rod = true;
   }
   if (state.purchased?.betterLine) {
@@ -148,17 +153,30 @@ export function ensureTackleState(state) {
   if (shouldHaveStarterFloat && (!state.tackle.equipped.float || state.tackle.equipped.float === 'none')) {
     state.tackle.equipped.float = 'goose_feather_float';
   }
+  if (starterRodBroken) {
+    state.tackle.owned.simple_stick_rod = false;
+    state.inventory.stickRod = 0;
+    if (state.tackle.equipped.rod === 'simple_stick_rod') {
+      state.tackle.equipped.rod = 'none';
+    }
+  }
   repairEquippedComponents(state);
   state.tackle.activeRig = null;
 }
 
 export function ownTackleComponent(state, componentId) {
   ensureTackleState(state);
+  if (componentId === 'simple_stick_rod') {
+    repairTackleComponent(state, componentId);
+  }
   state.tackle.owned[componentId] = true;
 }
 
 export function equipTackleComponent(state, slot, componentId) {
   ensureTackleState(state);
+  if (isTackleComponentBroken(state, componentId)) {
+    return false;
+  }
   if (!tackleComponents[slot]?.includes(componentId) || !state.tackle.owned[componentId]) {
     return false;
   }
@@ -185,6 +203,33 @@ export function getActiveRig(state) {
     descriptionKey: 'activeTackleComponentsDesc',
     method: getRigMethod(state),
   };
+}
+
+export function breakTackleComponent(state, componentId) {
+  ensureTackleState(state);
+  state.tackle.broken[componentId] = true;
+  state.tackle.owned[componentId] = false;
+  if (componentId === 'simple_stick_rod') {
+    state.inventory.stickRod = 0;
+    if (state.tackle.equipped.rod === componentId) {
+      state.tackle.equipped.rod = 'none';
+    }
+  }
+  state.tackle.activeRig = null;
+}
+
+export function repairTackleComponent(state, componentId) {
+  state.tackle ??= createInitialTackleState();
+  state.tackle.broken ??= {};
+  delete state.tackle.broken[componentId];
+}
+
+export function isTackleComponentBroken(state, componentId) {
+  return Boolean(state.tackle?.broken?.[componentId]);
+}
+
+export function isStarterRodBroken(state) {
+  return isTackleComponentBroken(state, 'simple_stick_rod');
 }
 
 export function getAvailableRigs(state) {

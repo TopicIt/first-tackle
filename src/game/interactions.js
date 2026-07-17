@@ -38,7 +38,7 @@ import {
 } from './locations.js';
 import { arriveAtWater, buyBusTicket, travelByBicycle } from './travel.js';
 import { interactionZones } from './world.js';
-import { getTackleEffects } from './tackle.js';
+import { getTackleEffects, isStarterRodBroken } from './tackle.js';
 import { tutorialSteps } from './profile.js';
 import { hasStarterTackleDrawerCompleted } from './starterTackleDrawer.js';
 import { t } from '../i18n/i18n.js';
@@ -361,7 +361,7 @@ function getSceneActions(state, zoneId) {
       {
         id: 'gather:rodStick',
         label: t('gatherRodStick'),
-        disabled: Boolean(state.tackle?.owned?.simple_stick_rod || hasItem(state, 'stickRod')),
+        disabled: Boolean(!isStarterRodBroken(state) && (state.tackle?.owned?.simple_stick_rod || hasItem(state, 'stickRod'))),
       },
       {
         id: 'craft:stickRod',
@@ -452,15 +452,19 @@ function getSceneActions(state, zoneId) {
 
   if (isFishingLocation(zoneId)) {
     const effects = getTackleEffects(state);
+    const starterRodBroken = isStarterRodBroken(state) && !effects.hasProperRod;
     const waterActions = [
       {
         id: 'minigame:start:active',
         label: t('startFishingWithTackle'),
+        disabled: starterRodBroken,
+        reason: starterRodBroken ? t('fishingRodBrokenBlocked') : '',
       },
       {
         id: 'minigame:start:liveBait',
         label: t('startLiveBaitFishing'),
-        disabled: !effects.hasRod || getFishEntries(state, 'live_bait').length === 0,
+        disabled: starterRodBroken || !effects.hasRod || getFishEntries(state, 'live_bait').length === 0,
+        reason: starterRodBroken ? t('fishingRodBrokenBlocked') : '',
       },
     ];
 

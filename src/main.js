@@ -6,8 +6,8 @@ import { createPlayerController } from './game/player.js';
 import {
   clearFishHistoryState,
   ensureFishState,
+  getPendingCatchSyncEntries,
   getPendingCatchSyncCount,
-  getPendingCatchSyncIds,
   hasPendingCatchSync,
   markCatchSyncFailure,
   markCatchSyncSuccess,
@@ -94,7 +94,7 @@ import { assetPath } from './utils/assetPath.js';
 import { getWorldMapAsset } from './utils/worldMapAsset.js';
 import { ApiError, clearCloudSession, loadCloudSession, saveCloudSession } from './api/client.js';
 import { getProfile, login, logout, refreshAuth, register, updateProfileOnServer } from './api/authApi.js';
-import { loadSave as loadCloudSave, syncSave as syncCloudSave } from './api/saveApi.js';
+import { loadSave as loadCloudSave, syncCatchRecords, syncSave as syncCloudSave } from './api/saveApi.js';
 import { fetchLeaderboard } from './api/gameApi.js';
 import { primeCatalogCache } from './api/catalogApi.js';
 import { syncPlayerStateFromGameState } from './game/playerState.js';
@@ -2721,7 +2721,7 @@ function compareLocalAndCloudSaves(localState, cloudPayload, metadata = {}) {
 async function syncCurrentSaveToCloud({ force = false } = {}) {
   syncPlayerToState();
   saveGame(gameState);
-  const syncedPendingCatchIds = getPendingCatchSyncIds(gameState);
+  const pendingCatchEntries = getPendingCatchSyncEntries(gameState);
   const exported = JSON.parse(exportCloudSave(gameState));
   const payload = exported.save;
   const resetTombstone = readResetTombstone();
@@ -2730,17 +2730,58 @@ async function syncCurrentSaveToCloud({ force = false } = {}) {
   }
   const session = loadCloudSession() ?? {};
   const currentRevision = Number(session.saveMetadata?.revision ?? session.serverRevision ?? 0);
+  const clientUpdatedAt = new Date().toISOString();
   const result = await syncCloudSave({
     saveVersion: payload.version ?? gameState.version ?? exported.version ?? 1,
     revision: Number.isFinite(currentRevision) ? currentRevision : 0,
     force,
-    clientUpdatedAt: new Date().toISOString(),
+    clientUpdatedAt,
     payload,
+  });
+  const catchSyncResult = await syncPendingCatchEntries(pendingCatchEntries, {
+    sourceRevision: result.metadata?.revision ?? null,
+    clientUpdatedAt,
   });
   return {
     ...result,
-    syncedPendingCatchIds,
+    ...catchSyncResult,
   };
+}
+
+async function syncPendingCatchEntries(pendingCatchEntries, { sourceRevision = null, clientUpdatedAt = null } = {}) {
+  if (!pendingCatchEntries.length) {
+    return {
+      syncedPendingCatchIds: [],
+      catchSyncError: null,
+    };
+  }
+
+  try {
+    const result = await syncCatchRecords({
+      catches: pendingCatchEntries,
+      sourceRevision,
+      clientUpdatedAt,
+    });
+    const acknowledgedIds = new Set(Array.isArray(result.syncedCatchIds) ? result.syncedCatchIds.map(String) : []);
+    const syncedPendingCatchIds = pendingCatchEntries
+      .map((entry) => entry.catchId ?? entry.id)
+      .filter((id) => acknowledgedIds.has(String(id)));
+    if (syncedPendingCatchIds.length === 0) {
+      return {
+        syncedPendingCatchIds: [],
+        catchSyncError: new Error('catch-sync-not-acknowledged'),
+      };
+    }
+    return {
+      syncedPendingCatchIds,
+      catchSyncError: null,
+    };
+  } catch (error) {
+    return {
+      syncedPendingCatchIds: [],
+      catchSyncError: error,
+    };
+  }
 }
 
 function queueAutosave() {
@@ -2866,7 +2907,11 @@ async function runCloudAutosave(signature) {
 
 function getCloudSaveSignature() {
   try {
-    return JSON.stringify(JSON.parse(exportCloudSave(gameState)).save);
+    const save = JSON.parse(exportCloudSave(gameState)).save;
+    return JSON.stringify({
+      ...save,
+      __pendingCatchSyncIds: [...(gameState.catchSync?.pendingIds ?? [])],
+    });
   } catch {
     return '';
   }
@@ -2878,15 +2923,23 @@ async function finalizeCloudSyncSuccess(result, {
   signature = '',
   refreshLeaderboard = false,
 } = {}) {
-  markCatchSyncSuccess(gameState, result.syncedPendingCatchIds, new Date().toISOString());
+  const catchSyncFailedMessage = 'Прогрес збережено. Не вдалося синхронізувати улов — він збережений локально.';
+  if (result.syncedPendingCatchIds?.length) {
+    markCatchSyncSuccess(gameState, result.syncedPendingCatchIds, new Date().toISOString());
+    pushFeedback(gameState, 'catchSyncSuccess', {}, 'cloud');
+  } else if (result.catchSyncError) {
+    markCatchSyncFailure(gameState, 'Не вдалося синхронізувати улов — він збережений локально');
+  }
   saveGame(gameState);
-  lastCloudAutosaveSignature = signature || getCloudSaveSignature();
+  if (!result.catchSyncError) {
+    lastCloudAutosaveSignature = signature || getCloudSaveSignature();
+  }
   saveCloudSession({
     ...(loadCloudSession() ?? {}),
     saveMetadata: result.metadata,
-    lastMessage,
+    lastMessage: result.catchSyncError ? catchSyncFailedMessage : lastMessage,
   });
-  setCloudBusy(false, message);
+  setCloudBusy(false, result.catchSyncError ? catchSyncFailedMessage : message);
 
   if (refreshLeaderboard) {
     try {

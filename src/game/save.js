@@ -372,6 +372,9 @@ function mergeState(base, saved) {
     tackle: {
       activeRig: saved.tackle?.activeRig ?? base.tackle.activeRig,
       migratedLegacyRig: Boolean(saved.tackle?.migratedLegacyRig ?? base.tackle.migratedLegacyRig),
+      broken: {
+        ...(saved.tackle?.broken ?? base.tackle.broken ?? {}),
+      },
       owned: {
         ...base.tackle.owned,
         ...(saved.tackle?.owned ?? {}),

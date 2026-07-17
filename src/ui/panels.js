@@ -8,7 +8,7 @@ import { castSpots, getCastSpot } from '../game/bitePatterns.js';
 import { getQuestRows } from '../game/quests.js';
 import { getCafeOrderRows } from '../game/cafeOrders.js';
 import { getLevelProgress, PROFILE_NAME_MAX_LENGTH, profileAvatars } from '../game/profile.js';
-import { componentDescriptions, componentLabels, requiredTackleSlots, tackleComponents } from '../game/tackle.js';
+import { componentDescriptions, componentLabels, isTackleComponentBroken, requiredTackleSlots, tackleComponents } from '../game/tackle.js';
 import { resolveFishCatchCardImage } from '../game/fishCardImages.js';
 import { countItem, itemLabels } from '../game/inventory.js';
 import {
@@ -594,12 +594,12 @@ export function tackleMarkup(state) {
           <small>${componentShortDescription(equipped[slot])}</small>
           ${renderItemBonusChips(equipped[slot], { limit: 2 })}
           <div class="tackle-options">
-            ${options.filter((id) => owned[id] && !((requiredTackleSlots.includes(slot) || slot === 'float') && id === 'none')).map((id) => `
-              <button class="${equipped[slot] === id ? 'is-selected' : ''}" data-action="tackle:equip:${slot}:${id}" type="button">
+            ${options.filter((id) => (owned[id] || isTackleComponentBroken(state, id)) && !((requiredTackleSlots.includes(slot) || slot === 'float') && id === 'none')).map((id) => `
+              <button class="${equipped[slot] === id ? 'is-selected' : ''}${isTackleComponentBroken(state, id) ? ' is-disabled' : ''}" data-action="tackle:equip:${slot}:${id}" type="button"${isTackleComponentBroken(state, id) ? ' disabled' : ''}>
                 ${tackleComponentVisualMarkup(id)}
                 <span>
                   <strong>${componentDisplayName(id)}</strong>
-                  <small>${componentShortDescription(id)}</small>
+                  <small>${isTackleComponentBroken(state, id) ? t('componentBroken') : componentShortDescription(id)}</small>
                   ${renderItemBonusChips(id, { limit: 2 })}
                 </span>
               </button>
@@ -608,7 +608,7 @@ export function tackleMarkup(state) {
         </section>
       `).join('')}
     </div>
-    ${owned.simple_stick_rod || equipped.rod === 'simple_stick_rod' ? `<p class="tackle-warning">${t('homemadeRodWarning')}</p>` : ''}
+    ${owned.simple_stick_rod || equipped.rod === 'simple_stick_rod' || isTackleComponentBroken(state, 'simple_stick_rod') ? `<p class="tackle-warning">${isTackleComponentBroken(state, 'simple_stick_rod') ? t('fishingRodBrokenBlocked') : t('homemadeRodWarning')}</p>` : ''}
   `;
 }
 
@@ -1060,7 +1060,9 @@ export function leaderboardMarkup(state) {
   const statusNote = busy
     ? '\u041e\u043d\u043e\u0432\u043b\u044e\u0454\u043c\u043e \u0441\u043f\u0438\u0441\u043e\u043a...'
     : isServerSource
-      ? '\u0414\u0430\u043d\u0456 \u0437 \u0445\u043c\u0430\u0440\u043d\u0438\u0445 \u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043d\u044c \u0433\u0440\u0430\u0432\u0446\u0456\u0432.'
+      ? (source === 'server-catch-records'
+        ? '\u0406\u0441\u0442\u043e\u0440\u0438\u0447\u043d\u0456 \u0443\u043b\u043e\u0432\u0438 \u0433\u0440\u0430\u0432\u0446\u0456\u0432 \u0456\u0437 \u0441\u0435\u0440\u0432\u0435\u0440\u043d\u043e\u0457 \u0442\u0430\u0431\u043b\u0438\u0446\u0456.'
+        : '\u0414\u0430\u043d\u0456 \u0437 \u0441\u0435\u0440\u0432\u0435\u0440\u0430.')
       : `\u0421\u0435\u0440\u0432\u0435\u0440 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0438\u0439. \u041f\u043e\u043a\u0430\u0437\u0443\u0454\u043c\u043e \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u0456 \u0440\u0435\u043a\u043e\u0440\u0434\u0438.${fallbackMessage}`;
   const tabs = [
     ['biggest-fish', 'Найбільша риба'],
@@ -1153,7 +1155,6 @@ function leaderboardRecordMarkup(record, index, options = {}) {
   const castSpot = readableCastSpotName(record.catchSpotId, record.castSpotName);
   const tackle = readableTackleName(record.tackleSummary ?? record.tackleId ?? record.method, record.tackleName);
   const date = readableDateText(record.caughtAt ?? record.caughtAtDay);
-  const sourceLabel = record.verified || record.serverBacked || String(record.source ?? '').startsWith('server') ? 'сервер' : 'локально';
   const trophyCount = Number(record.trophyCount ?? record.trophies ?? 0);
   const detail = options.trophyMode
     ? `${trophyCount} троф. · ${record.bestTrophyWeightKg ? `${formatKg(record.bestTrophyWeightKg)} кг` : 'без ваги'}`
@@ -1166,7 +1167,6 @@ function leaderboardRecordMarkup(record, index, options = {}) {
     tackle,
     record.level ? `рівень ${record.level}` : '',
     record.totalFishCaught ? `${record.totalFishCaught} риб` : '',
-    sourceLabel,
   ].filter(Boolean).join(' · ');
 
   return `
@@ -1197,7 +1197,7 @@ function normalizeLeaderboardRecords(records, type, state) {
     rank: record.rank ?? index + 1,
     displayName: record.displayName ?? record.playerName ?? state.playerProfile?.name ?? 'Гість',
     playerName: record.playerName ?? record.displayName ?? state.playerProfile?.name ?? 'Гість',
-    fishId: record.fishId ?? record.fishName ?? null,
+    fishId: normalizeFishId(record.fishId ?? record.fishName ?? null),
     weightKg: record.weightKg ?? (record.weightGrams ? Number((record.weightGrams / 1000).toFixed(3)) : null),
     weightGrams: record.weightGrams ?? (record.weightKg ? Math.round(Number(record.weightKg) * 1000) : null),
     trophyCount: record.trophyCount ?? record.trophies ?? 0,
@@ -1209,6 +1209,12 @@ function normalizeLeaderboardRecords(records, type, state) {
     customAvatarDataUrl: record.customAvatarDataUrl ?? (record.localPlayer ? localIdentity.customAvatarDataUrl : null),
     boardType: type,
   }));
+}
+
+function normalizeFishId(fishId) {
+  return {
+    perch: 'okun',
+  }[fishId] ?? fishId;
 }
 
 function groupLeaderboardRecordsByFish(records) {
