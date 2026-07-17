@@ -95,6 +95,9 @@ const LEADERBOARD_DEPTH_LABELS_UK = {
 };
 
 const LEADERBOARD_CAST_SPOT_LABELS_UK = {
+  near_bank: 'Біля берега',
+  mid_water: 'Середина',
+  reed_edge: 'Край очерету',
   dam_edge: 'Біля дамби',
   shallow_weeds: 'Мілкі зарості',
   open_middle: 'Середина',
