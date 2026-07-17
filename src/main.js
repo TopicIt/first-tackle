@@ -1279,9 +1279,7 @@ async function loadLeaderboardRecords(type = 'biggest-fish') {
     ? 'local-fallback'
     : filteredServerRecords.length === 0
       ? 'server-empty'
-      : serverSource.startsWith('server')
-        ? 'server'
-        : serverSource;
+      : serverSource;
   if (response?.fallback && import.meta.env?.DEV) {
     console.warn('Leaderboard backend unavailable; using local-only fallback.', response.error ?? null);
   }

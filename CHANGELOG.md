@@ -2,6 +2,7 @@
 
 ## 2026-07-17
 
+- Preserved the exact `server-catch-records` leaderboard source in frontend state so the live panel shows the persistent-record subtitle instead of the generic server label.
 - Added authenticated `/api/catches/sync` acknowledgement flow and changed the frontend pending-catch queue to clear only backend-acknowledged `catchId`s.
 - Added full `caughtAt` timestamps to gameplay catch history and kept pending catch IDs in the local autosave signature for retry visibility.
 - Normalized legacy `perch` leaderboard rows to `Окунь`, removed normal-row source/debug labels, and updated the persistent leaderboard subtitle.
