@@ -3,6 +3,7 @@
 ## 2026-07-17
 
 - Preserved the exact `server-catch-records` leaderboard source in frontend state so the live panel shows the persistent-record subtitle instead of the generic server label.
+- Forced persistent leaderboard rows to render player-facing Ukrainian labels for fish, bait, depth, cast spots, and waters even when old server records contain English/raw fallback strings.
 - Added authenticated `/api/catches/sync` acknowledgement flow and changed the frontend pending-catch queue to clear only backend-acknowledged `catchId`s.
 - Added full `caughtAt` timestamps to gameplay catch history and kept pending catch IDs in the local autosave signature for retry visibility.
 - Normalized legacy `perch` leaderboard rows to `Окунь`, removed normal-row source/debug labels, and updated the persistent leaderboard subtitle.

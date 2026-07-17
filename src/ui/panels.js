@@ -50,6 +50,87 @@ import {
   renderItemDetails,
 } from './itemRenderers.js';
 
+const LEADERBOARD_FISH_LABELS_UK = {
+  rotan: 'Ротан',
+  crucian: 'Карась',
+  bleak: 'Верховодка',
+  roach: 'Плітка',
+  rudd: 'Краснопірка',
+  loach: 'В’юн',
+  pike: 'Щука',
+  okun: 'Окунь',
+  perch: 'Окунь',
+  lynok: 'Линок',
+  sudak: 'Судак',
+  som: 'Сом',
+  canadian_catfish: 'Канадський сомик',
+  carp: 'Карп',
+  grass_carp: 'Білий амур',
+  silver_carp: 'Товстолоб',
+  white_bream: 'Підлящик',
+  bream: 'Лящ',
+  plotytsia: 'Плотиця',
+  gudgeon: 'Піскар',
+  eel: 'Вугор',
+};
+
+const LEADERBOARD_BAIT_LABELS_UK = {
+  live_bait: 'Живець',
+  small_worms: 'Дрібні черв’яки',
+  worms: 'Черв’яки',
+  nightcrawler: 'Виповзок',
+  larvae: 'Личинки',
+  bread: 'Хліб',
+  corn: 'Кукурудза',
+  dough: 'Тісто',
+  mastyrka: 'Мастирка',
+};
+
+const LEADERBOARD_DEPTH_LABELS_UK = {
+  bottom: 'Біля дна',
+  middle: 'Посередині',
+  mid_water: 'Посередині',
+  surface: 'Поверхня',
+  near_bank: 'Біля берега',
+};
+
+const LEADERBOARD_CAST_SPOT_LABELS_UK = {
+  dam_edge: 'Біля дамби',
+  shallow_weeds: 'Мілкі зарості',
+  open_middle: 'Середина',
+  reed_pocket: 'Кишеня в очереті',
+  muddy_bottom: 'Мулисте дно',
+  far_shadow: 'Дальня тінь',
+  sluice_near_bank: 'Біля берега',
+  sluice_lilies: 'Латаття шлюзу',
+  sluice_middle_left: 'Ліва середина шлюзу',
+  sluice_middle: 'Середина шлюзу',
+  sluice_middle_right: 'Права середина шлюзу',
+  sluice_pit: 'Яма шлюзу',
+  fire_pond_reeds: 'Очерет Пожара',
+  fire_pond_middle: 'Середина Пожара',
+  fire_pond_lily_edge: 'Край латаття Пожара',
+  greada_mud: 'Мул Гряди',
+  greada_weeds: 'Зарості Гряди',
+  greada_middle_left: 'Ліва середина Гряди',
+  greada_middle: 'Середина Гряди',
+  lake_tur_lilies: 'Латаття Тура',
+  lake_tur_dropoff: 'Звал Тура',
+  lake_tur_reed_channel: 'Очеретяний прохід Тура',
+  mining_lake_shelf: 'Полиця гірницького',
+  mining_lake_shadow: 'Тінь гірницького',
+  mining_lake_stones: 'Каміння гірницького',
+};
+
+const LEADERBOARD_LOCATION_LABELS_UK = {
+  canal: 'Канава',
+  sluice: 'Шлюз',
+  fire_ponds: 'Ставки Пожара',
+  greada: 'Гряда',
+  lake_tur: 'Озеро Тур',
+  mining_lake: 'Гірницьке озеро',
+};
+
 const specialGuideFishIds = ['loach', 'pike', 'canadian_catfish', 'sudak', 'som', 'eel', 'carp', 'grass_carp', 'silver_carp'];
 const predatorGuideFishIds = ['pike', 'sudak', 'som', 'eel'];
 const guideFishColors = {
@@ -1133,7 +1214,7 @@ function monthlyTrophyLeaderboardMarkup(records, state) {
     return `
       <article class="leaderboard-species-group${isOpen ? ' is-open' : ''}">
         <button class="leaderboard-species-group__head" data-action="leaderboard:toggleSpecies:${group.fishId}" type="button" aria-expanded="${isOpen}">
-          <span>${t(fishData.find((fish) => fish.id === group.fishId)?.nameKey ?? group.fishId)}</span>
+          <span>${leaderboardFishName({ fishId: group.fishId })}</span>
           <strong>${group.totalTrophies} троф.</strong>
           <small>${isOpen ? 'Сховати' : 'Показати'} гравців</small>
         </button>
@@ -1147,7 +1228,7 @@ function monthlyTrophyLeaderboardMarkup(records, state) {
 
 function leaderboardRecordMarkup(record, index, options = {}) {
   const fishId = record.fishId ?? null;
-  const fishName = fishId ? t(fishData.find((fish) => fish.id === fishId)?.nameKey ?? record.fishName ?? fishId) : '';
+  const fishName = leaderboardFishName(record);
   const title = escapeHtml(record.displayName ?? record.playerName ?? 'Гість');
   const location = readableLocationName(record.locationId, record.locationName);
   const bait = readableBaitName(record.baitId, record.baitName);
@@ -1215,6 +1296,12 @@ function normalizeFishId(fishId) {
   return {
     perch: 'okun',
   }[fishId] ?? fishId;
+}
+
+function leaderboardFishName(record) {
+  const fishId = normalizeFishId(record?.fishId ?? record?.fishName ?? null);
+  return leaderboardMappedLabel(LEADERBOARD_FISH_LABELS_UK, fishId, record?.fishName)
+    || (fishId ? t(fishData.find((fish) => fish.id === fishId)?.nameKey ?? fishId) : '');
 }
 
 function groupLeaderboardRecordsByFish(records) {
@@ -1310,6 +1397,10 @@ function leaderboardAvatarSrc(record) {
 }
 
 function readableLocationName(locationId, fallback) {
+  const mapped = leaderboardMappedLabel(LEADERBOARD_LOCATION_LABELS_UK, locationId, fallback);
+  if (mapped) {
+    return mapped;
+  }
   const water = getFishingLocation(locationId) ?? waterGuide.find((entry) => entry.id === locationId);
   const name = water?.nameKey ? t(water.nameKey) : fallback;
   if (typeof name === 'string' && /^all waters$/i.test(name.trim())) {
@@ -1319,6 +1410,10 @@ function readableLocationName(locationId, fallback) {
 }
 
 function readableBaitName(baitId, fallback) {
+  const mapped = leaderboardMappedLabel(LEADERBOARD_BAIT_LABELS_UK, baitId, fallback);
+  if (mapped) {
+    return mapped;
+  }
   if (baitId) {
     const baitLabels = {
       live_bait: 'Живець',
@@ -1336,6 +1431,10 @@ function readableBaitName(baitId, fallback) {
 }
 
 function readableDepthName(depthId, fallback) {
+  const mapped = leaderboardMappedLabel(LEADERBOARD_DEPTH_LABELS_UK, depthId, fallback);
+  if (mapped) {
+    return mapped;
+  }
   if (depthId) {
     return t(`depth${toPascalCase(depthId)}`);
   }
@@ -1343,6 +1442,10 @@ function readableDepthName(depthId, fallback) {
 }
 
 function readableCastSpotName(castSpotId, fallback) {
+  const mapped = leaderboardMappedLabel(LEADERBOARD_CAST_SPOT_LABELS_UK, castSpotId, fallback);
+  if (mapped) {
+    return mapped;
+  }
   if (castSpotId) {
     const spot = getCastSpot(castSpotId);
     if (spot?.labelKey) {
@@ -1350,6 +1453,28 @@ function readableCastSpotName(castSpotId, fallback) {
     }
   }
   return isTechnicalLabel(fallback) ? '' : escapeHtml(fallback ?? '');
+}
+
+function leaderboardMappedLabel(map, id, fallback = null) {
+  const directId = normalizeLabelLookupKey(id);
+  if (directId && map[directId]) {
+    return map[directId];
+  }
+  const fallbackId = normalizeLabelLookupKey(fallback);
+  if (fallbackId && map[fallbackId]) {
+    return map[fallbackId];
+  }
+  return '';
+}
+
+function normalizeLabelLookupKey(value) {
+  if (value == null) {
+    return '';
+  }
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[-\s]+/g, '_');
 }
 
 function readableTackleName(tackleId, fallback) {

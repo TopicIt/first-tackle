@@ -547,6 +547,7 @@ Verification:
 - Frontend `npm.cmd run test:focused` passed after switching the smoke path to real gameplay authority helpers. The smoke now catches a fish through `addFishToStorage()`, confirms a stable `catchId`, verifies pending catch queue state, sells the fish, and confirms `catchHistory` survives the sale.
 - Frontend `npm.cmd run build` passed. Final output: `dist/index.html` `0.75 kB`, CSS `170.81 kB`, JS `1,016.21 kB` (gzip `272.08 kB`). The existing Vite >500 kB warning remains.
 - Live verification found the frontend was collapsing the backend `server-catch-records` source into plain `server` before rendering. Follow-up frontend commit preserves the exact source so the deployed leaderboard shows the persistent-record subtitle.
+- Live verification also found older persistent rows displaying English/raw fallback labels. The frontend now uses explicit Ukrainian display maps for leaderboard species, bait, depth, cast spots, and waters; the follow-up build output was JS `1,022.71 kB` (gzip `274.05 kB`) with the same existing Vite size warning.
 - Backend `.venv\Scripts\python.exe -m unittest discover -s tests -v` passed, including UTF-8/current-name fallback coverage plus repeated-sync dedupe and keepnet-sale survival.
 - Backend `.venv\Scripts\python.exe -m compileall app` passed.
 - `git diff --check` passed in both repos aside from the existing LF->CRLF warnings from the Windows worktrees.
