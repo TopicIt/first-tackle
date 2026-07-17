@@ -510,22 +510,9 @@ export function syncFishingLineOverlay(root) {
 }
 
 function measuredRodTip(stage, method) {
-  const stageRect = stage.getBoundingClientRect();
-  const selector = method === 'handline' ? '.fishing-figure__arm' : '.fishing-figure__rod';
-  const part = stage.querySelector(selector);
-  if (!part || getComputedStyle(part).display === 'none') {
-    return null;
-  }
-
-  const rect = part.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) {
-    return null;
-  }
-
-  return {
-    x: toStagePercent(rect.right, stageRect.left, stageRect.width),
-    y: toStagePercent(method === 'handline' ? rect.top + rect.height * 0.45 : rect.top + rect.height * 0.24, stageRect.top, stageRect.height),
-  };
+  void stage;
+  void method;
+  return null;
 }
 
 function toStagePercent(value, origin, size) {

@@ -1985,7 +1985,7 @@ async function handleCloudAction(actionId) {
   }
 }
 
-async function uploadLocalSaveToCloud({ force = false } = {}) {
+async function staleUploadLocalSaveToCloud({ force = false } = {}) {
   setCloudBusy(true, 'Зберігаємо прогрес...');
   renderHud();
   try {
@@ -2121,7 +2121,7 @@ async function applyPendingCloudSave() {
   renderHud();
 }
 
-async function loadLatestCloudSaveAfterAuth(profile) {
+async function staleLoadLatestCloudSaveAfterAuth(profile) {
   let result = null;
   try {
     result = await loadCloudSave();
@@ -2250,7 +2250,7 @@ async function applyCloudPayloadAfterAuth(payload, metadata, profile, backupLabe
   saveGame(gameState);
 }
 
-function compareLocalAndCloudSaves(localState, cloudPayload, metadata = {}) {
+function staleCompareLocalAndCloudSaves(localState, cloudPayload, metadata = {}) {
   const localReset = readResetTombstone();
   const cloudReset = cloudPayload?.resetTombstone ?? cloudPayload?.metadata?.resetTombstone ?? null;
   const localResetAt = Date.parse(localReset?.resetAt ?? '');
@@ -2300,7 +2300,7 @@ function progressScore(save) {
     + fishCount * 0.25
   );
 }
-async function syncCurrentSaveToCloud({ force = false } = {}) {
+async function staleSyncCurrentSaveToCloud({ force = false } = {}) {
   syncPlayerToState();
   saveGame(gameState);
   const exported = JSON.parse(exportSave(gameState));
@@ -2369,7 +2369,7 @@ function profileNameValidationMessage(errorCode) {
   return 'Введи ім’я гравця.';
 }
 
-function queueAutosave() {
+function staleQueueAutosave() {
   if (!gameState.playerProfile?.setupComplete) {
     return;
   }
@@ -2452,7 +2452,7 @@ function legacyQueueCloudAutosave({ immediate = false } = {}) {
   }, delay);
 }
 
-async function runCloudAutosave(signature) {
+async function staleRunCloudAutosave(signature) {
   const session = loadCloudSession();
   if (!session?.accessToken || cloudAutosaveInFlight) {
     return;
@@ -2500,7 +2500,7 @@ function legacyGetCloudSaveSignature() {
   }
 }
 
-async function legacyUploadLocalSaveToCloud({ force = false } = {}) {
+async function uploadLocalSaveToCloud({ force = false } = {}) {
   setCloudBusy(true, 'Синхронізуємо поточний прогрес...');
   renderHud();
   try {
@@ -2535,7 +2535,7 @@ async function legacyUploadLocalSaveToCloud({ force = false } = {}) {
   renderHud();
 }
 
-async function legacyLoadLatestCloudSaveAfterAuth(profile) {
+async function loadLatestCloudSaveAfterAuth(profile) {
   let result = null;
   try {
     result = await loadCloudSave();
@@ -2677,7 +2677,7 @@ async function legacyLoadLatestCloudSaveAfterAuth(profile) {
   return conflictMessage;
 }
 
-function legacyCompareLocalAndCloudSaves(localState, cloudPayload, metadata = {}) {
+function compareLocalAndCloudSaves(localState, cloudPayload, metadata = {}) {
   const pendingCatchCount = getPendingCatchSyncCount(localState);
   const localReset = readResetTombstone();
   const cloudReset = cloudPayload?.resetTombstone ?? cloudPayload?.metadata?.resetTombstone ?? null;
@@ -2718,7 +2718,7 @@ function legacyCompareLocalAndCloudSaves(localState, cloudPayload, metadata = {}
   return delta === 0 ? 'equal' : 'ambiguous';
 }
 
-async function legacySyncCurrentSaveToCloud({ force = false } = {}) {
+async function syncCurrentSaveToCloud({ force = false } = {}) {
   syncPlayerToState();
   saveGame(gameState);
   const syncedPendingCatchIds = getPendingCatchSyncIds(gameState);
@@ -2743,7 +2743,7 @@ async function legacySyncCurrentSaveToCloud({ force = false } = {}) {
   };
 }
 
-function legacyQueueAutosave() {
+function queueAutosave() {
   if (!gameState.playerProfile?.setupComplete) {
     return;
   }
@@ -2832,7 +2832,7 @@ function queueCloudAutosave({ immediate = false, reason = 'normal' } = {}) {
   }, delay);
 }
 
-async function legacyRunCloudAutosave(signature) {
+async function runCloudAutosave(signature) {
   const session = loadCloudSession();
   if (!session?.accessToken || cloudAutosaveInFlight) {
     return;

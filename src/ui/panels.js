@@ -1306,6 +1306,9 @@ function leaderboardAvatarSrc(record) {
 function readableLocationName(locationId, fallback) {
   const water = getFishingLocation(locationId) ?? waterGuide.find((entry) => entry.id === locationId);
   const name = water?.nameKey ? t(water.nameKey) : fallback;
+  if (typeof name === 'string' && /^all waters$/i.test(name.trim())) {
+    return 'Усі водойми';
+  }
   return isTechnicalLabel(name) ? 'Всі водойми' : escapeHtml(name ?? 'Всі водойми');
 }
 
@@ -1335,7 +1338,10 @@ function readableDepthName(depthId, fallback) {
 
 function readableCastSpotName(castSpotId, fallback) {
   if (castSpotId) {
-    return t(getCastSpot(castSpotId).labelKey);
+    const spot = getCastSpot(castSpotId);
+    if (spot?.labelKey) {
+      return t(spot.labelKey);
+    }
   }
   return isTechnicalLabel(fallback) ? '' : escapeHtml(fallback ?? '');
 }
@@ -1350,6 +1356,15 @@ function readableTackleName(tackleId, fallback) {
     properRod: t('componentProperRod'),
     betterLine: t('itemBetterLine'),
   };
+  if (typeof normalizedTackleId === 'string') {
+    if (/^cloud save catch$/i.test(normalizedTackleId) || /^server (cloud save|catch record)$/i.test(normalizedTackleId)) {
+      return '';
+    }
+    const trophyCountMatch = normalizedTackleId.match(/^(\d+)\s+trophies$/i);
+    if (trophyCountMatch) {
+      return `${trophyCountMatch[1]} трофеїв`;
+    }
+  }
   if (typeof normalizedTackleId === 'string' && normalizedTackleId.includes('/')) {
     return readableTackleName(normalizedTackleId.split('/')[0].trim(), fallback);
   }
@@ -1368,6 +1383,25 @@ function readableDateText(value) {
   }
   if (typeof value === 'number') {
     return `День ${value}`;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    const dayMatch = trimmed.match(/^day\s+(\d+)$/i);
+    if (dayMatch) {
+      return `День ${dayMatch[1]}`;
+    }
+    if (/^server (cloud save|catch record)$/i.test(trimmed)) {
+      return 'Не вказано';
+    }
+    const parsed = Date.parse(trimmed);
+    if (Number.isFinite(parsed) && /t/i.test(trimmed)) {
+      return new Date(parsed).toLocaleString('uk-UA', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
   }
   return isTechnicalLabel(value) ? 'Не вказано' : escapeHtml(value);
 }

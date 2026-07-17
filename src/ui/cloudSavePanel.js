@@ -123,7 +123,7 @@ export function cloudSaveHintMarkup(state) {
   `;
 }
 
-function getCloudSaveModel(state) {
+function staleGetCloudSaveModel(state) {
   const session = loadCloudSession();
   const profile = session?.profile;
   const metadata = session?.saveMetadata;
@@ -149,7 +149,7 @@ function getCloudSaveModel(state) {
   };
 }
 
-function loggedOutMarkup(message, isBusy, options = {}) {
+function staleLoggedOutMarkup(message, isBusy, options = {}) {
   const {
     compact = false,
     displayName = '',
@@ -206,7 +206,7 @@ function loggedInMarkup(profile, metadata, message, isBusy, conflict = null) {
   `;
 }
 
-function loggedInActionsMarkup(profile, metadata, message, isBusy, conflict = null) {
+function staleLoggedInActionsMarkup(profile, metadata, message, isBusy, conflict = null) {
   void profile;
   void metadata;
   return `
@@ -260,7 +260,7 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
-function legacyGetCloudSaveModel(state) {
+function getCloudSaveModel(state) {
   const session = loadCloudSession();
   const profile = session?.profile;
   const metadata = session?.saveMetadata;
@@ -292,7 +292,7 @@ function legacyGetCloudSaveModel(state) {
   };
 }
 
-function legacyLoggedOutMarkup(message, isBusy, options = {}) {
+function loggedOutMarkup(message, isBusy, options = {}) {
   const {
     compact = false,
     displayName = '',
@@ -334,7 +334,7 @@ function legacyLoggedOutMarkup(message, isBusy, options = {}) {
   `;
 }
 
-function legacyLoggedInActionsMarkup(profile, metadata, message, isBusy, conflict = null) {
+function loggedInActionsMarkup(profile, metadata, message, isBusy, conflict = null) {
   void profile;
   void metadata;
   return `
