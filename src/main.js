@@ -60,6 +60,7 @@ import {
   syncProfileDerivedStats,
   setCustomAvatar,
   updateProfile,
+  validateProfileName,
 } from './game/profile.js';
 import {
   ensureStarterTackleDrawerState,
@@ -178,6 +179,8 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'profile:edit') {
       gameState.ui.editingProfile = true;
+      gameState.ui.profileNameDraft = gameState.playerProfile?.name ?? '';
+      gameState.ui.profileNameError = '';
       renderHud();
       return;
     }
@@ -205,6 +208,9 @@ const hud = createHud(hudRoot, {
 
     if (actionId === 'profile:cancelEdit') {
       gameState.ui.editingProfile = false;
+      delete gameState.ui.profileNameDraft;
+      delete gameState.ui.profileNameError;
+      delete gameState.ui.profileNameSaving;
       renderHud();
       return;
     }
@@ -1064,17 +1070,59 @@ const hud = createHud(hudRoot, {
   onDismissStartupTitle() {
     dismissStartupTitle();
   },
-  onProfileSubmit(profile) {
-    updateProfile(gameState, {
-      name: profile.name,
-      avatar: gameState.playerProfile?.avatar || DEFAULT_AVATAR,
-      nameCustom: true,
-    });
-    syncPlayerStateFromGameState(gameState, { incrementRevision: true, reason: 'profile-updated' });
-    syncCloudProfileFromGameState('profile-updated');
-    gameState.ui.editingProfile = false;
-    advanceStartupAfterProfile();
+  async onProfileSubmit(profile) {
+    const validation = validateProfileName(profile.name);
+    gameState.ui.profileNameDraft = String(profile.name ?? '');
+    if (!validation.ok) {
+      gameState.ui.profileNameError = profileNameValidationMessage(validation.error);
+      renderHud();
+      return;
+    }
+
+    gameState.ui.profileNameDraft = validation.value;
+    gameState.ui.profileNameError = '';
+    gameState.ui.profileNameSaving = true;
     renderHud();
+
+    try {
+      const session = loadCloudSession();
+      const serverProfile = session?.accessToken || session?.refreshToken
+        ? await updateProfileOnServer({ displayName: validation.value })
+        : null;
+
+      updateProfile(gameState, {
+        name: validation.value,
+        avatar: gameState.playerProfile?.avatar || DEFAULT_AVATAR,
+        nameCustom: true,
+      });
+      syncPlayerStateFromGameState(gameState, { incrementRevision: true, reason: 'profile-updated' });
+      if (serverProfile) {
+        saveCloudSession({ ...(loadCloudSession() ?? {}), profile: serverProfile });
+      }
+      gameState.ui.editingProfile = false;
+      gameState.ui.publicProfile = null;
+      gameState.ui.leaderboards = {
+        ...(gameState.ui.leaderboards ?? {}),
+        records: [],
+        busy: false,
+        message: '',
+      };
+      delete gameState.ui.profileNameDraft;
+      delete gameState.ui.profileNameError;
+      delete gameState.ui.profileNameSaving;
+      advanceStartupAfterProfile();
+      renderHud();
+
+      if (serverProfile) {
+        queueCloudAutosave({ immediate: true });
+        await loadLeaderboardRecords(gameState.ui?.leaderboards?.type ?? 'biggest-fish');
+      }
+    } catch (error) {
+      gameState.ui.profileNameSaving = false;
+      gameState.ui.editingProfile = true;
+      gameState.ui.profileNameError = cloudErrorMessage(error);
+      renderHud();
+    }
   },
   onProfilePhotoUpload(dataUrl) {
     setCustomAvatar(gameState, dataUrl);
@@ -1086,6 +1134,7 @@ const hud = createHud(hudRoot, {
   onProfileNameDraft(name) {
     gameState.ui ??= {};
     gameState.ui.profileNameDraft = String(name ?? '');
+    gameState.ui.profileNameError = '';
   },
   onCloudSaveSetting(settingId, enabled) {
     gameState.settings.cloudSave ??= {};
@@ -1523,6 +1572,10 @@ function renderHud() {
   context.clock = formatGameTime(gameState);
   context.timePhase = getTimePhase(gameState);
   context.timeOfDayBucket = timeOfDayBucket;
+  const {
+    profileNameDraft: _profileNameDraft,
+    ...renderUi
+  } = gameState.ui ?? {};
   const hudSnapshot = JSON.stringify({
     timeOfDayBucket,
     day: gameState.day,
@@ -1548,7 +1601,7 @@ function renderHud() {
     playerProfile: gameState.playerProfile,
     tutorialState: gameState.tutorialState,
     seenEvents: gameState.seenEvents,
-    ui: gameState.ui,
+    ui: renderUi,
     feedback: gameState.feedback,
     log: gameState.log,
     zoneId: context.zoneId,
@@ -2301,7 +2354,23 @@ function cloudErrorMessage(error) {
     clearCloudAutosaveQueue();
     return 'Сесія закінчилася. Увійди ще раз.';
   }
-  return error?.message || 'Не вдалося виконати дію з хмарним збереженням.';
+  if (error instanceof ApiError && error.status >= 500) {
+    return 'Сервер тимчасово не може зберегти прогрес. Локальне збереження залишилося без змін.';
+  }
+  if (error instanceof ApiError && error.status >= 400) {
+    return 'Сервер відхилив збереження. Перевір дані або обери дію для конфлікту.';
+  }
+  if (error instanceof TypeError || /failed to fetch|networkerror/i.test(String(error?.message ?? ''))) {
+    return 'Немає зв’язку з хмарним сервером. Локальний прогрес збережено; спробуй ще раз пізніше.';
+  }
+  return 'Не вдалося виконати дію з хмарним збереженням.';
+}
+
+function profileNameValidationMessage(errorCode) {
+  if (errorCode === 'profileNameTooLong') {
+    return 'Ім’я має містити не більше 40 символів.';
+  }
+  return 'Введи ім’я гравця.';
 }
 
 function queueAutosave() {

@@ -75,7 +75,12 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiRequest(path, { method = 'GET', body, token = apiConfig.accessToken } = {}) {
+export async function apiRequest(path, {
+  method = 'GET',
+  body,
+  token = apiConfig.accessToken,
+  retryAuth = true,
+} = {}) {
   const headers = {
     Accept: 'application/json',
   };
@@ -96,6 +101,17 @@ export async function apiRequest(path, { method = 'GET', body, token = apiConfig
   const payload = contentType.includes('application/json') ? await response.json() : await response.text();
 
   if (!response.ok) {
+    if (response.status === 401 && retryAuth && path !== '/auth/refresh') {
+      const refreshedToken = await refreshAccessTokenForRequest();
+      if (refreshedToken) {
+        return apiRequest(path, {
+          method,
+          body,
+          token: refreshedToken,
+          retryAuth: false,
+        });
+      }
+    }
     const message = typeof payload === 'object' && payload?.detail
       ? formatApiDetail(payload.detail)
       : `API request failed with ${response.status}`;
@@ -103,6 +119,39 @@ export async function apiRequest(path, { method = 'GET', body, token = apiConfig
   }
 
   return payload;
+}
+
+async function refreshAccessTokenForRequest() {
+  const session = loadCloudSession();
+  if (!session?.refreshToken) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${apiConfig.baseUrl}/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refreshToken: session.refreshToken }),
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const tokens = await response.json();
+    if (!tokens?.accessToken) {
+      return null;
+    }
+    saveCloudSession({
+      ...session,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken ?? session.refreshToken,
+    });
+    return tokens.accessToken;
+  } catch {
+    return null;
+  }
 }
 
 function formatApiDetail(detail) {
