@@ -5,6 +5,7 @@ export const shopItems = getMarketItems();
 export const SAVE_KEY = 'first-tackle-save-v2';
 export const LEGACY_SAVE_KEYS = ['first-tackle-save-v1'];
 export const SAVE_VERSION = 2;
+export const LAST_SAVE_TIMESTAMP_KEY = `${SAVE_KEY}-updated-at`;
 export const DEFAULT_PLAYER_NAME = '\u0406\u0432\u0430\u0441\u0438\u043a \u0422\u0435\u043b\u0435\u0441\u0438\u043a';
 export const DEFAULT_AVATAR = '/assets/profile/Grandson-1.png';
 export const GAME_TITLE = '\u0420\u0438\u0431\u0430\u043b\u043a\u0430 \u0440\u043e\u0434\u043e\u043c \u0437 \u0434\u0438\u0442\u0438\u043d\u0441\u0442\u0432\u0430';
@@ -102,6 +103,13 @@ export function createInitialState() {
       z: 1.5,
     },
     fishBasket: [],
+    catchHistory: [],
+    catchSync: {
+      pendingIds: [],
+      lastSyncedAt: null,
+      lastErrorAt: null,
+      lastErrorMessage: '',
+    },
     progress: {
       firstTackleReady: false,
       starterTackleDrawerCompleted: false,
@@ -188,9 +196,6 @@ export function createInitialState() {
       },
       performance: {
         lowPower: null,
-      },
-      graphics: {
-        fisherman3d: false,
       },
       animationLimits: {
         counts: {},

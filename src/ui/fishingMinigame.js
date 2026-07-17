@@ -433,7 +433,6 @@ function panelToggleLabel(isCollapsed) {
 
 function fishingStageMarkup(state, minigame, options) {
   const { activeFishing, contextAction, floatStyle, hintMode } = options;
-  const showPrototype3d = Boolean(state.settings?.graphics?.fisherman3d);
   const stageBody = `
     <div class="fishing-ambience" aria-hidden="true">
       <span class="bird bird--one"></span>
@@ -443,21 +442,6 @@ function fishingStageMarkup(state, minigame, options) {
       <span class="dragonfly dragonfly--rare${(minigame.rareInsectActiveUntil ?? 0) > performance.now() ? ' is-active' : ''}"></span>
       <span class="surface-ring surface-ring--one"></span>
       <span class="surface-ring surface-ring--two"></span>
-      <span class="reed reed--one"></span>
-      <span class="reed reed--two"></span>
-      <span class="reed reed--three"></span>
-    </div>
-    ${showPrototype3d ? `<div class="fishing-stage__prototype-3d" aria-hidden="true">
-      <canvas class="fishing-stage__prototype-3d-canvas" data-fishing-prototype-canvas></canvas>
-    </div>` : ''}
-    <!-- Temporary 2D fallback fisherman. Disable this block later once the 3D prototype fully replaces it. -->
-    <div class="fishing-figure fishing-figure--${minigame.method} fishing-figure--${minigame.phase}" aria-hidden="true">
-      <span class="fishing-figure__shadow"></span>
-      <span class="fishing-figure__body"></span>
-      <span class="fishing-figure__head"></span>
-      <span class="fishing-figure__hat"></span>
-      <span class="fishing-figure__arm"></span>
-      <span class="fishing-figure__rod"></span>
     </div>
     <div class="cast-spot-layer">
       ${getAvailableCastSpots(state, minigame.method).map((spot) => castSpotMarkup(spot, minigame.selectedSpot)).join('')}

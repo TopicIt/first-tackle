@@ -1,9 +1,17 @@
 import * as THREE from 'three';
 import '../style.css';
-import { DEFAULT_AVATAR, GAME_TITLE, createInitialState, pushFeedback, pushLog } from './game/state.js';
+import { DEFAULT_AVATAR, GAME_TITLE, LAST_SAVE_TIMESTAMP_KEY, createInitialState, pushFeedback, pushLog } from './game/state.js';
 import { createWorld } from './game/world.js';
 import { createPlayerController } from './game/player.js';
-import { clearFishHistoryState, ensureFishState } from './game/fishInventory.js';
+import {
+  clearFishHistoryState,
+  ensureFishState,
+  getPendingCatchSyncCount,
+  getPendingCatchSyncIds,
+  hasPendingCatchSync,
+  markCatchSyncFailure,
+  markCatchSyncSuccess,
+} from './game/fishInventory.js';
 import {
   castAgain,
   castLine,
@@ -26,7 +34,7 @@ import {
   useCatchAsLiveBait,
 } from './game/fishingMinigameLogic.js';
 import { getInteractionContext, getLocationSceneContext, runAction } from './game/interactions.js';
-import { backupLocalSave, exportSave, importSave, loadGame, resetGame, saveGame } from './game/save.js';
+import { backupLocalSave, exportCloudSave, exportSave, importSave, loadGame, resetGame, saveGame } from './game/save.js';
 import { createAudioManager } from './audio/audioManager.js';
 import { ensureMarketState, freshFishAtRisk } from './game/market.js';
 import { addItem } from './game/inventory.js';
@@ -121,7 +129,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-const world = createWorld({ enablePrototypeFisherman: Boolean(gameState.settings?.graphics?.fisherman3d) });
+const world = createWorld();
 const player = createPlayerController(world.scene, gameState.player);
 const clock = new THREE.Clock();
 let lastHudSnapshot = '';
@@ -739,17 +747,6 @@ const hud = createHud(hudRoot, {
       return;
     }
 
-    if (actionId === 'fisherman3d:toggle') {
-      gameState.settings.graphics = {
-        ...(gameState.settings.graphics ?? {}),
-        fisherman3d: !gameState.settings.graphics?.fisherman3d,
-      };
-      syncWorldPrototypeFisherman();
-      gameState.audioQueue.push('ui_click');
-      renderHud();
-      return;
-    }
-
     if (actionId === 'debug:unlockAllLocations') {
       unlockAllLocationsForDebug(gameState);
       renderHud();
@@ -1212,10 +1209,6 @@ function normalizePanelStateForViewport(state) {
   for (const panelId of ['profile', 'inventory', 'keepnet', 'tackle', 'guide', 'journal', 'quests', 'achievements', 'leaderboard', 'mapViewer', 'settings']) {
     state.ui.collapsedPanels[panelId] = true;
   }
-}
-
-function syncWorldPrototypeFisherman() {
-  world.setPrototypeFishermanEnabled(Boolean(gameState.settings?.graphics?.fisherman3d));
 }
 
 function queueCatalogWarmup() {
@@ -1906,6 +1899,9 @@ async function reconnectCloudSession() {
       saveMetadata,
       lastMessage: session.lastMessage ?? '\u0425\u043c\u0430\u0440\u043d\u0438\u0439 \u0430\u043a\u0430\u0443\u043d\u0442 \u043f\u0456\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u043e.',
     });
+    if (hasPendingCatchSync(gameState)) {
+      queueCloudAutosave({ immediate: true, reason: 'catch-sync' });
+    }
     renderHud();
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {
@@ -2422,7 +2418,7 @@ function queueAutosave() {
   }
 }
 
-function queueCloudAutosave({ immediate = false } = {}) {
+function legacyQueueCloudAutosave({ immediate = false } = {}) {
   const session = loadCloudSession();
   if (!session?.accessToken) {
     clearCloudAutosaveQueue();
@@ -2496,11 +2492,410 @@ function clearCloudAutosaveQueue() {
   cloudAutosavePending = false;
 }
 
-function getCloudSaveSignature() {
+function legacyGetCloudSaveSignature() {
   try {
     return JSON.stringify(JSON.parse(exportSave(gameState)).save);
   } catch {
     return '';
+  }
+}
+
+async function legacyUploadLocalSaveToCloud({ force = false } = {}) {
+  setCloudBusy(true, 'Синхронізуємо поточний прогрес...');
+  renderHud();
+  try {
+    const result = await syncCurrentSaveToCloud({ force });
+    const message = 'Поточний прогрес синхронізовано';
+    await finalizeCloudSyncSuccess(result, {
+      message,
+      lastMessage: message,
+      refreshLeaderboard: true,
+    });
+    pendingCloudSaveDownload = null;
+    gameState.ui.cloudSave = {
+      ...(gameState.ui.cloudSave ?? {}),
+      conflict: null,
+    };
+    pushFeedback(gameState, message, {}, 'item');
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 409) {
+      const metadata = conflictMetadataFromError(error);
+      saveCloudSession({
+        ...(loadCloudSession() ?? {}),
+        saveMetadata: metadata,
+      });
+      gameState.ui.cloudSave = {
+        ...(gameState.ui.cloudSave ?? {}),
+        conflict: { metadata, canDownload: false },
+      };
+    }
+    markCatchSyncFailure(gameState, cloudErrorMessage(error));
+    setCloudBusy(false, cloudErrorMessage(error));
+  }
+  renderHud();
+}
+
+async function legacyLoadLatestCloudSaveAfterAuth(profile) {
+  let result = null;
+  try {
+    result = await loadCloudSave();
+  } catch (error) {
+    const message = cloudErrorMessage(error);
+    saveCloudSession({
+      ...(loadCloudSession() ?? {}),
+      profile,
+      lastMessage: message,
+    });
+    return message;
+  }
+
+  const metadata = result?.metadata ?? null;
+  const autoLoadEnabled = gameState.settings?.cloudSave?.autoLoadNewest !== false;
+  const autoSyncEnabled = gameState.settings?.cloudSave?.autoSyncAfterLogin !== false;
+
+  if (!metadata?.exists || !result?.payload) {
+    if (autoSyncEnabled) {
+      try {
+        const uploadResult = await syncCurrentSaveToCloud({ force: true });
+        const message = 'Поточний прогрес синхронізовано';
+        await finalizeCloudSyncSuccess(uploadResult, {
+          message,
+          lastMessage: message,
+          refreshLeaderboard: true,
+        });
+        saveCloudSession({
+          ...(loadCloudSession() ?? {}),
+          profile,
+          saveMetadata: uploadResult.metadata,
+          lastMessage: message,
+        });
+        return message;
+      } catch (error) {
+        markCatchSyncFailure(gameState, cloudErrorMessage(error));
+        return cloudErrorMessage(error);
+      }
+    }
+    const message = 'Хмарного збереження ще немає. Локальний прогрес залишено.';
+    saveCloudSession({
+      ...(loadCloudSession() ?? {}),
+      profile,
+      saveMetadata: metadata,
+      lastMessage: message,
+    });
+    return message;
+  }
+
+  if (isCloudSaveOlderThanReset(metadata)) {
+    const message = 'Хмарний сейв старіший за останнє скидання. Локальний стан залишено.';
+    saveCloudSession({
+      ...(loadCloudSession() ?? {}),
+      profile,
+      saveMetadata: metadata,
+      lastMessage: message,
+    });
+    return message;
+  }
+
+  const decision = compareLocalAndCloudSaves(gameState, result.payload, metadata);
+
+  if (decision === 'cloud-ahead' && autoLoadEnabled) {
+    await applyCloudPayloadAfterAuth(result.payload, metadata, profile, 'before-cloud-login-load');
+    return 'Завантажено актуальніше хмарне збереження';
+  }
+
+  if (decision === 'local-ahead' && autoSyncEnabled) {
+    try {
+      const uploadResult = await syncCurrentSaveToCloud({ force: true });
+      const message = 'Поточний прогрес синхронізовано';
+      await finalizeCloudSyncSuccess(uploadResult, {
+        message,
+        lastMessage: message,
+        refreshLeaderboard: true,
+      });
+      saveCloudSession({
+        ...(loadCloudSession() ?? {}),
+        profile,
+        saveMetadata: uploadResult.metadata,
+        lastMessage: message,
+      });
+      return message;
+    } catch (error) {
+      markCatchSyncFailure(gameState, cloudErrorMessage(error));
+      return cloudErrorMessage(error);
+    }
+  }
+
+  if (decision === 'equal') {
+    if (autoSyncEnabled && hasPendingCatchSync(gameState)) {
+      try {
+        const uploadResult = await syncCurrentSaveToCloud({ force: true });
+        const message = 'Поточний прогрес синхронізовано';
+        await finalizeCloudSyncSuccess(uploadResult, {
+          message,
+          lastMessage: message,
+          refreshLeaderboard: true,
+        });
+        saveCloudSession({
+          ...(loadCloudSession() ?? {}),
+          profile,
+          saveMetadata: uploadResult.metadata,
+          lastMessage: message,
+        });
+        return message;
+      } catch (error) {
+        markCatchSyncFailure(gameState, cloudErrorMessage(error));
+        return cloudErrorMessage(error);
+      }
+    }
+
+    const message = 'Локальне і хмарне збереження однаково актуальні.';
+    saveCloudSession({
+      ...(loadCloudSession() ?? {}),
+      profile,
+      saveMetadata: metadata,
+      lastMessage: message,
+    });
+    return message;
+  }
+
+  pendingCloudSaveDownload = {
+    payload: result.payload,
+    metadata,
+    profile,
+  };
+  gameState.ui.cloudSave = {
+    ...(gameState.ui.cloudSave ?? {}),
+    conflict: { metadata, canDownload: true },
+  };
+  const conflictMessage = 'Потрібно вибрати версію збереження';
+  saveCloudSession({
+    ...(loadCloudSession() ?? {}),
+    profile,
+    saveMetadata: metadata,
+    lastMessage: conflictMessage,
+  });
+  return conflictMessage;
+}
+
+function legacyCompareLocalAndCloudSaves(localState, cloudPayload, metadata = {}) {
+  const pendingCatchCount = getPendingCatchSyncCount(localState);
+  const localReset = readResetTombstone();
+  const cloudReset = cloudPayload?.resetTombstone ?? cloudPayload?.metadata?.resetTombstone ?? null;
+  const localResetAt = Date.parse(localReset?.resetAt ?? '');
+  const cloudResetAt = Date.parse(cloudReset?.resetAt ?? '');
+  if (Number.isFinite(localResetAt) || Number.isFinite(cloudResetAt)) {
+    if (!Number.isFinite(cloudResetAt) || (Number.isFinite(localResetAt) && localResetAt > cloudResetAt)) {
+      return 'local-ahead';
+    }
+    if (!Number.isFinite(localResetAt) || cloudResetAt > localResetAt) {
+      return 'cloud-ahead';
+    }
+  }
+
+  const cloudRevision = Number(metadata?.revision ?? cloudPayload?.version ?? 0);
+  const localRevision = Number(localState?.version ?? localState?.playerState?.revision ?? 0);
+  if (pendingCatchCount > 0) {
+    if (cloudRevision > localRevision + 1) {
+      return 'ambiguous';
+    }
+    return 'local-ahead';
+  }
+  if (cloudRevision > localRevision) return 'cloud-ahead';
+  if (localRevision > cloudRevision) return 'local-ahead';
+
+  const cloudUpdated = Date.parse(metadata?.updatedAt ?? cloudPayload?.updatedAt ?? cloudPayload?.savedAt ?? '');
+  const localUpdated = Date.parse(localState?.updatedAt ?? localStorage.getItem(LAST_SAVE_TIMESTAMP_KEY) ?? '');
+  if (Number.isFinite(cloudUpdated) && Number.isFinite(localUpdated) && Math.abs(cloudUpdated - localUpdated) > 60_000) {
+    return cloudUpdated > localUpdated ? 'cloud-ahead' : 'local-ahead';
+  }
+
+  const localProgress = progressScore(localState);
+  const cloudProgress = progressScore(cloudPayload);
+  const delta = cloudProgress - localProgress;
+  if (Math.abs(delta) >= 8) {
+    return delta > 0 ? 'cloud-ahead' : 'local-ahead';
+  }
+  return delta === 0 ? 'equal' : 'ambiguous';
+}
+
+async function legacySyncCurrentSaveToCloud({ force = false } = {}) {
+  syncPlayerToState();
+  saveGame(gameState);
+  const syncedPendingCatchIds = getPendingCatchSyncIds(gameState);
+  const exported = JSON.parse(exportCloudSave(gameState));
+  const payload = exported.save;
+  const resetTombstone = readResetTombstone();
+  if (resetTombstone) {
+    payload.resetTombstone = resetTombstone;
+  }
+  const session = loadCloudSession() ?? {};
+  const currentRevision = Number(session.saveMetadata?.revision ?? session.serverRevision ?? 0);
+  const result = await syncCloudSave({
+    saveVersion: payload.version ?? gameState.version ?? exported.version ?? 1,
+    revision: Number.isFinite(currentRevision) ? currentRevision : 0,
+    force,
+    clientUpdatedAt: new Date().toISOString(),
+    payload,
+  });
+  return {
+    ...result,
+    syncedPendingCatchIds,
+  };
+}
+
+function legacyQueueAutosave() {
+  if (!gameState.playerProfile?.setupComplete) {
+    return;
+  }
+
+  const signature = JSON.stringify({
+    version: gameState.version,
+    playerProfile: gameState.playerProfile,
+    day: gameState.day,
+    time: gameState.time,
+    money: gameState.money,
+    inventory: gameState.inventory,
+    fishBasket: gameState.fishBasket,
+    catchHistory: gameState.catchHistory,
+    catchSync: gameState.catchSync,
+    stats: gameState.stats,
+    tackle: gameState.tackle,
+    travel: gameState.travel,
+    trophyLog: gameState.trophies,
+    catchStats: gameState.catchJournal,
+    settings: gameState.settings,
+    seenEvents: gameState.seenEvents,
+    tutorialState: gameState.tutorialState,
+    progress: gameState.progress,
+    quests: gameState.quests,
+    achievements: gameState.achievements,
+  });
+  if (signature === lastAutosaveSignature) {
+    return;
+  }
+  lastAutosaveSignature = signature;
+
+  const now = performance.now();
+  const saveNow = () => {
+    autosaveTimer = null;
+    lastAutosaveAt = performance.now();
+    gameState.player = player.snapshot();
+    saveGame(gameState);
+    queueCloudAutosave({ reason: hasPendingCatchSync(gameState) ? 'catch-sync' : 'normal' });
+  };
+
+  if (now - lastAutosaveAt > 1200) {
+    saveNow();
+    return;
+  }
+
+  if (!autosaveTimer) {
+    autosaveTimer = window.setTimeout(saveNow, 1200);
+  }
+}
+
+function queueCloudAutosave({ immediate = false, reason = 'normal' } = {}) {
+  const session = loadCloudSession();
+  if (!session?.accessToken) {
+    clearCloudAutosaveQueue();
+    return;
+  }
+
+  const signature = getCloudSaveSignature();
+  if (!signature || signature === lastCloudAutosaveSignature) {
+    return;
+  }
+
+  if (cloudAutosaveInFlight) {
+    cloudAutosavePending = true;
+    return;
+  }
+
+  const now = performance.now();
+  const conservativeAutosave = isMobileLowPowerTarget() || gameState.settings?.performance?.lowPower;
+  const autosaveDelay = conservativeAutosave ? MOBILE_CLOUD_AUTOSAVE_DELAY_MS : CLOUD_AUTOSAVE_DELAY_MS;
+  const autosaveMinInterval = conservativeAutosave ? MOBILE_CLOUD_AUTOSAVE_MIN_INTERVAL_MS : CLOUD_AUTOSAVE_MIN_INTERVAL_MS;
+  const pendingCatchAutosave = reason === 'catch-sync' && hasPendingCatchSync(gameState);
+  const waitForInterval = pendingCatchAutosave ? 0 : Math.max(0, autosaveMinInterval - (now - lastCloudAutosaveStartedAt));
+  const catchSyncDelay = conservativeAutosave ? 3500 : 2500;
+  const delay = pendingCatchAutosave
+    ? catchSyncDelay
+    : (immediate ? waitForInterval : Math.max(autosaveDelay, waitForInterval));
+
+  if (cloudAutosaveTimer) {
+    window.clearTimeout(cloudAutosaveTimer);
+  }
+
+  cloudAutosaveTimer = window.setTimeout(() => {
+    cloudAutosaveTimer = null;
+    runCloudAutosave(signature);
+  }, delay);
+}
+
+async function legacyRunCloudAutosave(signature) {
+  const session = loadCloudSession();
+  if (!session?.accessToken || cloudAutosaveInFlight) {
+    return;
+  }
+
+  cloudAutosaveInFlight = true;
+  cloudAutosavePending = false;
+  lastCloudAutosaveStartedAt = performance.now();
+  setCloudBusy(true, 'Автосинхронізація...');
+  renderHud();
+
+  try {
+    const result = await syncCurrentSaveToCloud();
+    await finalizeCloudSyncSuccess(result, {
+      message: 'Поточний прогрес синхронізовано',
+      lastMessage: 'Поточний прогрес синхронізовано',
+      signature,
+      refreshLeaderboard: result.syncedPendingCatchIds.length > 0,
+    });
+  } catch (error) {
+    markCatchSyncFailure(gameState, cloudErrorMessage(error));
+    setCloudBusy(false, cloudErrorMessage(error) || 'Не вдалося синхронізувати прогрес');
+  } finally {
+    cloudAutosaveInFlight = false;
+    renderHud();
+    if (cloudAutosavePending) {
+      queueCloudAutosave();
+    }
+  }
+}
+
+function getCloudSaveSignature() {
+  try {
+    return JSON.stringify(JSON.parse(exportCloudSave(gameState)).save);
+  } catch {
+    return '';
+  }
+}
+
+async function finalizeCloudSyncSuccess(result, {
+  message,
+  lastMessage = message,
+  signature = '',
+  refreshLeaderboard = false,
+} = {}) {
+  markCatchSyncSuccess(gameState, result.syncedPendingCatchIds, new Date().toISOString());
+  saveGame(gameState);
+  lastCloudAutosaveSignature = signature || getCloudSaveSignature();
+  saveCloudSession({
+    ...(loadCloudSession() ?? {}),
+    saveMetadata: result.metadata,
+    lastMessage,
+  });
+  setCloudBusy(false, message);
+
+  if (refreshLeaderboard) {
+    try {
+      await loadLeaderboardRecords(gameState.ui?.leaderboards?.type ?? 'biggest-fish');
+    } catch (error) {
+      if (import.meta.env?.DEV) {
+        console.warn('Could not refresh leaderboard after catch sync.', error);
+      }
+    }
   }
 }
 

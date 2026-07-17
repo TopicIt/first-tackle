@@ -360,7 +360,12 @@ function profileCloudSaveMarkup(state) {
   const session = loadCloudSession();
   const profile = session?.profile;
   const metadata = session?.saveMetadata;
-  const message = state.ui?.cloudSave?.message ?? session?.lastMessage ?? '';
+  const pendingCatchCount = Array.isArray(state.catchSync?.pendingIds) ? state.catchSync.pendingIds.length : 0;
+  const message = state.ui?.cloudSave?.message
+    ?? session?.lastMessage
+    ?? (pendingCatchCount > 0
+      ? (session?.accessToken ? `Очікує синхронізації уловів: ${pendingCatchCount}` : 'Синхронізація очікує підключення')
+      : '');
   const busy = Boolean(state.ui?.cloudSave?.busy);
   const loggedIn = Boolean(session?.accessToken);
   const status = busy
@@ -383,11 +388,11 @@ function profileCloudSaveMarkup(state) {
       </dl>
       <div class="profile-cloud-save__actions">
         ${loggedIn ? `
-          <button data-action="cloud:upload" type="button"${busy ? ' disabled' : ''}>Зберегти зараз</button>
+          <button data-action="cloud:upload" type="button"${busy ? ' disabled' : ''}>Синхронізувати зараз</button>
           <button data-action="cloud:download" type="button"${busy ? ' disabled' : ''}>Завантажити останнє збереження</button>
           <button data-action="cloud:logout" type="button"${busy ? ' disabled' : ''}>${t('cloudSaveLogoutShort')}</button>
         ` : `
-          <button data-action="cloud:open" type="button"${busy ? ' disabled' : ''}>Увійти для хмари</button>
+          <button data-action="cloud:open" type="button"${busy ? ' disabled' : ''}>Увійти та синхронізувати поточний прогрес</button>
         `}
       </div>
       ${message ? `<small>${escapeHtml(message)}</small>` : ''}

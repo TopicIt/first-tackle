@@ -1,6 +1,4 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { assetPath } from '../utils/assetPath.js';
 import { getWorldMapAsset } from '../utils/worldMapAsset.js';
 
 const zoneColors = {
@@ -39,16 +37,8 @@ export const interactionZones = {
   },
 };
 
-// Temporary prototype fisherman GLB. Adjust these values while tuning the Blender export in game.
-const prototypeFishermanModel = {
-  path: assetPath('/assets/models/fisher_boy_base.glb'),
-  scale: 1,
-  targetHeight: 1.65,
-  position: new THREE.Vector3(3.65, 0.02, -0.15),
-  rotation: new THREE.Euler(0, Math.PI * 0.72, 0),
-};
-
 export function createWorld(options = {}) {
+  void options;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x8bb7c7);
   scene.fog = new THREE.Fog(0x8bb7c7, 22, 45);
@@ -79,12 +69,6 @@ export function createWorld(options = {}) {
   addBusStation(scene);
   addTrees(scene);
   addZoneMarkers(scene);
-  let prototypeFishermanLoaded = false;
-  if (options.enablePrototypeFisherman) {
-    loadPrototypeFisherman(scene);
-    prototypeFishermanLoaded = true;
-  }
-
   const windObjects = addReeds(scene);
   const animatedMapObjects = addMapLife(scene);
   let loadedMapTexturePath = null;
@@ -119,62 +103,7 @@ export function createWorld(options = {}) {
       loadedMapTexturePath = mapAsset.primary;
       loadMapTexture(animatedMapObjects.mapPlaneMaterial, mapAsset.primary, mapAsset.fallback);
     },
-    setPrototypeFishermanEnabled(enabled) {
-      if (!enabled || prototypeFishermanLoaded) {
-        return;
-      }
-      loadPrototypeFisherman(scene);
-      prototypeFishermanLoaded = true;
-    },
   };
-}
-
-function loadPrototypeFisherman(scene) {
-  const loader = new GLTFLoader();
-
-  loader.load(
-    prototypeFishermanModel.path,
-    (gltf) => {
-      const model = gltf.scene;
-
-      // Prototype model transform knobs: tweak path, scale, position, and rotation above.
-      model.name = 'prototype-fisher-boy';
-      normalizePrototypeFishermanModel(model);
-      model.rotation.copy(prototypeFishermanModel.rotation);
-
-      model.traverse((child) => {
-        if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-        }
-      });
-
-      scene.add(model);
-    },
-    undefined,
-    (error) => {
-      console.warn(`Prototype fisherman model failed to load: ${prototypeFishermanModel.path}`, error);
-    },
-  );
-}
-
-function normalizePrototypeFishermanModel(model) {
-  const box = new THREE.Box3().setFromObject(model);
-  const size = box.getSize(new THREE.Vector3());
-  const center = box.getCenter(new THREE.Vector3());
-  const heightScale = size.y > 0 ? prototypeFishermanModel.targetHeight / size.y : 1;
-  const finalScale = prototypeFishermanModel.scale * heightScale;
-
-  // Prototype scale/grounding: targetHeight keeps Blender test exports mobile-sized.
-  model.scale.setScalar(finalScale);
-
-  const scaledCenter = center.multiplyScalar(finalScale);
-  const scaledMinY = box.min.y * finalScale;
-  model.position.set(
-    prototypeFishermanModel.position.x - scaledCenter.x,
-    prototypeFishermanModel.position.y - scaledMinY,
-    prototypeFishermanModel.position.z - scaledCenter.z,
-  );
 }
 
 function addRoad(scene) {

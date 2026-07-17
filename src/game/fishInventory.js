@@ -12,10 +12,13 @@ import { canCatchTrophyInWater } from './waterFishDistribution.js';
 const trackedStatuses = ['fresh', 'cleaned', 'salted', 'drying', 'ready_taranka', 'taranka', 'smoked', 'live_bait'];
 const liveBaitSpecies = ['gudgeon', 'crucian', 'plotytsia', 'loach', 'bleak'];
 const trophyHistoryLimit = 80;
+const catchHistoryLimit = 240;
 
 export function createFishEntry(catchResult, caughtAtDay, context = {}) {
+  const catchId = createCatchId(catchResult, caughtAtDay, context);
   return {
-    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    id: catchId,
+    catchId,
     fishId: catchResult.id,
     weightGrams: catchResult.weightGrams,
     caughtAtDay,
@@ -35,6 +38,12 @@ export function createFishEntry(catchResult, caughtAtDay, context = {}) {
 
 export function ensureFishState(state) {
   state.fishBasket ??= [];
+  state.catchHistory ??= [];
+  state.catchSync ??= {};
+  state.catchSync.pendingIds = normalizePendingCatchIds(state.catchSync.pendingIds);
+  state.catchSync.lastSyncedAt ??= null;
+  state.catchSync.lastErrorAt ??= null;
+  state.catchSync.lastErrorMessage ??= '';
   state.catchJournal ??= {};
   state.trophies ??= [];
   state.achievements ??= {};
@@ -49,6 +58,7 @@ export function ensureFishState(state) {
     migrateLegacyFishInventory(state);
   }
   state.fishBasket = state.fishBasket.map((entry) => normalizeFishEntry(entry, state.day));
+  state.catchHistory = normalizeCatchHistory(state.catchHistory, state.day);
   state.trophies = normalizeTrophyHistory(state, state.trophies);
   state.catchJournal = mergeCatchJournals(state.catchJournal, buildJournalFromEntries(state.fishBasket));
   syncStatsFromJournal(state);
@@ -68,6 +78,8 @@ export function addCaughtFish(state, catchResult, context = {}) {
   entry.trophyTier = classifyTrophyCatch(entry, fish);
   persistCatchCardImage(entry);
   state.fishBasket.push(entry);
+  rememberCatchHistoryEntry(state, entry);
+  enqueuePendingCatchSync(state, entry.catchId ?? entry.id);
   state.stats.totalFishCaught = Math.max(0, state.stats.totalFishCaught ?? 0) + 1;
   updateAllTimeBiggestFish(state, entry);
   if (!state.progress.firstCatchDone) {
@@ -90,6 +102,13 @@ export function getFishEntries(state, status) {
 
 export function clearFishHistoryState(state) {
   state.fishBasket = [];
+  state.catchHistory = [];
+  state.catchSync = {
+    pendingIds: [],
+    lastSyncedAt: null,
+    lastErrorAt: null,
+    lastErrorMessage: '',
+  };
   state.catchJournal = {};
   state.trophies = [];
   state.achievements ??= {};
@@ -294,6 +313,42 @@ export function getKeepnetSummary(state) {
   };
 }
 
+export function getCatchHistory(state) {
+  ensureFishState(state);
+  return state.catchHistory;
+}
+
+export function getPendingCatchSyncCount(state) {
+  ensureFishState(state);
+  return state.catchSync.pendingIds.length;
+}
+
+export function getPendingCatchSyncIds(state) {
+  ensureFishState(state);
+  return [...state.catchSync.pendingIds];
+}
+
+export function hasPendingCatchSync(state) {
+  return getPendingCatchSyncCount(state) > 0;
+}
+
+export function markCatchSyncSuccess(state, catchIds = [], syncedAt = new Date().toISOString()) {
+  ensureFishState(state);
+  const syncedIds = new Set((Array.isArray(catchIds) ? catchIds : []).filter(Boolean));
+  state.catchSync.pendingIds = syncedIds.size
+    ? state.catchSync.pendingIds.filter((id) => !syncedIds.has(id))
+    : [];
+  state.catchSync.lastSyncedAt = syncedAt;
+  state.catchSync.lastErrorAt = null;
+  state.catchSync.lastErrorMessage = '';
+}
+
+export function markCatchSyncFailure(state, message, failedAt = new Date().toISOString()) {
+  ensureFishState(state);
+  state.catchSync.lastErrorAt = failedAt;
+  state.catchSync.lastErrorMessage = String(message ?? '').trim();
+}
+
 export function getCatchJournal(state) {
   ensureFishState(state);
   return fishIds.map((fishId) => ({
@@ -376,8 +431,10 @@ function migrateLegacyFishInventory(state) {
 
 function createLegacyEntry(fishId, status, day) {
   const fish = getFishData(fishId);
+  const catchId = `legacy-${status}-${fishId}-${Math.random().toString(16).slice(2)}`;
   return {
-    id: `legacy-${status}-${fishId}-${Math.random().toString(16).slice(2)}`,
+    id: catchId,
+    catchId,
     fishId,
     weightGrams: Math.round((fish.minWeight + fish.maxWeight) / 2),
     caughtAtDay: day,
@@ -392,8 +449,10 @@ function createLegacyEntry(fishId, status, day) {
 
 function normalizeFishEntry(entry, day) {
   const fish = getFishData(entry.fishId) ?? getFishData('crucian');
+  const catchId = entry.catchId ?? entry.id ?? createCatchId(entry, entry.caughtAtDay ?? day, entry);
   const normalized = {
-    id: entry.id ?? `fish-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    id: catchId,
+    catchId,
     fishId: entry.fishId ?? fish.id,
     weightGrams: entry.weightGrams ?? Math.round((fish.minWeight + fish.maxWeight) / 2),
     value: entry.value ?? fish.basePrice,
@@ -414,6 +473,58 @@ function normalizeFishEntry(entry, day) {
   };
   persistCatchCardImage(normalized);
   return normalized;
+}
+
+function normalizeCatchHistory(rawEntries, day) {
+  const normalized = Array.isArray(rawEntries)
+    ? rawEntries
+      .filter((entry) => entry && typeof entry === 'object')
+      .map((entry) => normalizeFishEntry({ ...entry, status: entry.status ?? 'fresh' }, day))
+    : [];
+  const unique = new Map();
+  for (const entry of normalized) {
+    unique.set(entry.catchId ?? entry.id, entry);
+  }
+  return [...unique.values()]
+    .sort((a, b) => (
+      Number(b.caughtAtDay ?? 0) - Number(a.caughtAtDay ?? 0)
+      || Number(b.weightGrams ?? 0) - Number(a.weightGrams ?? 0)
+    ))
+    .slice(0, catchHistoryLimit);
+}
+
+function rememberCatchHistoryEntry(state, entry) {
+  ensureFishState(state);
+  const catchId = entry.catchId ?? entry.id;
+  state.catchHistory = [
+    entry,
+    ...(state.catchHistory ?? []).filter((record) => (record.catchId ?? record.id) !== catchId),
+  ].slice(0, catchHistoryLimit);
+}
+
+function enqueuePendingCatchSync(state, catchId) {
+  ensureFishState(state);
+  if (!catchId) {
+    return;
+  }
+  if (!state.catchSync.pendingIds.includes(catchId)) {
+    state.catchSync.pendingIds.push(catchId);
+  }
+}
+
+function normalizePendingCatchIds(rawPendingIds) {
+  const pendingIds = Array.isArray(rawPendingIds) ? rawPendingIds.filter(Boolean).map((id) => String(id)) : [];
+  return [...new Set(pendingIds)];
+}
+
+function createCatchId(catchResult, caughtAtDay, context = {}) {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+  const fishId = catchResult?.id ?? catchResult?.fishId ?? 'fish';
+  const weight = catchResult?.weightGrams ?? 0;
+  const caughtAtTime = context.caughtAtTime ?? catchResult?.caughtAtTime ?? 'time';
+  return `catch-${fishId}-${caughtAtDay}-${caughtAtTime}-${weight}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 function buildJournalFromEntries(entries) {

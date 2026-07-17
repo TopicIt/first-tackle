@@ -14,6 +14,9 @@ globalThis.sessionStorage = {
 
 const { PROFILE_NAME_MAX_LENGTH, validateProfileName } = await import('../src/game/profile.js');
 const { apiConfig, apiRequest, saveCloudSession, setApiAccessToken } = await import('../src/api/client.js');
+const { createInitialState } = await import('../src/game/state.js');
+const { addCaughtFish, ensureFishState, getPendingCatchSyncCount } = await import('../src/game/fishInventory.js');
+const { exportCloudSave } = await import('../src/game/save.js');
 
 assert.deepEqual(validateProfileName('  Івасик Телесик  '), {
   ok: true,
@@ -58,6 +61,31 @@ assert.equal(result.metadata.revision, 3);
 assert.equal(requests.length, 3);
 assert.equal(requests[2].options.headers.Authorization, 'Bearer fresh-token');
 assert.equal(apiConfig.accessToken, 'fresh-token');
+
+const state = createInitialState();
+state.playerProfile.setupComplete = true;
+ensureFishState(state);
+const catchEntry = addCaughtFish(state, {
+  id: 'carp',
+  weightGrams: 1450,
+  value: 220,
+}, {
+  waterId: 'greada',
+  bait: 'corn',
+  method: 'stickRod',
+  catchSpotId: 'reed-pocket',
+  caughtAtTime: '08:15',
+});
+
+assert.ok(catchEntry.catchId);
+assert.equal(getPendingCatchSyncCount(state), 1);
+assert.equal(state.catchHistory.length, 1);
+assert.equal(state.catchHistory[0].catchId, catchEntry.catchId);
+
+const exportedCloudSave = JSON.parse(exportCloudSave(state)).save;
+assert.equal(exportedCloudSave.catchHistory.length, 1);
+assert.equal(exportedCloudSave.catchHistory[0].catchId, catchEntry.catchId);
+assert.deepEqual(exportedCloudSave.catchSync.pendingIds, []);
 
 console.log('Focused profile/cloud smoke passed.');
 

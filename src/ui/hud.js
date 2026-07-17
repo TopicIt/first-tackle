@@ -574,18 +574,6 @@ export function createHud(root, handlers) {
               </div>
             </section>
             <section class="settings-block">
-              <p class="section-label">${t('fisherman3dSetting')}</p>
-              <div class="settings-flag-card">
-                <div>
-                  <strong>${state.settings?.graphics?.fisherman3d ? t('enabled') : t('disabled')}</strong>
-                  <small>${t('fisherman3dSettingHint')}</small>
-                </div>
-                <button data-action="fisherman3d:toggle" type="button">
-                  ${state.settings?.graphics?.fisherman3d ? t('disableFisherman3d') : t('enableFisherman3d')}
-                </button>
-              </div>
-            </section>
-            <section class="settings-block">
               <p class="section-label">${t('introSettings')}</p>
               <div class="settings-action-row settings-action-row--stack">
                 <button data-action="intro:replay" type="button">${t('replayIntro')}</button>
@@ -694,6 +682,7 @@ export function createHud(root, handlers) {
         ${debugLayoutBadgeMarkup(state, context)}
       `;
 
+      syncCloudActionLabels(root);
       restoreMobileMenu(root, mobileMenuOpen);
       const scrollRestore = pendingScrollRestore ?? getRememberedScroll(preservedScrollPositions);
       if (scrollRestore) {
@@ -707,7 +696,6 @@ export function createHud(root, handlers) {
 
       setupLocationTransition(root, state, handlers);
       setupStartupVideo(root, handlers);
-      syncOptionalFishingPrototype3d(root, state);
       syncFishingLineOverlay(root);
       window.requestAnimationFrame(() => syncFishingLineOverlay(root));
     },
@@ -982,6 +970,17 @@ function restoreMobileMenu(root, shouldOpen) {
   });
 }
 
+function syncCloudActionLabels(root) {
+  for (const button of root.querySelectorAll('[data-action="cloud:upload"]')) {
+    button.textContent = 'Синхронізувати зараз';
+  }
+  for (const button of root.querySelectorAll('[data-action="cloud:open"]')) {
+    if (button.closest('.profile-cloud-save') || button.closest('.cloud-save-panel') || button.closest('.cloud-save-shortcut')) {
+      button.textContent = 'Увійти та синхронізувати поточний прогрес';
+    }
+  }
+}
+
 function shouldPreserveScroll(action) {
   return action.startsWith('buy:')
     || action.startsWith('sell:')
@@ -1179,23 +1178,6 @@ function escapeHtml(value) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
-}
-
-let fishingPrototype3dModulePromise = null;
-
-function syncOptionalFishingPrototype3d(root, state) {
-  if (!state.settings?.graphics?.fisherman3d && !fishingPrototype3dModulePromise) {
-    return;
-  }
-
-  fishingPrototype3dModulePromise ??= import('./fishingPrototype3d.js');
-  fishingPrototype3dModulePromise
-    .then((module) => module.syncFishingPrototype3d(root, state))
-    .catch((error) => {
-      if (import.meta.env?.DEV) {
-        console.warn('[fisherman-prototype] Optional 3D module failed to load', error);
-      }
-    });
 }
 
 function tutorialActionLabelKey(actionId) {
