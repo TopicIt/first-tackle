@@ -6,7 +6,7 @@ import {
   syncInventoryFromFishBasket,
 } from './fishInventory.js';
 import { addFishToStorage, removeFishFromStorage, resolveCatch } from './gameAuthority.js';
-import { countItem, hasItem, removeItem } from './inventory.js';
+import { countItem, hasItem } from './inventory.js';
 import { normalizeWaterId } from './locations.js';
 import { markFirstCrucianCatchRewardSeen, queueFirstCrucianCatchReward } from './locationTransitions.js';
 import { getActiveItemModifiers } from './itemEffects.js';
@@ -16,7 +16,7 @@ import {
   getBaitSuitability,
 } from './fishChanceCalculator.js';
 import { pushFeedback, pushLog, queueSound } from './state.js';
-import { getTackleEffects } from './tackle.js';
+import { breakTackleComponent, getTackleEffects, isStarterRodBroken } from './tackle.js';
 import { advanceTime, formatGameTime } from './time.js';
 import { getWaterSizeRange } from './waterFishDistribution.js';
 import { classifyCatchSize, rollFishWeight } from './fishSizeProfiles.js';
@@ -65,6 +65,11 @@ export function createFishingMinigameState(method) {
 }
 
 export function openFishingMinigame(state, method) {
+  if (isFishingBlockedByBrokenStarterRod(state)) {
+    pushLog(state, 'logRodBrokenBlocked');
+    return;
+  }
+
   if (!hasItem(state, 'primitiveTackle')) {
     pushLog(state, 'logNeedTutorialTackle');
     return;
@@ -77,12 +82,12 @@ export function openFishingMinigame(state, method) {
   }
 
   if (method === 'stickRod' && !hasUsableRod(state)) {
-    pushLog(state, 'logNeedFirstRod');
+    pushLog(state, isStarterRodBroken(state) ? 'logRodBrokenBlocked' : 'logNeedFirstRod');
     return;
   }
 
   if (method === 'liveBait' && (!hasUsableRod(state) || getFishEntries(state, 'live_bait').length === 0)) {
-    pushLog(state, !hasUsableRod(state) ? 'logNeedFirstRod' : 'logNeedLiveBait');
+    pushLog(state, !hasUsableRod(state) ? (isStarterRodBroken(state) ? 'logRodBrokenBlocked' : 'logNeedFirstRod') : 'logNeedLiveBait');
     return;
   }
 
@@ -123,6 +128,18 @@ export function closeFishingMinigame(state) {
 export function selectFishingBait(state, bait) {
   const minigame = state.ui.fishingMinigame;
   if (!minigame?.open) {
+    return;
+  }
+
+  if (isFishingBlockedByBrokenStarterRod(state)) {
+    minigame.statusKey = 'fishingRodBrokenBlocked';
+    pushLog(state, 'logRodBrokenBlocked');
+    return;
+  }
+
+  if (['stickRod', 'liveBait'].includes(minigame.method) && !hasUsableRod(state)) {
+    minigame.statusKey = isStarterRodBroken(state) ? 'fishingRodBrokenBlocked' : 'fishingNoRodAvailable';
+    pushLog(state, isStarterRodBroken(state) ? 'logRodBrokenBlocked' : 'logNeedFirstRod');
     return;
   }
 
@@ -188,6 +205,18 @@ export function selectFishingDepth(state, depth) {
 export function castLine(state, nowMs) {
   const minigame = state.ui.fishingMinigame;
   if (!minigame?.open) {
+    return;
+  }
+
+  if (isFishingBlockedByBrokenStarterRod(state)) {
+    minigame.statusKey = 'fishingRodBrokenBlocked';
+    pushLog(state, 'logRodBrokenBlocked');
+    return;
+  }
+
+  if (['stickRod', 'liveBait'].includes(minigame.method) && !hasUsableRod(state)) {
+    minigame.statusKey = isStarterRodBroken(state) ? 'fishingRodBrokenBlocked' : 'fishingNoRodAvailable';
+    pushLog(state, isStarterRodBroken(state) ? 'logRodBrokenBlocked' : 'logNeedFirstRod');
     return;
   }
 
@@ -339,11 +368,7 @@ export async function strikeLine(state, nowMs) {
     catchResult.value = getFreshFishValue(catchResult);
     catchResult.catchCategory = classifyCatchSize(catchResult.id, catchResult.weightGrams);
     if (!tutorialCatchActive && shouldBreakHomemadeRod(state, catchResult, itemModifiers)) {
-      removeItem(state, 'stickRod');
-      state.tackle.owned.simple_stick_rod = false;
-      if (state.tackle.equipped.rod === 'simple_stick_rod') {
-        state.tackle.equipped.rod = 'none';
-      }
+      breakTackleComponent(state, 'simple_stick_rod');
       resolveMinigameResult(state, { outcome: 'rod_broke', statusKey: 'fishingRodBroke', sound: 'line_break' });
       return;
     }
@@ -775,7 +800,13 @@ function notifyNoBait(state, minigame) {
 }
 
 function hasUsableRod(state) {
-  return getTackleEffects(state).hasRod || hasItem(state, 'stickRod');
+  const effects = getTackleEffects(state);
+  return effects.hasProperRod || (!isStarterRodBroken(state) && (effects.hasRod || hasItem(state, 'stickRod')));
+}
+
+function isFishingBlockedByBrokenStarterRod(state) {
+  const effects = getTackleEffects(state);
+  return isStarterRodBroken(state) && !effects.hasProperRod;
 }
 
 function startBiteCycle(state, minigame, nowMs) {

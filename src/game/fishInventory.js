@@ -21,6 +21,7 @@ export function createFishEntry(catchResult, caughtAtDay, context = {}) {
     catchId,
     fishId: catchResult.id,
     weightGrams: catchResult.weightGrams,
+    caughtAt: context.caughtAt ?? new Date().toISOString(),
     caughtAtDay,
     caughtAtTime: context.caughtAtTime ?? null,
     catchSpotId: context.catchSpotId ?? null,
@@ -328,6 +329,13 @@ export function getPendingCatchSyncIds(state) {
   return [...state.catchSync.pendingIds];
 }
 
+export function getPendingCatchSyncEntries(state) {
+  ensureFishState(state);
+  const pendingIds = new Set(state.catchSync.pendingIds);
+  return (state.catchHistory ?? [])
+    .filter((entry) => pendingIds.has(entry.catchId ?? entry.id));
+}
+
 export function hasPendingCatchSync(state) {
   return getPendingCatchSyncCount(state) > 0;
 }
@@ -335,9 +343,9 @@ export function hasPendingCatchSync(state) {
 export function markCatchSyncSuccess(state, catchIds = [], syncedAt = new Date().toISOString()) {
   ensureFishState(state);
   const syncedIds = new Set((Array.isArray(catchIds) ? catchIds : []).filter(Boolean));
-  state.catchSync.pendingIds = syncedIds.size
-    ? state.catchSync.pendingIds.filter((id) => !syncedIds.has(id))
-    : [];
+  if (syncedIds.size > 0) {
+    state.catchSync.pendingIds = state.catchSync.pendingIds.filter((id) => !syncedIds.has(id));
+  }
   state.catchSync.lastSyncedAt = syncedAt;
   state.catchSync.lastErrorAt = null;
   state.catchSync.lastErrorMessage = '';
@@ -456,6 +464,7 @@ function normalizeFishEntry(entry, day) {
     fishId: entry.fishId ?? fish.id,
     weightGrams: entry.weightGrams ?? Math.round((fish.minWeight + fish.maxWeight) / 2),
     value: entry.value ?? fish.basePrice,
+    caughtAt: entry.caughtAt ?? null,
     caughtAtDay: entry.caughtAtDay ?? day,
     caughtAtTime: entry.caughtAtTime ?? null,
     catchSpotId: entry.catchSpotId ?? null,

@@ -22,3 +22,14 @@ export async function syncSave({ saveVersion, revision, force = false, clientUpd
   });
 }
 
+export async function syncCatchRecords({ catches, sourceRevision = null, clientUpdatedAt = null }) {
+  return apiRequest('/api/catches/sync', {
+    method: 'POST',
+    body: {
+      catches: Array.isArray(catches) ? catches : [],
+      sourceRevision,
+      clientUpdatedAt,
+    },
+  });
+}
+

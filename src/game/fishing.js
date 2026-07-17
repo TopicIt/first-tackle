@@ -1,7 +1,7 @@
 import { addItem, countItem, hasItem, removeItem } from './inventory.js';
 import { advanceFishStatus, countFishByStatus, ensureFishState, takeFreshFish } from './fishInventory.js';
 import { advanceMarketDay, freshFishAtRisk } from './market.js';
-import { ownTackleComponent } from './tackle.js';
+import { getTackleEffects, isStarterRodBroken, ownTackleComponent, repairTackleComponent } from './tackle.js';
 import { syncQuestProgress } from './quests.js';
 import { advanceTime, getTimePhase, resetToMorning } from './time.js';
 import { nowSeconds, pushFeedback, pushLog, queueSound } from './state.js';
@@ -18,7 +18,7 @@ export function craftPrimitiveTackle(state) {
 
 export function canCraftStickRod(state) {
   const owned = state.tackle?.owned ?? {};
-  return hasItem(state, 'primitiveTackle') && !hasItem(state, 'stickRod')
+  return hasItem(state, 'primitiveTackle') && (!hasItem(state, 'stickRod') || isStarterRodBroken(state))
     && owned.simple_stick_rod
     && (owned.goose_feather_float || owned.cheap_float || owned.proper_float);
 }
@@ -30,12 +30,14 @@ export function craftStickRod(state) {
   }
 
   addItem(state, 'stickRod');
+  repairTackleComponent(state, 'simple_stick_rod');
+  state.tackle.owned.simple_stick_rod = true;
   state.tackle.equipped.rod = 'simple_stick_rod';
   if (state.tackle.equipped.float === 'none') {
     state.tackle.equipped.float = state.tackle.owned.goose_feather_float ? 'goose_feather_float' : 'cheap_float';
   }
   pushFeedback(state, 'feedbackRod', {}, 'item');
-  pushLog(state, 'logCraftedRod');
+  pushLog(state, 'logNewRodReady');
   queueSound(state, 'craft_item');
 }
 
@@ -98,7 +100,8 @@ export function gatherGooseFeather(state) {
 
 export function gatherRodStick(state) {
   advanceTime(state, 20);
-  if (state.tackle?.owned?.simple_stick_rod || hasItem(state, 'stickRod')) {
+  const replacingBrokenRod = isStarterRodBroken(state);
+  if (!replacingBrokenRod && (state.tackle?.owned?.simple_stick_rod || hasItem(state, 'stickRod'))) {
     pushLog(state, 'logAlreadyFoundRodStick');
     return;
   }
@@ -107,6 +110,13 @@ export function gatherRodStick(state) {
     return;
   }
   ownTackleComponent(state, 'simple_stick_rod');
+  if (replacingBrokenRod) {
+    addItem(state, 'stickRod');
+    state.tackle.equipped.rod = 'simple_stick_rod';
+    pushFeedback(state, 'feedbackRod', {}, 'item');
+    pushLog(state, 'logNewRodReady');
+    return;
+  }
   pushFeedback(state, 'componentSimpleStickRod', {}, 'item');
   pushLog(state, 'logFoundRodStick');
 }
@@ -134,7 +144,7 @@ export function gatherSmallStones(state) {
 }
 
 export function canFish(state) {
-  return hasItem(state, 'primitiveTackle') && hasAnyBait(state);
+  return hasItem(state, 'primitiveTackle') && hasAnyBait(state) && (!isStarterRodBroken(state) || getTackleEffects(state).hasProperRod);
 }
 
 export function fish(state, method = 'handline') {
@@ -143,8 +153,8 @@ export function fish(state, method = 'handline') {
     return;
   }
 
-  if (method === 'stickRod' && !hasItem(state, 'stickRod')) {
-    pushLog(state, 'logNeedFirstRod');
+  if (method === 'stickRod' && (!hasItem(state, 'stickRod') || isStarterRodBroken(state))) {
+    pushLog(state, isStarterRodBroken(state) ? 'logRodBrokenBlocked' : 'logNeedFirstRod');
     return;
   }
 

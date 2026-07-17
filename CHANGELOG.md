@@ -2,6 +2,10 @@
 
 ## 2026-07-17
 
+- Added authenticated `/api/catches/sync` acknowledgement flow and changed the frontend pending-catch queue to clear only backend-acknowledged `catchId`s.
+- Added full `caughtAt` timestamps to gameplay catch history and kept pending catch IDs in the local autosave signature for retry visibility.
+- Normalized legacy `perch` leaderboard rows to `Окунь`, removed normal-row source/debug labels, and updated the persistent leaderboard subtitle.
+- Persisted starter-rod broken state, blocked fishing/casting while it is broken, and made Grandma's rod-stick replacement restore a usable starter rod.
 - Wired the real gameplay catch path into cloud synchronization by promoting the catch-history-aware sync/autoload/autosave implementations to the active runtime path.
 - Added a gameplay smoke that catches through `addFishToStorage()`, verifies pending catch queue/history state, sells the fish, and confirms the historical catch survives keepnet sale.
 - Fixed same-session persistent leaderboard rows so first-save/current-name data is available immediately after sync instead of briefly falling back to the account email prefix.
