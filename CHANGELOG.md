@@ -2,6 +2,11 @@
 
 ## 2026-07-17
 
+- Completed the deployed real-gameplay catch acceptance test on `topicua@gmail.com` / `Діма 17.07`: a normal minigame White bream catch (`3caefec7-843c-455d-baa7-0bb1c08e3b85`, 131 g) reached `server-catch-records`, appeared in the live leaderboard, survived release from the keepnet, and remained deduped.
+- Fixed a live fishing crash by importing the missing `removeItem` helper in the minigame bait-consumption path.
+- Fixed the real gameplay catch-sync trigger by measuring pending catch count before `strikeLine()`/context actions mutate state.
+- Fixed backend reset-tombstone handling so stale reset metadata on later progressed saves no longer deactivates active catch records; empty explicit reset saves still deactivate that account's records.
+- Restored `Діма 17.07` persistent leaderboard records from the latest cloud save after the reset-tombstone fix, including the 406 g perch that had been visible only in the keepnet/profile.
 - Preserved the exact `server-catch-records` leaderboard source in frontend state so the live panel shows the persistent-record subtitle instead of the generic server label.
 - Forced persistent leaderboard rows to render player-facing Ukrainian labels for fish, bait, depth, cast spots, and waters even when old server records contain English/raw fallback strings.
 - Added authenticated `/api/catches/sync` acknowledgement flow and changed the frontend pending-catch queue to clear only backend-acknowledged `catchId`s.

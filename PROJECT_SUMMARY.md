@@ -557,3 +557,58 @@ Remaining risks:
 - Real iPhone Safari verification is still needed for physical keyboard/predictive-text behavior and for final mobile layout confirmation under WebKit.
 - The old stale cloud-save helper implementations still exist as dead code in the frontend modules; the active runtime now points at the correct implementations, but a follow-up cleanup pass would make the module structure easier to maintain.
 - Leaderboard records remain recovered from client save data rather than from a fully server-authoritative catch-event pipeline.
+
+## Catch Sync V2 Production Completion
+
+Completed on `main` after branch `codex/catch-sync-v2-observable`.
+
+Feature and follow-up commits:
+
+- Frontend: `af6ba74` (`fix: add observable catch sync v2`)
+- Backend: `f657ab3` (`fix: report catch sync acknowledgements`)
+- Frontend merge: `1a72f9a` (`merge: catch sync v2 observable`)
+- Backend merge: `ee7aa86` (`merge: catch sync v2 acknowledgements`)
+- Frontend live blocker fix: `2f2570c` (`fix: import bait removal helper for fishing`)
+- Frontend real-catch trigger fix: `9195e82` (`fix: trigger catch sync after resolved catch`)
+- Backend stale reset-tombstone fix: `3b9a976` (`fix: preserve catch records after stale reset tombstone`)
+
+Final root causes:
+
+- Real gameplay catches were locally created with `catchId`, `catchHistory`, and pending IDs, but the active `renderAfterAuthorityAction()` measured pending count after `strikeLine()` had already mutated state. Synchronous successful catches therefore skipped the "pending count increased" V2 sync trigger.
+- Live fishing was temporarily blocked by `ReferenceError: removeItem is not defined` in `fishingMinigameLogic.js`; bait consumption used `removeItem()` without importing it.
+- Production catch sync could acknowledge/update the cloud save while persistent rows vanished afterward because old reset tombstones were attached to later normal saves. The backend interpreted any tombstone-bearing save as an active reset and deactivated that account's catch records on backfill. It now deactivates only when the tombstone payload has no catch/progress evidence.
+
+Catch Sync V2 final behavior:
+
+- A successful gameplay catch creates an immutable local entry with stable UUID `catchId`, full `caughtAt`, fish, weight, water, bait, tackle, depth, cast spot, and category data.
+- Pending catch IDs stay local, survive reload/logout, and are sent to `/api/catches/sync` or ingested from cloud-save catch history.
+- Backend acknowledgements report `inserted`, `already_exists`, or `rejected`; frontend clears only acknowledged catch IDs and shows compact Ukrainian sync status in Profile/Cloud Save.
+- Cloud-save success does not depend on catch-record ingestion, and catch-record failures do not roll back the primary save.
+- A stale reset tombstone still protects against old cloud-save downgrades, but it no longer deletes records for a progressed post-reset save.
+
+Production verification:
+
+- Railway health stayed HTTP 200 after backend deploy.
+- Biggest-fish endpoint source stayed `server-catch-records`.
+- Affected account was identified by stable user id `49d55a83-3855-4c69-9ea4-cbfe4948af55` for `topicua@gmail.com` / `Діма 17.07`.
+- Pre-fix failure point was confirmed: the account's cloud save showed 20 total fish and a 406 g perch in profile/keepnet, but no active persistent records because the stale reset tombstone deactivated them during backfill.
+- After backend deploy, production backfill restored 11 active records for `Діма 17.07`, including the original 406 g perch.
+- Required live gameplay acceptance catch was completed through the real minigame: White bream / `Підлящик`, 131 g, catchId `3caefec7-843c-455d-baa7-0bb1c08e3b85`, caughtAt `2026-07-17T19:31:18.812Z`, day 2 at 08:45.
+- Production API returned that catch once at rank 12 with source `server-catch-records`, water `sluice`, bait `worms`, method `stickRod`, and user id `49d55a83-3855-4c69-9ea4-cbfe4948af55`.
+- Live frontend displayed `Діма 17.07` rank 2 with the 0.41 kg perch and rank 12 with the 0.13 kg white bream. Releasing the white bream removed it from the keepnet but the historical leaderboard row remained.
+- API dedupe check after release showed exactly one row for catchId `3caefec7-843c-455d-baa7-0bb1c08e3b85`.
+
+Verification commands:
+
+- Frontend `npm.cmd run test:focused` passed.
+- Frontend `npm.cmd run build` passed; Vite still reports the existing large main-chunk warning.
+- Backend `.venv\Scripts\python.exe -m unittest discover -s tests -v` passed.
+- Backend `.venv\Scripts\python.exe -m compileall app` passed.
+- GitHub Pages deploy for frontend commit `9195e82` completed successfully.
+- Railway deployed backend commit `3b9a976`; production behavior changed on poll from zero `Діма 17.07` rows to 11 rows.
+
+Remaining risks:
+
+- Railway CLI was not authenticated in this session, so production DB inspection used public API behavior rather than direct SQL/log access.
+- Physical iPhone Safari still needs real-device confirmation.
+- Public-profile buttons were visible in the leaderboard DOM, but clicking the current player's own leaderboard row did not open a separate public profile during this final smoke; this should be checked separately without mixing it into the catch-sync deployment.

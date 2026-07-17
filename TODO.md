@@ -4,7 +4,6 @@ Updated: 2026-07-17
 
 ## Backend / Online Leaderboard
 
-- Run the deployed real-gameplay catch acceptance test for branch `codex/real-gameplay-leaderboard-broken-rod-fix`: catch via minigame, verify `/api/catches/sync` ack, production `catch_records`, live leaderboard row, sale survival, and dedupe.
 - Remove the dead legacy cloud-save helper copies from the frontend modules now that the active runtime has been switched to the catch-history-aware sync path.
 - Monitor live pending-catch uploads after login/manual sync/autosave to confirm the new acknowledged catch-sync endpoint leaves no catches stuck in the local queue.
 - Monitor the deployed persistent catch-record ingestion and retry logs for malformed legacy catch payloads.
@@ -61,7 +60,8 @@ Example leaderboard response shape:
 
 ## Follow-Up Checks
 
-- Run a real production smoke for catch -> sync -> leaderboard -> sale survival on a physical mobile browser, especially after silent reconnect.
+- Repeat the completed catch -> sync -> leaderboard -> release-survival smoke on a physical mobile browser, especially after silent reconnect.
+- Check public-profile opening from the current player's own leaderboard row; the buttons were visible in the final smoke, but the self-row click did not open a separate panel.
 - Run mobile device profiling after deploy to confirm lower temperature and battery draw.
 - Run profile rename, cloud-save text layout, and public profile smoke on a physical iPhone Safari device.
 - Add automated bait-consumption unit tests once the game logic has a test harness.
