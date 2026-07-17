@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-17
+
+- Added persistent backend catch records and migrated catch/trophy leaderboards away from current keepnet-derived rows.
+- Fixed profile-name typing so registration/editing inputs keep focus while typing.
+- Improved mobile panel sizing for Profile, Settings, Leaderboard, and public profile views.
+- Added automatic newer-save selection/sync preferences after login, enabled by default.
+- Added Grandma House one-hour rest, diversified non-Canal/non-Sluice cast spots, removed crucian live-bait recommendations, and increased starter rod break risk above 500 g.
+
 ## 2026-07-06
 
 - Added mobile-default low-power behavior for phone-like viewports, with an explicit settings toggle override.

@@ -1,10 +1,61 @@
 # First Tackle Project Summary
 
-Updated: 2026-07-07
+Updated: 2026-07-17
 
 ## Current State
 
-First Tackle is a local-first browser fishing game with optional account/cloud save support. The frontend remains responsible for rendering, offline play, fishing UI, and local save continuity. The available backend source lives in `D:\first-tackle-api` and currently supports auth, profile, cloud saves, and now read-only leaderboard endpoints aggregated from latest cloud saves.
+First Tackle is a local-first browser fishing game with optional account/cloud save support. The frontend remains responsible for rendering, offline play, fishing UI, and local save continuity. The backend source lives in `D:\first-tackle-api` and supports auth, profile, cloud saves, and leaderboard endpoints backed by persistent catch records for catch/trophy boards.
+
+## Profile, Persistent Leaderboard, Save Sync, And Balance Pass
+
+Completed on frontend branch `codex/profile-persistent-leaderboard-save-balance-pass` and backend branch `codex/profile-persistent-leaderboard-save-balance-pass`.
+
+Feature commits:
+
+- Frontend `dab9246` (`feat: improve profile saves leaderboards and balance`)
+- Backend `92cbcff` (`feat: persist catch leaderboard records`)
+
+Main merge commits:
+
+- Frontend `d019202` (`merge: profile persistent leaderboard save balance pass`)
+- Backend `2ae65c3` (`merge: persistent catch leaderboard records`)
+
+Backend storage architecture:
+
+- Added `catch_records` with unique `(user_id, catch_key)` dedupe, optional stable `catch_id`, deterministic fallback hashes, normalized fish/weight/trophy/water/bait/method/depth/cast-spot/caught-at/source revision fields, `raw_json`, and `active` soft-deactivation.
+- Added Alembic migration `0002_persistent_catch_records`.
+- Cloud-save sync now upserts catch records from recoverable `fishBasket`/trophy entries without deleting historical records when the keepnet changes.
+- Explicit reset tombstones deactivate that account's active catch records.
+- Leaderboard catch/trophy endpoints backfill safely from current cloud saves and read active persistent records. Score boards still aggregate latest saves.
+
+Frontend implementation:
+
+- Profile name draft typing no longer rerenders the full HUD on each input event, preserving focus/cursor/mobile keyboard during registration and profile editing.
+- Profile, Settings, and Leaderboard/public profile panels now reuse the wider safe-area-aware mobile shell that matches the working menu/profile behavior.
+- Global leaderboard catch rows are visually separated from a new `Найбільша риба в садку` keepnet card so current owned fish cannot be confused with historical global records.
+- Public leaderboard profiles reuse the profile card/stat visual structure in a read-only modal and omit private controls.
+- Added default-enabled cloud save preferences: auto-load newer cloud save and auto-sync after login. Login compares reset tombstones, revisions, timestamps, and gameplay progress before auto-load/upload; ambiguous conflicts still use the explicit chooser.
+- Added Grandma House `Відпочити 1 годину` action, advancing exactly 60 in-game minutes.
+- Diversified cast-spot weights for `fire_ponds`, `greada`, `lake_tur`, and `mining_lake`; `canal` and `sluice` were left unchanged.
+- Removed crucian compatibility with live bait in guide/UI recommendations; bite logic already gates live bait to predators/rotan.
+- Increased first rod break risk above 500 g, added clear break guidance, and exposed a Grandma House path to gather/craft a replacement first rod.
+
+Verification:
+
+- Frontend `npm.cmd run build` passed on the feature branch and after merge; Vite still warns about the large main chunk.
+- Frontend focused smoke passed for crucian/live-bait blocking, predator live-bait preservation, distinct non-Canal/non-Sluice cast-spot vectors, one-hour rest crossing midnight, and Grandma House replacement stick availability.
+- Headless Chrome mobile check at `390x844` verified Profile, Settings, and Leaderboard panels render around `364px` client width with `max-width: none`; a coordinate key event verified the profile name input stays focused and visible while typing.
+- Backend `python -m compileall app` passed on feature branch and after merge.
+- Backend SQLite service smoke passed: repeated save sync dedupes catch records, selling/removing fish from keepnet preserves the persistent record, leaderboard reads the record, and reset tombstone deactivates records.
+- `git diff --check` passed in both repositories; only standard Windows LF-to-CRLF warnings were reported.
+
+Remaining risks:
+
+- Real iPhone Safari testing is still recommended for keyboard retention and safe-area panel layout.
+- Production database must run Alembic migration `0002_persistent_catch_records` before persistent leaderboard reads are expected from Railway.
+- Existing historical catches that are no longer present in recoverable cloud saves cannot be fabricated or backfilled.
+- Catch records are persistent but still not anti-cheat verified until catch resolution becomes server-authoritative.
+- The main JS bundle remains over Vite's 500 kB warning threshold.
 
 ## Trophy, Guide, Market, And Cleanup Pass
 

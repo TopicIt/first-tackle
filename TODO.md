@@ -1,13 +1,13 @@
 # First Tackle TODO
 
-Updated: 2026-07-06
+Updated: 2026-07-17
 
 ## Backend / Online Leaderboard
 
 - Deploy the updated `D:\first-tackle-api` backend to Railway.
 - Verify `GET /api/leaderboard/biggest-fish` returns `200` from production.
-- Add persistent server-verified catch/event records instead of deriving leaderboard rows from latest cloud saves.
-- Add a leaderboard/event table with fields: account id, fish id, weight grams, trophy tier, water/location id, bait id, tackle summary, caught timestamp, save revision, validation status.
+- Run Alembic migration `0002_persistent_catch_records` in production.
+- Continue from persistent catch records toward server-verified catch/event records instead of client-recovered records.
 - Add submission or integration path from server-authoritative catch resolution into leaderboard records.
 - Keep frontend local fallback visible whenever server endpoints are unavailable.
 
