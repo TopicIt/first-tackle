@@ -198,6 +198,10 @@ export function createInitialState() {
       intro: {
         showOnStartup: true,
       },
+      cloudSave: {
+        autoLoadNewest: true,
+        autoSyncAfterLogin: true,
+      },
     },
     audioQueue: [],
     ui: {

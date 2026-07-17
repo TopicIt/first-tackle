@@ -1187,7 +1187,8 @@ function shouldBreakHomemadeRod(state, catchResult, itemModifiers = getActiveIte
     return false;
   }
 
-  const breakChance = (catchResult.weightGrams > 650 ? 0.28 : 0.14) * itemModifiers.escapeChanceMultiplier;
+  const overweightRatio = Math.max(0, (catchResult.weightGrams - 500) / 700);
+  const breakChance = clamp((0.38 + overweightRatio * 0.42) * itemModifiers.escapeChanceMultiplier, 0.34, 0.88);
   return Math.random() < breakChance;
 }
 

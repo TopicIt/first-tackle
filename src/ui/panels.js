@@ -1072,6 +1072,7 @@ export function leaderboardMarkup(state) {
         </div>
         <button data-action="leaderboard:refresh" type="button"${busy ? ' disabled' : ''}>Оновити таблицю лідерів</button>
       </div>
+      ${keepnetLeaderboardRecordMarkup(state)}
       <div class="leaderboard-list">
         ${records.length
           ? type === 'monthly-trophies'
@@ -1081,6 +1082,24 @@ export function leaderboardMarkup(state) {
       </div>
       ${publicProfileModalMarkup(state)}
     </section>
+  `;
+}
+
+function keepnetLeaderboardRecordMarkup(state) {
+  const best = [...(state.fishBasket ?? [])]
+    .filter((entry) => ['fresh', 'live_bait'].includes(entry.status) && Number(entry.weightGrams ?? 0) > 0)
+    .sort((a, b) => Number(b.weightGrams ?? 0) - Number(a.weightGrams ?? 0))[0];
+  const text = best
+    ? `${t(fishData.find((fish) => fish.id === best.fishId)?.nameKey ?? best.fishId)} · ${formatKg(Number(best.weightGrams ?? 0) / 1000)} кг`
+    : 'У садку зараз немає риби.';
+  return `
+    <article class="leaderboard-keepnet-card">
+      <div>
+        <strong>Найбільша риба в садку</strong>
+        <span>${escapeHtml(text)}</span>
+      </div>
+      <small>Садок показує тільки рибу, яка ще у тебе. Глобальна таблиця зберігає історичний улов після синхронізації.</small>
+    </article>
   `;
 }
 
@@ -1221,11 +1240,19 @@ function publicProfileModalMarkup(state) {
   return `
     <section class="public-profile-modal" role="dialog" aria-modal="true" aria-label="Публічний профіль">
       <button class="public-profile-modal__backdrop" data-action="leaderboard:profile:close" type="button" aria-label="${t('close')}"></button>
-      <article class="public-profile-card">
+      <article class="public-profile-card profile-public-shell">
         <button class="public-profile-card__close" data-action="leaderboard:profile:close" type="button" aria-label="${t('close')}">&times;</button>
-        <img src="${leaderboardAvatarSrc(safeRecord)}" onerror="this.src='${assetPath(profileAvatars[0])}'" alt="" />
-        <h3>${escapeHtml(safeRecord.displayName)}</h3>
-        <dl>
+        <div class="profile-card">
+          <div class="profile-card__avatar-wrap">
+            <img class="profile-card__avatar" src="${leaderboardAvatarSrc(safeRecord)}" onerror="this.src='${assetPath(profileAvatars[0])}'" alt="" />
+          </div>
+          <div>
+            <h3>${escapeHtml(safeRecord.displayName)}</h3>
+            <p>${t('levelLabel')}: <strong>${safeRecord.level ?? 1}</strong></p>
+            <small>${t('totalFishCaught')}: <strong>${safeRecord.totalFishCaught ?? 0}</strong></small>
+          </div>
+        </div>
+        <dl class="profile-stats">
           <div><dt>Рівень</dt><dd>${safeRecord.level ?? 1}</dd></div>
           <div><dt>Усього риб</dt><dd>${safeRecord.totalFishCaught ?? 0}</dd></div>
           <div><dt>Трофеї</dt><dd>${safeRecord.trophyCount ?? safeRecord.trophies ?? 0}</dd></div>
@@ -2063,9 +2090,12 @@ function timeChips(timeKey) {
 function guideBaitChipsMarkup(fishId, favoritesOnly) {
   const favorites = new Set(biteProfiles[fishId]?.preferred?.baits ?? []);
   const predator = ['pike', 'sudak', 'som', 'eel'].includes(fishId);
+  const allBaits = fishId === 'crucian'
+    ? ['worms', 'larvae', 'bread', 'dough', 'mastyrka', 'corn', 'nightcrawler']
+    : ['worms', 'larvae', 'bread', 'dough', 'mastyrka', 'corn', 'nightcrawler', 'live_bait'];
   const baitIds = favoritesOnly
     ? [...favorites]
-    : ['worms', 'larvae', 'bread', 'dough', 'mastyrka', 'corn', 'nightcrawler', 'live_bait']
+    : allBaits
       .filter((bait) => !favorites.has(bait))
       .filter((bait) => !predator || ['worms', 'nightcrawler', 'live_bait'].includes(bait))
       .slice(0, 4);
@@ -2181,7 +2211,10 @@ function favoriteBaitsMarkup(fishId) {
 function weakerBaitsMarkup(fishId) {
   const favorites = new Set(biteProfiles[fishId]?.preferred?.baits ?? []);
   const predator = ['pike', 'sudak', 'som', 'eel'].includes(fishId);
-  const baits = ['worms', 'larvae', 'bread', 'dough', 'mastyrka', 'corn', 'nightcrawler', 'live_bait']
+  const allBaits = fishId === 'crucian'
+    ? ['worms', 'larvae', 'bread', 'dough', 'mastyrka', 'corn', 'nightcrawler']
+    : ['worms', 'larvae', 'bread', 'dough', 'mastyrka', 'corn', 'nightcrawler', 'live_bait'];
+  const baits = allBaits
     .filter((bait) => !favorites.has(bait))
     .filter((bait) => !predator || ['worms', 'nightcrawler', 'live_bait'].includes(bait))
     .slice(0, 4);

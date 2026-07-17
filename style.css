@@ -842,6 +842,19 @@ button:disabled {
   font-size: 0.76rem;
 }
 
+.settings-checkbox-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  color: #dcebe3;
+  line-height: 1.25;
+}
+
+.settings-checkbox-row input {
+  margin: 2px 0 0;
+}
+
 .settings-action-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -4104,7 +4117,8 @@ button:disabled {
   .quests-panel,
   .tackle-panel,
   .guide-panel,
-  .settings-panel {
+  .settings-panel,
+  .leaderboard-panel-shell {
     position: fixed;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
@@ -4132,7 +4146,8 @@ button:disabled {
   .quests-panel .panel-collapsible,
   .tackle-panel .panel-collapsible,
   .guide-panel .panel-collapsible,
-  .settings-panel .panel-collapsible {
+  .settings-panel .panel-collapsible,
+  .leaderboard-panel-shell .panel-collapsible {
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -4147,12 +4162,15 @@ button:disabled {
   .quests-panel:not(.is-collapsed),
   .tackle-panel:not(.is-collapsed),
   .guide-panel:not(.is-collapsed),
-  .settings-panel:not(.is-collapsed) {
+  .settings-panel:not(.is-collapsed),
+  .leaderboard-panel-shell:not(.is-collapsed) {
     z-index: 320;
     pointer-events: auto;
   }
 
-  .profile-panel {
+  .profile-panel,
+  .settings-panel,
+  .leaderboard-panel-shell {
     left: max(12px, env(safe-area-inset-left));
     right: max(12px, env(safe-area-inset-right));
     width: calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right));
@@ -4595,7 +4613,8 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet {
 :root[data-view-mode="mobile"] .quests-panel,
 :root[data-view-mode="mobile"] .tackle-panel,
 :root[data-view-mode="mobile"] .guide-panel,
-:root[data-view-mode="mobile"] .settings-panel {
+:root[data-view-mode="mobile"] .settings-panel,
+:root[data-view-mode="mobile"] .leaderboard-panel-shell {
   position: fixed;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -4623,7 +4642,8 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet {
 :root[data-view-mode="mobile"] .quests-panel .panel-collapsible,
 :root[data-view-mode="mobile"] .tackle-panel .panel-collapsible,
 :root[data-view-mode="mobile"] .guide-panel .panel-collapsible,
-:root[data-view-mode="mobile"] .settings-panel .panel-collapsible {
+:root[data-view-mode="mobile"] .settings-panel .panel-collapsible,
+:root[data-view-mode="mobile"] .leaderboard-panel-shell .panel-collapsible {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -4638,12 +4658,15 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet {
 :root[data-view-mode="mobile"] .quests-panel:not(.is-collapsed),
 :root[data-view-mode="mobile"] .tackle-panel:not(.is-collapsed),
 :root[data-view-mode="mobile"] .guide-panel:not(.is-collapsed),
-:root[data-view-mode="mobile"] .settings-panel:not(.is-collapsed) {
+:root[data-view-mode="mobile"] .settings-panel:not(.is-collapsed),
+:root[data-view-mode="mobile"] .leaderboard-panel-shell:not(.is-collapsed) {
   z-index: 320;
   pointer-events: auto;
 }
 
-:root[data-view-mode="mobile"] .profile-panel {
+:root[data-view-mode="mobile"] .profile-panel,
+:root[data-view-mode="mobile"] .settings-panel,
+:root[data-view-mode="mobile"] .leaderboard-panel-shell {
   left: max(12px, env(safe-area-inset-left));
   right: max(12px, env(safe-area-inset-right));
   width: calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right));
@@ -5003,6 +5026,28 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet {
   white-space: normal;
 }
 
+.leaderboard-keepnet-card {
+  display: grid;
+  gap: 6px;
+  border: 1px solid rgb(63 83 45 / 0.16);
+  border-radius: 8px;
+  background: rgb(255 252 238 / 0.72);
+  color: #20321d;
+  padding: 10px;
+}
+
+.leaderboard-keepnet-card strong,
+.leaderboard-keepnet-card span,
+.leaderboard-keepnet-card small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.leaderboard-keepnet-card small {
+  color: #506346;
+  font-size: 0.76rem;
+}
+
 .leaderboard-record {
   grid-template-columns: auto 42px minmax(0, 1fr);
   align-items: center;
@@ -5076,7 +5121,8 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet {
 .public-profile-card {
   position: relative;
   z-index: 1;
-  width: min(360px, 100%);
+  width: min(420px, calc(100vw - 28px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+  max-width: 100%;
   border-radius: 8px;
   background: rgb(255 252 238 / 0.94);
   color: #20321d;
@@ -5085,6 +5131,14 @@ body:has(.mobile-menu[open]) .mobile-menu__sheet {
   display: grid;
   gap: 10px;
   justify-items: center;
+  box-sizing: border-box;
+  max-height: calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.profile-public-shell {
+  justify-items: stretch;
 }
 
 .public-profile-card > img {

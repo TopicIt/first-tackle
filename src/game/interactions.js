@@ -4,6 +4,7 @@ import {
   getFishEntries,
 } from './fishInventory.js';
 import {
+  canCraftStickRod,
   cleanFish,
   collectTaranka,
   craftPrimitiveTackle,
@@ -16,6 +17,7 @@ import {
   getWormSearchCooldown,
   hangFishToDry,
   restSeveralHours,
+  restOneHour,
   saltFish,
   searchForWorms,
   waitUntilTomorrow,
@@ -222,6 +224,13 @@ export function runAction(actionId, state, context = idleContext) {
     restSeveralHours(state);
   }
 
+  if (actionId === 'rest:oneHour') {
+    if (context.zoneId !== 'house') {
+      return;
+    }
+    restOneHour(state);
+  }
+
   if (actionId === 'sell:fish') {
     if (context.zoneId !== 'market') {
       return;
@@ -350,6 +359,16 @@ function getSceneActions(state, zoneId) {
         disabled: hasStarterTackleDrawerCompleted(state),
       },
       {
+        id: 'gather:rodStick',
+        label: t('gatherRodStick'),
+        disabled: Boolean(state.tackle?.owned?.simple_stick_rod || hasItem(state, 'stickRod')),
+      },
+      {
+        id: 'craft:stickRod',
+        label: t('craftStickRod'),
+        disabled: !canCraftStickRod(state),
+      },
+      {
         id: 'clean:fish',
         label: t('cleanFish'),
         disabled: countFishByStatus(state, 'fresh') === 0,
@@ -372,6 +391,10 @@ function getSceneActions(state, zoneId) {
       {
         id: 'wait:tomorrow',
         label: t('waitTomorrow'),
+      },
+      {
+        id: 'rest:oneHour',
+        label: t('restOneHour'),
       },
       {
         id: 'rest:fewHours',

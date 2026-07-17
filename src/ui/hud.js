@@ -69,6 +69,12 @@ export function createHud(root, handlers) {
       return;
     }
 
+    const cloudSaveSetting = event.target.closest('input[data-cloud-save-setting][type="checkbox"]');
+    if (cloudSaveSetting) {
+      handlers.onCloudSaveSetting?.(cloudSaveSetting.dataset.cloudSaveSetting, cloudSaveSetting.checked);
+      return;
+    }
+
     const checkbox = event.target.closest('input[data-audio-setting][type="checkbox"]');
     if (!checkbox) {
       return;
@@ -497,6 +503,17 @@ export function createHud(root, handlers) {
                 `).join('')}
               </div>
               <small>${t('viewModeHint')}</small>
+            </section>
+            <section class="settings-block">
+              <p class="section-label">Хмарна синхронізація</p>
+              <label class="settings-checkbox-row">
+                <input data-cloud-save-setting="autoLoadNewest" type="checkbox"${state.settings?.cloudSave?.autoLoadNewest !== false ? ' checked' : ''} />
+                <span>Автоматично завантажувати актуальніше збереження</span>
+              </label>
+              <label class="settings-checkbox-row">
+                <input data-cloud-save-setting="autoSyncAfterLogin" type="checkbox"${state.settings?.cloudSave?.autoSyncAfterLogin !== false ? ' checked' : ''} />
+                <span>Автоматично синхронізувати прогрес після входу</span>
+              </label>
             </section>
             <section class="settings-block">
               <p class="section-label">${t('language')}</p>

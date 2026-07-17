@@ -58,7 +58,6 @@ import {
   startTutorial,
   syncGrandmaTrust,
   syncProfileDerivedStats,
-  updateProfileDraftName,
   setCustomAvatar,
   updateProfile,
 } from './game/profile.js';
@@ -1085,7 +1084,16 @@ const hud = createHud(hudRoot, {
     renderHud();
   },
   onProfileNameDraft(name) {
-    updateProfileDraftName(gameState, name);
+    gameState.ui ??= {};
+    gameState.ui.profileNameDraft = String(name ?? '');
+  },
+  onCloudSaveSetting(settingId, enabled) {
+    gameState.settings.cloudSave ??= {};
+    if (settingId === 'autoLoadNewest' || settingId === 'autoSyncAfterLogin') {
+      gameState.settings.cloudSave[settingId] = Boolean(enabled);
+      gameState.audioQueue.push('ui_click');
+      renderHud();
+    }
   },
   onCloudAuth(payload) {
     handleCloudAuth(payload);
@@ -1654,13 +1662,17 @@ function writeResetTombstone(resetAt = new Date().toISOString()) {
 }
 
 function readResetTombstoneTime() {
+  const timestamp = Date.parse(readResetTombstone()?.resetAt ?? '');
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function readResetTombstone() {
   try {
     const raw = localStorage.getItem(FULL_RESET_TOMBSTONE_KEY);
     const parsed = raw ? JSON.parse(raw) : null;
-    const timestamp = Date.parse(parsed?.resetAt ?? '');
-    return Number.isFinite(timestamp) ? timestamp : 0;
+    return parsed?.resetAt ? { resetAt: parsed.resetAt } : null;
   } catch {
-    return 0;
+    return null;
   }
 }
 
@@ -2076,7 +2088,24 @@ async function loadLatestCloudSaveAfterAuth(profile) {
 
   const metadata = result?.metadata ?? null;
   if (!metadata?.exists || !result?.payload) {
-    const message = 'Хмарного збереження ще немає. Локальний прогрес залишено.';
+    const autoSyncEnabled = gameState.settings?.cloudSave?.autoSyncAfterLogin !== false;
+    if (autoSyncEnabled) {
+      try {
+        const uploadResult = await syncCurrentSaveToCloud({ force: true });
+        const message = '\u0425\u043c\u0430\u0440\u043d\u043e\u0433\u043e \u0441\u0435\u0439\u0432\u0443 \u0449\u0435 \u043d\u0435 \u0431\u0443\u043b\u043e; \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u0438\u0439 \u043f\u0440\u043e\u0433\u0440\u0435\u0441 \u0437\u0430\u0432\u0430\u043d\u0442\u0430\u0436\u0435\u043d\u043e \u0432 \u0445\u043c\u0430\u0440\u0443.';
+        saveCloudSession({
+          ...(loadCloudSession() ?? {}),
+          profile,
+          saveMetadata: uploadResult.metadata,
+          lastMessage: message,
+        });
+        lastCloudAutosaveSignature = getCloudSaveSignature();
+        return message;
+      } catch (error) {
+        return cloudErrorMessage(error);
+      }
+    }
+    const message = '\u0425\u043c\u0430\u0440\u043d\u043e\u0433\u043e \u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043d\u043d\u044f \u0449\u0435 \u043d\u0435\u043c\u0430\u0454. \u041b\u043e\u043a\u0430\u043b\u044c\u043d\u0438\u0439 \u043f\u0440\u043e\u0433\u0440\u0435\u0441 \u0437\u0430\u043b\u0438\u0448\u0435\u043d\u043e.';
     saveCloudSession({
       ...(loadCloudSession() ?? {}),
       profile,
@@ -2087,6 +2116,42 @@ async function loadLatestCloudSaveAfterAuth(profile) {
   }
   if (isCloudSaveOlderThanReset(metadata)) {
     const message = '\u0425\u043c\u0430\u0440\u043d\u0438\u0439 \u0441\u0435\u0439\u0432 \u0441\u0442\u0430\u0440\u0456\u0448\u0438\u0439 \u0437\u0430 \u043e\u0441\u0442\u0430\u043d\u043d\u0454 \u0441\u043a\u0438\u0434\u0430\u043d\u043d\u044f. \u041b\u043e\u043a\u0430\u043b\u044c\u043d\u0438\u0439 \u0441\u0442\u0430\u043d \u0437\u0430\u043b\u0438\u0448\u0435\u043d\u043e.';
+    saveCloudSession({
+      ...(loadCloudSession() ?? {}),
+      profile,
+      saveMetadata: metadata,
+      lastMessage: message,
+    });
+    return message;
+  }
+
+  const decision = compareLocalAndCloudSaves(gameState, result.payload, metadata);
+  const autoLoadEnabled = gameState.settings?.cloudSave?.autoLoadNewest !== false;
+  const autoSyncEnabled = gameState.settings?.cloudSave?.autoSyncAfterLogin !== false;
+
+  if (decision === 'cloud-ahead' && autoLoadEnabled) {
+    await applyCloudPayloadAfterAuth(result.payload, metadata, profile, 'before-cloud-login-load');
+    return '\u0410\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u043d\u043e \u0437\u0430\u0432\u0430\u043d\u0442\u0430\u0436\u0435\u043d\u043e \u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u0456\u0448\u0435 \u0445\u043c\u0430\u0440\u043d\u0435 \u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043d\u043d\u044f.';
+  }
+
+  if (decision === 'local-ahead' && autoSyncEnabled) {
+    try {
+      const uploadResult = await syncCurrentSaveToCloud({ force: true });
+      saveCloudSession({
+        ...(loadCloudSession() ?? {}),
+        profile,
+        saveMetadata: uploadResult.metadata,
+        lastMessage: '\u041b\u043e\u043a\u0430\u043b\u044c\u043d\u0438\u0439 \u043f\u0440\u043e\u0433\u0440\u0435\u0441 \u043d\u043e\u0432\u0456\u0448\u0438\u0439; \u0445\u043c\u0430\u0440\u0443 \u043e\u043d\u043e\u0432\u043b\u0435\u043d\u043e.',
+      });
+      lastCloudAutosaveSignature = getCloudSaveSignature();
+      return '\u041b\u043e\u043a\u0430\u043b\u044c\u043d\u0438\u0439 \u043f\u0440\u043e\u0433\u0440\u0435\u0441 \u043d\u043e\u0432\u0456\u0448\u0438\u0439; \u0445\u043c\u0430\u0440\u0443 \u043e\u043d\u043e\u0432\u043b\u0435\u043d\u043e.';
+    } catch (error) {
+      return cloudErrorMessage(error);
+    }
+  }
+
+  if (decision === 'equal') {
+    const message = '\u041b\u043e\u043a\u0430\u043b\u044c\u043d\u0435 \u0456 \u0445\u043c\u0430\u0440\u043d\u0435 \u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043d\u043d\u044f \u043e\u0434\u043d\u0430\u043a\u043e\u0432\u043e \u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u0456.';
     saveCloudSession({
       ...(loadCloudSession() ?? {}),
       profile,
@@ -2113,26 +2178,11 @@ async function loadLatestCloudSaveAfterAuth(profile) {
     lastMessage: conflictMessage,
   });
   return conflictMessage;
+}
 
-  const serverRevision = Number(metadata.revision ?? 0);
-  const localRevision = Number(getPlayerState(gameState).revision ?? 0);
-  const shouldApplyCloudSave = !gameState.playerProfile?.setupComplete || serverRevision > localRevision;
-
-  if (!shouldApplyCloudSave) {
-    const message = serverRevision === localRevision
-      ? 'Локальний прогрес залишено: він уже актуальний.'
-      : 'Локальний прогрес новіший за хмарний. Автоматично не перезаписуємо.';
-    saveCloudSession({
-      ...(loadCloudSession() ?? {}),
-      profile,
-      saveMetadata: metadata,
-      lastMessage: message,
-    });
-    return message;
-  }
-
-  backupLocalSave('before-cloud-login-load');
-  gameState = importSave(JSON.stringify(result.payload));
+async function applyCloudPayloadAfterAuth(payload, metadata, profile, backupLabel) {
+  backupLocalSave(backupLabel);
+  gameState = importSave(JSON.stringify(payload));
   ensureRuntimeState(gameState);
   player.restore(gameState.player);
   audio.syncSettings(gameState.settings.audio);
@@ -2140,19 +2190,76 @@ async function loadLatestCloudSaveAfterAuth(profile) {
     ...(loadCloudSession() ?? {}),
     profile,
     saveMetadata: metadata,
-    lastMessage: 'Останнє збереження завантажено',
+    lastMessage: '\u041e\u0441\u0442\u0430\u043d\u043d\u0454 \u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043d\u043d\u044f \u0437\u0430\u0432\u0430\u043d\u0442\u0430\u0436\u0435\u043d\u043e',
   });
+  pendingCloudSaveDownload = null;
+  gameState.ui.cloudSave = {
+    ...(gameState.ui.cloudSave ?? {}),
+    conflict: null,
+  };
   lastCloudAutosaveSignature = getCloudSaveSignature();
-  pushFeedback(gameState, 'Останнє збереження завантажено', {}, 'item');
-  pushLog(gameState, 'logLoaded');
-  return 'Останнє збереження завантажено';
+  saveGame(gameState);
 }
 
+function compareLocalAndCloudSaves(localState, cloudPayload, metadata = {}) {
+  const localReset = readResetTombstone();
+  const cloudReset = cloudPayload?.resetTombstone ?? cloudPayload?.metadata?.resetTombstone ?? null;
+  const localResetAt = Date.parse(localReset?.resetAt ?? '');
+  const cloudResetAt = Date.parse(cloudReset?.resetAt ?? '');
+  if (Number.isFinite(localResetAt) || Number.isFinite(cloudResetAt)) {
+    if (!Number.isFinite(cloudResetAt) || (Number.isFinite(localResetAt) && localResetAt > cloudResetAt)) {
+      return 'local-ahead';
+    }
+    if (!Number.isFinite(localResetAt) || cloudResetAt > localResetAt) {
+      return 'cloud-ahead';
+    }
+  }
+
+  const cloudRevision = Number(metadata?.revision ?? cloudPayload?.version ?? 0);
+  const localRevision = Number(localState?.version ?? localState?.playerState?.revision ?? 0);
+  if (cloudRevision > localRevision) return 'cloud-ahead';
+  if (localRevision > cloudRevision) return 'local-ahead';
+
+  const cloudUpdated = Date.parse(metadata?.updatedAt ?? cloudPayload?.updatedAt ?? cloudPayload?.savedAt ?? '');
+  const localUpdated = Date.parse(localState?.updatedAt ?? localStorage.getItem(LAST_SAVE_TIMESTAMP_KEY) ?? '');
+  if (Number.isFinite(cloudUpdated) && Number.isFinite(localUpdated) && Math.abs(cloudUpdated - localUpdated) > 60_000) {
+    return cloudUpdated > localUpdated ? 'cloud-ahead' : 'local-ahead';
+  }
+
+  const localProgress = progressScore(localState);
+  const cloudProgress = progressScore(cloudPayload);
+  const delta = cloudProgress - localProgress;
+  if (Math.abs(delta) >= 8) {
+    return delta > 0 ? 'cloud-ahead' : 'local-ahead';
+  }
+  return delta === 0 ? 'equal' : 'ambiguous';
+}
+
+function progressScore(save) {
+  const profile = save?.playerProfile ?? {};
+  const stats = save?.stats ?? {};
+  const journal = save?.catchJournal ?? {};
+  const journalTotal = Object.values(journal)
+    .reduce((sum, entry) => sum + Number(entry?.count ?? entry?.caught ?? 0), 0);
+  const fishCount = Array.isArray(save?.fishBasket) ? save.fishBasket.length : 0;
+  return (
+    Number(profile.level ?? 1) * 12
+    + Number(profile.xp ?? 0) / 25
+    + Math.max(Number(stats.totalFishCaught ?? 0), Number(profile.fishCaughtTotal ?? 0), journalTotal)
+    + Number(save?.day ?? 1) * 2
+    + Number(save?.money ?? save?.economy?.coins ?? 0) / 250
+    + fishCount * 0.25
+  );
+}
 async function syncCurrentSaveToCloud({ force = false } = {}) {
   syncPlayerToState();
   saveGame(gameState);
   const exported = JSON.parse(exportSave(gameState));
   const payload = exported.save;
+  const resetTombstone = readResetTombstone();
+  if (resetTombstone) {
+    payload.resetTombstone = resetTombstone;
+  }
   const session = loadCloudSession() ?? {};
   const currentRevision = Number(session.saveMetadata?.revision ?? session.serverRevision ?? 0);
   return syncCloudSave({
