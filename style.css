@@ -1140,6 +1140,26 @@ button:disabled {
   text-align: left;
 }
 
+.cloud-save-panel__catch-sync,
+.profile-cloud-save__catch-sync {
+  display: grid;
+  gap: 4px;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 7%);
+  color: #fff8df;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  padding: 7px;
+}
+
+.cloud-save-panel__catch-sync span,
+.cloud-save-panel__catch-sync small,
+.profile-cloud-save__catch-sync span,
+.profile-cloud-save__catch-sync small {
+  color: #bdd6ce;
+  overflow-wrap: anywhere;
+}
+
 .profile-card {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

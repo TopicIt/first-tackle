@@ -10,7 +10,7 @@ export function cloudSavePanelMarkup(state) {
       <p class="section-label">Хмарне збереження</p>
       <p class="cloud-save-panel__note">Гість зберігає прогрес на цьому пристрої. Після входу хмара синхронізує прогрес і лишає локальний кеш резервом.</p>
       ${model.loggedIn
-        ? loggedInMarkup(model.profile, model.metadata, model.message, model.busy, model.conflict)
+        ? loggedInMarkup(model.profile, model.metadata, model.message, model.busy, model.conflict, model.catchSync)
         : loggedOutMarkup(model.message, model.busy)}
       ${isSaveDebugEnabled() ? `<small class="cloud-save-panel__endpoint">${FIRST_TACKLE_API_BASE_URL}</small>` : ''}
     </section>
@@ -191,7 +191,7 @@ function staleLoggedOutMarkup(message, isBusy, options = {}) {
   `;
 }
 
-function loggedInMarkup(profile, metadata, message, isBusy, conflict = null) {
+function loggedInMarkup(profile, metadata, message, isBusy, conflict = null, catchSync = null) {
   return `
     <div class="cloud-save-panel__account">
       <strong>${escapeHtml(profile?.displayName ?? 'Гравець')}</strong>
@@ -202,7 +202,24 @@ function loggedInMarkup(profile, metadata, message, isBusy, conflict = null) {
       <div><dt>Оновлено</dt><dd>${formatServerTime(metadata?.serverUpdatedAt)}</dd></div>
       <div><dt>Автозбереження</dt><dd>увімкнено</dd></div>
     </dl>
+    ${catchSyncStatusMarkup(catchSync)}
     ${loggedInActionsMarkup(profile, metadata, message, isBusy, conflict)}
+  `;
+}
+
+function catchSyncStatusMarkup(catchSync = null) {
+  const pendingCount = Number(catchSync?.pendingCount ?? 0) || 0;
+  const status = pendingCount > 0
+    ? `Очікують синхронізації: ${pendingCount}`
+    : 'Улови синхронізовано';
+  const lastSynced = catchSync?.lastSyncedAt ? formatServerTime(catchSync.lastSyncedAt) : 'немає';
+  const errorMessage = String(catchSync?.lastErrorMessage ?? '').trim();
+  return `
+    <div class="cloud-save-panel__catch-sync">
+      <strong>${escapeHtml(status)}</strong>
+      <span>Остання синхронізація уловів: ${escapeHtml(lastSynced)}</span>
+      ${errorMessage ? `<small>Помилка синхронізації: ${escapeHtml(errorMessage)}</small>` : ''}
+    </div>
   `;
 }
 
@@ -225,6 +242,9 @@ function staleLoggedInActionsMarkup(profile, metadata, message, isBusy, conflict
       <button data-action="cloud:upload" type="button"${isBusy ? ' disabled' : ''}>Зберегти зараз</button>
       <button data-action="cloud:download" type="button"${isBusy ? ' disabled' : ''}>Завантажити останнє збереження</button>
       <button data-action="cloud:logout" type="button"${isBusy ? ' disabled' : ''}>Вийти</button>
+    </div>
+    <div class="settings-action-row settings-action-row--stack cloud-save-shortcut__actions">
+      <button data-action="cloud:sync-catches" type="button"${isBusy ? ' disabled' : ''}>Синхронізувати улови зараз</button>
     </div>
     ${messageMarkup(message)}
   `;
@@ -267,6 +287,11 @@ function getCloudSaveModel(state) {
   const cloudState = state.ui?.cloudSave ?? {};
   const loggedIn = Boolean(session?.accessToken);
   const pendingCatchCount = Array.isArray(state.catchSync?.pendingIds) ? state.catchSync.pendingIds.length : 0;
+  const catchSync = {
+    pendingCount: pendingCatchCount,
+    lastSyncedAt: state.catchSync?.lastSyncedAt ?? null,
+    lastErrorMessage: state.catchSync?.lastErrorMessage ?? '',
+  };
   const fallbackMessage = pendingCatchCount > 0
     ? (loggedIn
       ? `Очікує синхронізації уловів: ${pendingCatchCount}`
@@ -289,6 +314,7 @@ function getCloudSaveModel(state) {
     loggedIn,
     account,
     lastSave: formatServerTime(metadata?.serverUpdatedAt),
+    catchSync,
   };
 }
 
@@ -353,6 +379,9 @@ function loggedInActionsMarkup(profile, metadata, message, isBusy, conflict = nu
       <button data-action="cloud:upload" type="button"${isBusy ? ' disabled' : ''}>Синхронізувати зараз</button>
       <button data-action="cloud:download" type="button"${isBusy ? ' disabled' : ''}>Завантажити останнє збереження</button>
       <button data-action="cloud:logout" type="button"${isBusy ? ' disabled' : ''}>Вийти</button>
+    </div>
+    <div class="settings-action-row settings-action-row--stack cloud-save-shortcut__actions">
+      <button data-action="cloud:sync-catches" type="button"${isBusy ? ' disabled' : ''}>Синхронізувати улови зараз</button>
     </div>
     ${messageMarkup(message)}
   `;

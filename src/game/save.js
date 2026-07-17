@@ -457,8 +457,10 @@ function normalizeCatchSyncForSave(catchSync, { forCloud = false } = {}) {
   return {
     pendingIds: forCloud ? [] : [...new Set(pendingIds)],
     lastSyncedAt: catchSync?.lastSyncedAt ?? null,
+    lastAttemptAt: catchSync?.lastAttemptAt ?? null,
     lastErrorAt: forCloud ? null : (catchSync?.lastErrorAt ?? null),
     lastErrorMessage: forCloud ? '' : (catchSync?.lastErrorMessage ?? ''),
+    lastAckCount: Number(catchSync?.lastAckCount ?? 0) || 0,
   };
 }
 
