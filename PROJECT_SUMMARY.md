@@ -414,7 +414,7 @@ Backend feature commits: `6a51932` (`fix: preserve cloud saves during catch sync
 
 Backend main merge commit: `de8a137` (`merge: profile rename leaderboard migration fix`).
 
-Frontend main merge commit: pending final merge in this delivery.
+Frontend main merge commit: `3391d10` (`merge: profile name leaderboard migration fix`).
 
 Root causes and fixes:
 
