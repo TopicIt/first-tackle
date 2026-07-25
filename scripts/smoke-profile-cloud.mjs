@@ -11,9 +11,57 @@ globalThis.sessionStorage = {
   setItem: () => {},
   removeItem: () => {},
 };
+const fakeAudioElements = [];
+class FakeAudio {
+  constructor() {
+    this.listeners = new Map();
+    this.paused = true;
+    this.volume = 1;
+    this.loop = false;
+    this.preload = '';
+    this.src = '';
+    fakeAudioElements.push(this);
+  }
+
+  addEventListener(type, listener) {
+    this.listeners.set(type, listener);
+  }
+
+  removeEventListener(type) {
+    this.listeners.delete(type);
+  }
+
+  load() {}
+
+  play() {
+    this.paused = false;
+    return Promise.resolve();
+  }
+
+  pause() {
+    this.paused = true;
+  }
+
+  dispatch(type) {
+    this.listeners.get(type)?.();
+  }
+}
+
+globalThis.Audio = FakeAudio;
+globalThis.window = {
+  AudioContext: class {
+    state = 'running';
+    resume() {
+      this.state = 'running';
+      return Promise.resolve();
+    }
+  },
+};
 
 const { PROFILE_NAME_MAX_LENGTH, validateProfileName } = await import('../src/game/profile.js');
 const { apiConfig, apiRequest, saveCloudSession, setApiAccessToken } = await import('../src/api/client.js');
+const { createAudioManager } = await import('../src/audio/audioManager.js');
+const { musicTracks } = await import('../src/audio/soundConfig.js');
 const { createInitialState } = await import('../src/game/state.js');
 const {
   ensureFishState,
@@ -41,6 +89,48 @@ assert.equal(validateProfileName("Мар'яна").ok, true);
 assert.equal(validateProfileName('Latin Name').ok, true);
 assert.equal(validateProfileName('   ').error, 'profileNameRequired');
 assert.equal(validateProfileName('я'.repeat(PROFILE_NAME_MAX_LENGTH + 1)).error, 'profileNameTooLong');
+
+const canalTrackIds = musicTracks.map((track) => track.id);
+assert.ok(canalTrackIds.includes('canal_dusk_drive'));
+assert.ok(canalTrackIds.includes('canal_dusk_drive_2'));
+assert.ok(musicTracks.find((track) => track.id === 'canal_dusk_drive')?.sources[0].includes('Canal%20Dusk%20Drive.mp3'));
+assert.ok(musicTracks.find((track) => track.id === 'canal_dusk_drive_2')?.sources[0].includes('Canal%20Dusk%20Drive%202.mp3'));
+
+const originalAudioRandom = Math.random;
+Math.random = () => 0;
+const audioManager = createAudioManager({
+  soundEnabled: false,
+  musicEnabled: true,
+  sfxVolume: 0,
+  musicVolume: 0.25,
+  musicTrackId: 'ambient_day',
+  musicMode: 'random',
+});
+audioManager.activate();
+const playedTrackIds = [audioManager.getCurrentTrackId()];
+fakeAudioElements.at(-1).dispatch('ended');
+playedTrackIds.push(audioManager.getCurrentTrackId());
+fakeAudioElements.at(-1).dispatch('ended');
+playedTrackIds.push(audioManager.getCurrentTrackId());
+assert.deepEqual(new Set(playedTrackIds), new Set(['ambient_day', 'canal_dusk_drive', 'canal_dusk_drive_2']));
+const previousCycleLast = audioManager.getCurrentTrackId();
+fakeAudioElements.at(-1).dispatch('ended');
+assert.notEqual(audioManager.getCurrentTrackId(), previousCycleLast);
+assert.equal(fakeAudioElements.filter((entry) => !entry.paused).length, 1);
+
+const failingAudioManager = createAudioManager({
+  soundEnabled: false,
+  musicEnabled: true,
+  sfxVolume: 0,
+  musicVolume: 0.25,
+  musicTrackId: 'ambient_day',
+  musicMode: 'random',
+});
+failingAudioManager.activate();
+const failedTrackId = failingAudioManager.getCurrentTrackId();
+fakeAudioElements.at(-1).dispatch('error');
+assert.notEqual(failingAudioManager.getCurrentTrackId(), failedTrackId);
+Math.random = originalAudioRandom;
 
 saveCloudSession({
   accessToken: 'expired-token',

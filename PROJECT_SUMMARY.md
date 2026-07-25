@@ -1,10 +1,44 @@
 # First Tackle Project Summary
 
-Updated: 2026-07-17
+Updated: 2026-07-25
 
 ## Current State
 
 First Tackle is a local-first browser fishing game with optional account/cloud save support. The frontend remains responsible for rendering, offline play, fishing UI, and local save continuity. The backend source lives in `D:\first-tackle-api` and supports auth, profile, cloud saves, and leaderboard endpoints backed by persistent catch records for catch/trophy boards.
+
+## Canal Music Playlist Pass
+
+Completed locally on frontend branch `codex/canal-music-playlist-pass`.
+
+Added music files:
+
+- `public/assets/audio/music/Canal Dusk Drive.mp3` - 6,498,580 bytes, MP3 MPEG1 Layer III, 48 kHz stereo, 64 kbps, estimated 13:30.
+- `public/assets/audio/music/Canal Dusk Drive 2.mp3` - 5,290,900 bytes, MP3 MPEG1 Layer III, 48 kHz stereo, 64 kbps, estimated 10:59.
+
+Implementation:
+
+- Added both Canal tracks to the existing `src/audio/soundConfig.js` background-music playlist using GitHub Pages-compatible URL-encoded asset paths.
+- Kept the existing single music `Audio` element in `src/audio/audioManager.js`; no duplicate player or parallel music system was added.
+- Default background music mode is now randomized for new saves. Existing music enable/mute and `musicVolume` settings remain persistent and apply to all tracks.
+- Random playback now uses a shuffle-bag: every available track plays once before the bag reshuffles, a new cycle avoids immediately repeating the just-finished track, ended tracks automatically advance, and failed tracks are skipped for the current cycle after their sources are exhausted.
+- Mobile autoplay behavior stays gesture-gated: music starts after `audio.activate()` from a user action, a blocked `play()` promise is swallowed, and later gestures try to resume the same paused track without restarting it. Opening menus/panels does not restart the current track.
+
+Audio optimization:
+
+- No optimized copy was created. The new MP3s are already 64 kbps, below the requested 128-160 kbps target range, so re-encoding upward would increase file size without improving source quality.
+- The original MP3s remain the deploy assets used by the playlist.
+
+Verification:
+
+- `npm.cmd run test:focused` passed, including a fake-browser audio smoke for the Canal playlist entries, shuffle cycle coverage, no immediate cycle repeat, one active music element, and failed-track skip behavior.
+- `npm.cmd run build` passed. Output: CSS `171.18 kB`, JS `1,029.81 kB` gzip `275.87 kB`; the existing Vite >500 kB warning remains.
+- `dist/assets/audio/music` contains `ambient_day.mp3`, `Canal Dusk Drive.mp3`, and `Canal Dusk Drive 2.mp3`, with no optimized duplicate Canal copies.
+- Built JS contains both Canal playlist entries and encoded paths `/assets/audio/music/Canal%20Dusk%20Drive.mp3` and `/assets/audio/music/Canal%20Dusk%20Drive%202.mp3`.
+
+Remaining risks:
+
+- Physical iPhone Safari remains the final authority for real autoplay/predictive-keyboard/browser audio lifecycle behavior.
+- Live GitHub Pages deployment and live audio URL verification are pending until this branch is merged and pushed to `main`.
 
 ## Real Gameplay Leaderboard And Broken Rod Fix
 
