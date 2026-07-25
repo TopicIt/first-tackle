@@ -8,6 +8,8 @@ export function createAudioManager(initialSettings) {
   let musicAudio = null;
   let currentMusicId = normalizeTrackId(initialSettings?.musicTrackId);
   let musicSourceIndex = 0;
+  let shuffleBag = [];
+  let failedTrackIdsThisCycle = new Set();
 
   return {
     activate() {
@@ -24,12 +26,13 @@ export function createAudioManager(initialSettings) {
       }
 
       if (activated) {
+        resumeMusicIfNeeded();
         return;
       }
 
       activated = true;
       if (settings.musicEnabled) {
-        startMusic(getStartupTrackId(), { forceRestart: true });
+        startMusic(getStartupTrackId(), { forceRestart: !musicAudio });
       }
     },
     syncSettings(nextSettings) {
@@ -38,7 +41,7 @@ export function createAudioManager(initialSettings) {
         ...settings,
         ...nextSettings,
         musicTrackId: normalizeTrackId(nextSettings?.musicTrackId ?? settings.musicTrackId),
-        musicMode: nextSettings?.musicMode ?? settings.musicMode ?? 'fixed',
+        musicMode: nextSettings?.musicMode ?? settings.musicMode ?? 'random',
       };
       const shouldSwitchTrack = currentMusicId !== settings.musicTrackId;
       currentMusicId = settings.musicTrackId;
@@ -50,7 +53,7 @@ export function createAudioManager(initialSettings) {
 
       if (musicAudio) {
         musicAudio.volume = settings.musicVolume;
-        musicAudio.loop = settings.musicMode !== 'random';
+        musicAudio.loop = isFixedMusicMode();
       }
 
       if (!activated) {
@@ -63,7 +66,7 @@ export function createAudioManager(initialSettings) {
       }
 
       if (!previousMusicEnabled && hasStartedMusic && musicAudio) {
-        musicAudio.play().catch(() => {});
+        resumeMusicIfNeeded();
         return;
       }
 
@@ -77,7 +80,7 @@ export function createAudioManager(initialSettings) {
       return startMusic(nextTrackId, { forceRestart: true });
     },
     playRandomTrack() {
-      const nextTrackId = getRandomTrackId(currentMusicId);
+      const nextTrackId = getNextShuffleTrackId() ?? getRandomTrackId(currentMusicId);
       return startMusic(nextTrackId, { forceRestart: true });
     },
     getCurrentTrackId() {
@@ -130,9 +133,9 @@ export function createAudioManager(initialSettings) {
 
     if (musicAudio && previousTrackId === track.id && !forceRestart) {
       musicAudio.volume = settings.musicVolume;
-      musicAudio.loop = settings.musicMode !== 'random';
+      musicAudio.loop = isFixedMusicMode();
       if (musicAudio.paused) {
-        musicAudio.play().catch(() => {});
+        attemptMusicPlay();
       }
       return track.id;
     }
@@ -147,7 +150,7 @@ export function createAudioManager(initialSettings) {
     musicAudio = new Audio();
     musicAudio.preload = 'auto';
     musicAudio.volume = settings.musicVolume;
-    musicAudio.loop = settings.musicMode !== 'random';
+    musicAudio.loop = isFixedMusicMode();
     musicAudio.addEventListener('ended', handleMusicEnded);
     musicAudio.addEventListener('error', handleMusicError);
     hasStartedMusic = true;
@@ -167,16 +170,17 @@ export function createAudioManager(initialSettings) {
 
     musicAudio.src = source;
     musicAudio.load();
-    musicAudio.play().catch(() => {});
+    attemptMusicPlay();
   }
 
   function handleMusicEnded() {
-    if (settings.musicMode === 'random') {
-      startMusic(getRandomTrackId(currentMusicId), { forceRestart: true });
+    if (!isFixedMusicMode()) {
+      failedTrackIdsThisCycle.clear();
+      startNextShuffleTrack();
       return;
     }
 
-    musicAudio?.play().catch(() => {});
+    attemptMusicPlay();
   }
 
   function handleMusicError() {
@@ -184,6 +188,12 @@ export function createAudioManager(initialSettings) {
     if (musicSourceIndex < (track.sources?.length ?? 0) - 1) {
       musicSourceIndex += 1;
       loadTrackSource(track);
+      return;
+    }
+
+    if (!isFixedMusicMode()) {
+      failedTrackIdsThisCycle.add(currentMusicId);
+      startNextShuffleTrack();
       return;
     }
 
@@ -213,6 +223,35 @@ export function createAudioManager(initialSettings) {
     musicAudio.pause();
   }
 
+  function resumeMusicIfNeeded() {
+    if (!settings.musicEnabled || !musicAudio || !musicAudio.paused) {
+      return;
+    }
+
+    attemptMusicPlay();
+  }
+
+  function attemptMusicPlay() {
+    if (!musicAudio || !settings.musicEnabled) {
+      return;
+    }
+
+    const playResult = musicAudio.play();
+    if (playResult?.catch) {
+      playResult.catch(() => {});
+    }
+  }
+
+  function startNextShuffleTrack() {
+    const nextTrackId = getNextShuffleTrackId(failedTrackIdsThisCycle);
+    if (!nextTrackId) {
+      stopMusic(false);
+      return null;
+    }
+
+    return startMusic(nextTrackId, { forceRestart: true });
+  }
+
   function getAdjacentTrackId(trackId, offset) {
     const currentIndex = musicTracks.findIndex((track) => track.id === normalizeTrackId(trackId));
     const nextIndex = currentIndex < 0
@@ -230,16 +269,55 @@ export function createAudioManager(initialSettings) {
     return pool[Math.floor(Math.random() * pool.length)] ?? defaultMusicTrackId;
   }
 
+  function getNextShuffleTrackId(skipIds = new Set()) {
+    if (!shuffleBag.length) {
+      const candidates = musicTracks
+        .map((track) => track.id)
+        .filter((id) => !skipIds.has(id));
+      if (!candidates.length) {
+        return null;
+      }
+      shuffleBag = shuffleTrackIds(candidates);
+      avoidImmediateShuffleRepeat(shuffleBag, currentMusicId);
+    }
+
+    return shuffleBag.shift() ?? null;
+  }
+
+  function shuffleTrackIds(trackIds) {
+    const shuffled = [...trackIds];
+    for (let index = shuffled.length - 1; index > 0; index -= 1) {
+      const swapIndex = Math.floor(Math.random() * (index + 1));
+      [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+    }
+    return shuffled;
+  }
+
+  function avoidImmediateShuffleRepeat(trackIds, previousTrackId) {
+    if (trackIds.length <= 1 || trackIds[0] !== previousTrackId) {
+      return;
+    }
+
+    const swapIndex = trackIds.findIndex((id) => id !== previousTrackId);
+    if (swapIndex > 0) {
+      [trackIds[0], trackIds[swapIndex]] = [trackIds[swapIndex], trackIds[0]];
+    }
+  }
+
   function normalizeTrackId(trackId) {
     return musicTracks.find((track) => track.id === trackId)?.id ?? defaultMusicTrackId;
   }
 
   function getStartupTrackId() {
-    if (settings.musicMode === 'random') {
-      return getRandomTrackId(currentMusicId);
+    if (!isFixedMusicMode()) {
+      return getNextShuffleTrackId() ?? getRandomTrackId(currentMusicId);
     }
 
     return currentMusicId;
+  }
+
+  function isFixedMusicMode() {
+    return settings.musicMode === 'fixed';
   }
 }
 

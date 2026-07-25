@@ -186,7 +186,7 @@ export function createInitialState() {
         sfxVolume: 0.72,
         musicVolume: 0.45,
         musicTrackId: 'ambient_day',
-        musicMode: 'fixed',
+        musicMode: 'random',
       },
       fishing: {
         biteHints: 'subtle',

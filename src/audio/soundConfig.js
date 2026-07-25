@@ -11,6 +11,20 @@ export const musicTracks = [
       assetPath('/assets/audio/music/ambient_day.mp3.mp3'),
     ],
   },
+  {
+    id: 'canal_dusk_drive',
+    labelKey: 'musicTrackCanalDuskDrive',
+    sources: [
+      assetPath('/assets/audio/music/Canal%20Dusk%20Drive.mp3'),
+    ],
+  },
+  {
+    id: 'canal_dusk_drive_2',
+    labelKey: 'musicTrackCanalDuskDrive2',
+    sources: [
+      assetPath('/assets/audio/music/Canal%20Dusk%20Drive%202.mp3'),
+    ],
+  },
 ];
 
 export function getMusicTrack(trackId) {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-25
+
+- Added `Canal Dusk Drive.mp3` and `Canal Dusk Drive 2.mp3` to the existing background-music playlist.
+- Switched default music playback for new saves to shuffle-bag random order with no immediate cycle repeat, automatic next-track advance, and safe failed-track skipping.
+- Kept the existing music on/off and volume controls, with mobile autoplay handled through the existing user-gesture audio activation path.
+
 ## 2026-07-17
 
 - Completed the deployed real-gameplay catch acceptance test on `topicua@gmail.com` / `Діма 17.07`: a normal minigame White bream catch (`3caefec7-843c-455d-baa7-0bb1c08e3b85`, 131 g) reached `server-catch-records`, appeared in the live leaderboard, survived release from the keepnet, and remained deduped.
