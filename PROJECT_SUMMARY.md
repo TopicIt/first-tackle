@@ -34,11 +34,16 @@ Verification:
 - `npm.cmd run build` passed. Output: CSS `171.18 kB`, JS `1,029.81 kB` gzip `275.87 kB`; the existing Vite >500 kB warning remains.
 - `dist/assets/audio/music` contains `ambient_day.mp3`, `Canal Dusk Drive.mp3`, and `Canal Dusk Drive 2.mp3`, with no optimized duplicate Canal copies.
 - Built JS contains both Canal playlist entries and encoded paths `/assets/audio/music/Canal%20Dusk%20Drive.mp3` and `/assets/audio/music/Canal%20Dusk%20Drive%202.mp3`.
+- Frontend merge commit `4c6214a` (`merge: canal music playlist pass`) was pushed to `main`.
+- GitHub Pages workflow run `30136429976` completed successfully for `4c6214a`.
+- Live URL `https://topicit.github.io/first-tackle/` returned HTTP 200; deployed JS `assets/index-Br4CTDnA.js` returned HTTP 200 and contained both Canal playlist paths.
+- Live audio URLs returned HTTP 200 with matching content lengths: `Canal%20Dusk%20Drive.mp3` `6,498,580` bytes and `Canal%20Dusk%20Drive%202.mp3` `5,290,900` bytes.
+- Browser automation playback smoke was attempted with Playwright. The library was available, but the bundled browser was not installed and launching the system Chrome from this managed environment failed with `EPERM`, so real live audio playback could not be automated here.
 
 Remaining risks:
 
 - Physical iPhone Safari remains the final authority for real autoplay/predictive-keyboard/browser audio lifecycle behavior.
-- Live GitHub Pages deployment and live audio URL verification are pending until this branch is merged and pushed to `main`.
+- Real browser playback should still be tapped once on physical Chrome/iPhone Safari to confirm device-specific autoplay and audio-output behavior.
 
 ## Real Gameplay Leaderboard And Broken Rod Fix
 
